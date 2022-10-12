@@ -1,0 +1,3 @@
+-e git+https://github.com/databio/bedstat@dev-alex#egg=bedstat
+-e git+https://github.com/databio/bedmaker@dev#egg=bedmaker
+logmuse>=0.2.7
