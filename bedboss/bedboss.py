@@ -1,6 +1,70 @@
 import bedstat
 from bedmaker import BedMaker
 import os
+from const import *
+from exeptions import OSMException, GenomeException
+import urllib.request
+import logmuse
+from typing import NoReturn
+
+
+_LOGGER = logmuse.init_logger(name="bedboss")
+
+
+def download_file(url: str, path: str) -> NoReturn:
+    """
+    Download file from the url to specific location
+    :param url: URL of the file
+    :param path: Local path with filename
+    :return: NoReturn
+    """
+    _LOGGER.info(f"Downloading file: {url}")
+    _LOGGER.info(f"Downloading location: {path}")
+    urllib.request.urlretrieve(url, path)
+    _LOGGER.info(f"File has been downloaded successfully!")
+
+
+def get_osm_path(genome: str) -> str:
+    """
+    By providing genome name download Open Signal Matrix
+    :param genome: genome assembly
+    :return: path to the Open Signal Matrix
+    """
+    _LOGGER.info(f"Getting Open Signal Matrix file path...")
+    if genome == "hg19":
+        osm_name = OS_HG19
+    elif genome == "hg38":
+        osm_name = OS_HG38
+    elif genome == "mm10":
+        osm_name = OS_MM10
+    else:
+        raise OSMException(
+            "For this genome open Signal Matrix was not found. Exiting..."
+        )
+    osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
+    if not os.path.exists(osm_path):
+        if not os.path.exists(OPEN_SIGNAL_FOLDER):
+            os.makedirs(OPEN_SIGNAL_FOLDER)
+        download_file(url=f"{OPEN_SIGNAL_URL}{osm_name}", path=osm_path)
+    return osm_path
+
+
+def standard_genome_name(input_genome: str) -> str:
+    """
+    Standardizing user provided genome
+    :param input_genome: standardize user provided genome, so bedboss know what genome
+    we should use
+    :return: genome name string
+    """
+    _LOGGER.info(f"processing genome name...")
+    input_genome = input_genome.strip()
+    # TODO: we have to add more genome options and preprocessing of the string
+    if input_genome == "hg38" or input_genome == "GRCh38":
+        return "hg38"
+    elif input_genome == "hg19" or input_genome == "GRCh37":
+        return "hg19"
+    else:
+        raise GenomeException("Incorrect genome assembly was provided")
 
 
 def run_bedboss(
@@ -10,17 +74,17 @@ def run_bedboss(
     output_folder: str,
     genome: str,
     bedbase_config: str,
-    open_signal_matrix: str = None,
-    ensdb: str = None,
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
-    sample_yaml: str = None,
     standard_chrom: bool = False,
     chrom_sizes: str = None,
+    open_signal_matrix: str = None,
+    ensdb: str = None,
+    sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
-):
+) -> NoReturn:
     """
     Running bedmaker, bedqc and bedstat in one package
     :param sample_name: Sample name [required]
@@ -28,71 +92,83 @@ def run_bedboss(
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
     :param output_folder: Folder, where output should be saved  [required]
     :param genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
-    :param bedbase_config: a path to the bedbase configuration file.[required] #TODO: add example
-    :param open_signal_matrix:
-    :param ensdb:
-    :param rfg_config:
-    :param narrowpeak:
-    :param check_qc:
-    :param sample_yaml:
-    :param standard_chrom:
-    :param chrom_sizes:
-    :param just_db_commit:
-    :param no_db_commit:
-    :return: NoReturn??
+    :param bedbase_config: a path to the bedbase configuration file. [required] #TODO: add example
+    :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
+    :param rfg_config: file path to the genome config file [optional]
+    :param narrowpeak: whether the regions are narrow
+        (transcription factor implies narrow, histone mark implies broad peaks) [optional]
+    :param check_qc: set True to run quality control during badmaking [optional] (default: True)
+    :param standard_chrom: Standardize chromosome names. [optional] (Default: False)
+    :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
+    :param sample_yaml: a yaml config file with sample attributes to pass on MORE METADATA into the database [optional]
+    :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
+        (basically genomes that's not in GDdata)
+    :param just_db_commit: whether just to commit the JSON to the database (default: False)
+    :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :return: NoReturn
     """
+    genome = standard_genome_name(genome)
     cwd = os.getcwd()
     if not rfg_config:
         rfg_config = os.path.join(cwd, "genome_config.yaml")
 
+    # find/download open signal matrix
     if not open_signal_matrix:
-        if genome == "hg19":
-            open_signal_matrix = "./openSignalMatrix/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
-        if genome == "hg38":
-            open_signal_matrix = "./openSignalMatrix/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
+        open_signal_matrix = get_osm_path(genome)
+    else:
+        if not os.path.exists(open_signal_matrix):
+            open_signal_matrix = get_osm_path(genome)
 
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"
 
-
     output_bed = os.path.join(output_folder, "files_bed", f"{sample_name}.bed.gz")
     output_bigbed = os.path.join(output_folder, "files_bigbed")
 
+    BedMaker(
+        input_file=input_file,
+        input_type=input_type,
+        output_bed=output_bed,
+        output_bigbed=output_bigbed,
+        sample_name=sample_name,
+        genome=genome,
+        rfg_config=rfg_config,
+        narrowpeak=narrowpeak,
+        check_qc=check_qc,
+        standard_chrom=standard_chrom,
+        chrom_sizes=chrom_sizes,
+    ).make()
 
-    BedMaker(input_file=input_file,
-             input_type=input_type,
-             output_bed=output_bed,
-             output_bigbed=output_bigbed,
-             sample_name=sample_name,
-             genome=genome,
-             rfg_config=rfg_config,
-             narrowpeak=narrowpeak,
-             check_qc=check_qc,
-             standard_chrom=standard_chrom,
-             chrom_sizes=chrom_sizes,
-             ).make()
-
-    bedstat.Bedstat.run_bedstat(bedfile=output_bed,
-                        bigbed=output_bigbed,
-                        genome_assembly=genome,
-                        ensdb=ensdb,
-                        open_signal_matrix=open_signal_matrix,
-                        bedbase_config=bedbase_config,
-                        sample_yaml=sample_yaml,
-                        just_db_commit=just_db_commit,
-                        no_db_commit=no_db_commit,
-                        )
+    bedstat.Bedstat.run_bedstat(
+        bedfile=output_bed,
+        bigbed=output_bigbed,
+        genome_assembly=genome,
+        ensdb=ensdb,
+        open_signal_matrix=open_signal_matrix,
+        bedbase_config=bedbase_config,
+        sample_yaml=sample_yaml,
+        just_db_commit=just_db_commit,
+        no_db_commit=no_db_commit,
+    )
 
 
-#--input-file /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz --output-bed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bed_files/AML_db1.bed.gz --output-bigbed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bigbed_files --narrowpeak True --input-type bed --genome hg38 --rfg-config genome_config.yaml --sample-name AML_db1
+# --input-file /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz --output-bed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bed_files/AML_db1.bed.gz --output-bigbed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bigbed_files --narrowpeak True --input-type bed --genome hg38 --rfg-config genome_config.yaml --sample-name AML_db1
 
 # bedstat --bedfile /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bed_files/AML_db1.bed.gz --genome hg38 --sample-yaml ./AML_db1_sample.yaml  --bedbase-config /home/bnt4me/Virginia/repos/bedstat/tests/config_db_local.yaml   --open-signal-matrix /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz   --bigbed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bigbed_files
 
-run_bedboss(sample_name="new",
-            input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
-            input_type="bed",
-            output_folder="../test_f",
-            genome="hg38",
-            rfg_config="../test_f/cfg.yaml",
-            bedbase_config="/home/bnt4me/Virginia/repos/bedboss/bedboss/config_db_local.yaml",
-            )
+run_bedboss(
+    sample_name="new",
+    input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
+    input_type="bed",
+    output_folder="../test_f",
+    genome="hg38",
+    rfg_config="../test_f/cfg.yaml",
+    bedbase_config="/home/bnt4me/Virginia/repos/bedboss/bedboss/config_db_local.yaml",
+)
+
+
+def _parse_cmdl():
+    parser = ArgumentParser(
+        description="A pipeline to read a file in BED format and produce metadata "
+        "in JSON format."
+    )
