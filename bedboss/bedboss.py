@@ -129,6 +129,9 @@ def run_bedboss(
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
+    # set env for bedstat:
+    os.environ['$BEDBOSS_OUTPUT_PATH'] = output_folder
+
     BedMaker(
         input_file=input_file,
         input_type=input_type,
@@ -143,7 +146,7 @@ def run_bedboss(
         chrom_sizes=chrom_sizes,
     ).make()
 
-    bedstat.Bedstat.run_bedstat(
+    bedstat.run_bedstat(
         bedfile=output_bed,
         bigbed=output_bigbed,
         genome_assembly=genome,
