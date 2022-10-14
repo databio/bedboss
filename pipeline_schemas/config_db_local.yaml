@@ -1,6 +1,6 @@
 path:
   pipeline_output_path: $BEDBOSS_OUTPUT_PATH
-  bedstat_dir: $BEDBOSS_OUTPUT_PATH/bedstat_output
+  bedstat_dir: bedstat_output
   bedbuncher_dir: $BEDBOSS_OUTPUT_PATH/bedbuncher_output
   remote_url_base: null
 database:

@@ -130,7 +130,7 @@ def run_bedboss(
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
     # set env for bedstat:
-    os.environ['$BEDBOSS_OUTPUT_PATH'] = output_folder
+    os.environ['BEDBOSS_OUTPUT_PATH'] = output_folder
 
     BedMaker(
         input_file=input_file,
