@@ -11,7 +11,8 @@ import sys
 
 
 _LOGGER = logmuse.init_logger(name="bedboss")
-
+BED_FOLDER_NAME = "bed_files"
+BIGBED_FOLDER_NAME = "bigbed_files"
 
 def download_file(url: str, path: str) -> NoReturn:
     """
@@ -69,6 +70,16 @@ def standard_genome_name(input_genome: str) -> str:
         raise GenomeException("Incorrect genome assembly was provided")
 
 
+def extract_file_name(file_path: str) -> str:
+    """
+    Extraction file name from file path
+    :param file_path: full file path
+    :return: file name without extension
+    """
+    file_name = os.path.basename(file_path)
+    file_name = file_name.split('.')[0]
+    return file_name
+
 def run_bedboss(
     sample_name: str,
     input_file: str,
@@ -109,6 +120,8 @@ def run_bedboss(
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :return: NoReturn
     """
+
+    file_name = extract_file_name(input_file)
     genome = standard_genome_name(genome)
     cwd = os.getcwd()
     if not rfg_config:
@@ -124,8 +137,8 @@ def run_bedboss(
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"
 
-    output_bed = os.path.join(output_folder, "files_bed", f"{sample_name}.bed.gz")
-    output_bigbed = os.path.join(output_folder, "files_bigbed")
+    output_bed = os.path.join(output_folder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
+    output_bigbed = os.path.join(output_folder, BIGBED_FOLDER_NAME)
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
@@ -157,11 +170,6 @@ def run_bedboss(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
     )
-
-
-# --input-file /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz --output-bed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bed_files/AML_db1.bed.gz --output-bigbed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bigbed_files --narrowpeak True --input-type bed --genome hg38 --rfg-config genome_config.yaml --sample-name AML_db1
-
-# bedstat --bedfile /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bed_files/AML_db1.bed.gz --genome hg38 --sample-yaml ./AML_db1_sample.yaml  --bedbase-config /home/bnt4me/Virginia/repos/bedstat/tests/config_db_local.yaml   --open-signal-matrix /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz   --bigbed /home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/bigbed_files
 
 # run_bedboss(
 #     sample_name="new",
