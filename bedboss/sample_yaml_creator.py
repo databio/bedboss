@@ -3,7 +3,8 @@ import yaml
 import logmuse
 import os
 from typing import NoReturn
-
+from argparse import ArgumentParser
+import sys
 
 _LOGGER = logmuse.init_logger(name="yaml_creator")
 
@@ -47,4 +48,44 @@ def create_sample_yaml(sample_csv_path: str, output_path: str, columns: list = N
 # example
 # create_sample_yaml("/home/bnt4me/Virginia/repos/bedbase/docs_jupyter/bedbase_tutorial/bedbase/tutorial_files/bedboss/bedstat_annotation_sheet.csv",
 #                    "../test_f2/meta", columns=["GSE","GSM"])
+def _parse_cmdl():
+    parser = ArgumentParser(
+        description="Create yaml's with metadata",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help="sample file (csv)",
+        type=str,
+    )
+    parser.add_argument(
+        "-f",
+        "--folder",
+        required=True,
+        help="sample file (csv)",
+    )
+    parser.add_argument(
+        "-c",
+        "--columns",
+        required=False,
+        help="Columns, that you want to save. Enter column type: 'col1, col2, col3'",
+    )
+
+    args = parser.parse_args(sys.argv[1:])
+    return args
+
+
+def main():
+    args = _parse_cmdl()
+    args_dict = vars(args)
+    create_sample_yaml(sample_csv_path=args_dict["input"], output_path=args_dict["folder"])
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("Pipeline aborted.")
+        sys.exit(1)
 
