@@ -1,1 +1,3 @@
 logmuse>=0.2.7
+peppy>=0.35.2
+yacman>=0.8.4
