@@ -142,8 +142,10 @@ def run_bedboss(
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
+    # TODO: should we keep bed and bigfiles in output folder?
     # set env for bedstat:
-    os.environ['BEDBOSS_OUTPUT_PATH'] = output_folder
+    output_folder_bedstat = os.path.join(output_folder, "output")
+    os.environ['BEDBOSS_OUTPUT_PATH'] = output_folder_bedstat
 
     BedMaker(
         input_file=input_file,
