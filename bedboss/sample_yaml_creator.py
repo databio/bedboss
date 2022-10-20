@@ -19,11 +19,13 @@ def save_yaml_form_dict(info_dict: dict, full_path: str, name: str) -> NoReturn:
     if not os.path.isdir(full_path):
         os.makedirs(full_path)
     path_name = os.path.join(full_path, f"{name}.yaml")
-    with open(path_name, 'w+') as f:
+    with open(path_name, "w+") as f:
         yaml.dump(info_dict, f)
 
 
-def create_sample_yaml(sample_csv_path: str, output_path: str, columns: list = None) -> NoReturn:
+def create_sample_yaml(
+    sample_csv_path: str, output_path: str, columns: list = None
+) -> NoReturn:
     """
     Creating sample yaml out of sample csv
     :param sample_csv_path:
@@ -43,7 +45,8 @@ def create_sample_yaml(sample_csv_path: str, output_path: str, columns: list = N
                     _LOGGER.warning(f"No '{col}' column was found!")
         else:
             sample_dict = s_dict
-        save_yaml_form_dict(sample_dict, output_path, s['sample_name'])
+        save_yaml_form_dict(sample_dict, output_path, s["sample_name"])
+
 
 # example
 # create_sample_yaml("/home/bnt4me/Virginia/repos/bedbase/docs_jupyter/bedbase_tutorial/bedbase/tutorial_files/bedboss/bedstat_annotation_sheet.csv",
@@ -79,7 +82,9 @@ def _parse_cmdl():
 def main():
     args = _parse_cmdl()
     args_dict = vars(args)
-    create_sample_yaml(sample_csv_path=args_dict["input"], output_path=args_dict["folder"])
+    create_sample_yaml(
+        sample_csv_path=args_dict["input"], output_path=args_dict["folder"]
+    )
 
 
 if __name__ == "__main__":
@@ -88,4 +93,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Pipeline aborted.")
         sys.exit(1)
-

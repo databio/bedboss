@@ -14,6 +14,7 @@ _LOGGER = logmuse.init_logger(name="bedboss")
 BED_FOLDER_NAME = "bed_files"
 BIGBED_FOLDER_NAME = "bigbed_files"
 
+
 def download_file(url: str, path: str) -> NoReturn:
     """
     Download file from the url to specific location
@@ -79,7 +80,7 @@ def extract_file_name(file_path: str) -> str:
     :return: file name without extension
     """
     file_name = os.path.basename(file_path)
-    file_name = file_name.split('.')[0]
+    file_name = file_name.split(".")[0]
     return file_name
 
 
@@ -148,7 +149,7 @@ def run_bedboss(
     # TODO: should we keep bed and bigfiles in output folder?
     # set env for bedstat:
     output_folder_bedstat = os.path.join(output_folder, "output")
-    os.environ['BEDBOSS_OUTPUT_PATH'] = output_folder_bedstat
+    os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
 
     BedMaker(
         input_file=input_file,
@@ -176,6 +177,7 @@ def run_bedboss(
         no_db_commit=no_db_commit,
     )
 
+
 # run_bedboss(
 #     sample_name="new",
 #     input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
@@ -191,7 +193,7 @@ def run_bedboss(
 def _parse_cmdl():
     parser = ArgumentParser(
         description="Running bedmaker, bedqc and bedstat in one package."
-                    "And uploading all data to the bedbase db",
+        "And uploading all data to the bedbase db",
         usage="""e.g.
 sample_name="new",
 input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
@@ -201,7 +203,8 @@ genome="hg38",
 rfg_config="../test_f/cfg_test.yaml",
 bedbase_config="/home/bnt4me/Virginia/repos/bedboss/bedboss/config_db_local.yaml",
 chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb4774114bfa966a62f823fdb6d21acf138d4/fasta/default"
-""")
+""",
+    )
     parser.add_argument(
         "-s",
         "--sample-name",
@@ -210,11 +213,7 @@ chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb477411
         type=str,
     )
     parser.add_argument(
-        "-f",
-        "--input-file",
-        required=True,
-        help="Input file",
-        type=str
+        "-f", "--input-file", required=True, help="Input file", type=str
     )
     parser.add_argument(
         "-t",
@@ -224,17 +223,11 @@ chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb477411
         type=str,
     )
     parser.add_argument(
-        "-o",
-        "--output_folder",
-        required=True,
-        help="Output folder",
-        type=str)
+        "-o", "--output_folder", required=True, help="Output folder", type=str
+    )
     parser.add_argument(
-        "-g",
-        "--genome",
-        required=True,
-        help="reference genome",
-        type=str)
+        "-g", "--genome", required=True, help="reference genome", type=str
+    )
     parser.add_argument(
         "-r",
         "--rfg-config",
