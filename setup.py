@@ -56,7 +56,7 @@ setup(
     entry_points={
         "console_scripts": [
             "bedboss = bedboss.bedboss:main",
-            "yamlcreate = bedboss.sample_yaml_creator:main"
+            # "yamlcreate = bedboss.sample_yaml_creator:main"
         ],
     },
     package_data={PACKAGE: ["templates/*"]},
