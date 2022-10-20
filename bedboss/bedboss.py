@@ -95,6 +95,7 @@ def run_bedboss(
     open_signal_matrix: str = None,
     ensdb: str = None,
     sample_yaml: str = None,
+    schema: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
 ) -> NoReturn:
@@ -114,6 +115,7 @@ def run_bedboss(
     :param standard_chrom: Standardize chromosome names. [optional] (Default: False)
     :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
     :param sample_yaml: a yaml config file with sample attributes to pass on MORE METADATA into the database [optional]
+    :param schema: schema for the sample table [optional]
     :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
@@ -169,6 +171,7 @@ def run_bedboss(
         open_signal_matrix=open_signal_matrix,
         bedbase_config=bedbase_config,
         sample_yaml=sample_yaml,
+        schema=schema
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
     )
@@ -292,6 +295,13 @@ chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb477411
         required=False,
         help="a yaml config file with sample attributes to pass on more metadata "
         "into the database",
+    )
+    parser.add_argument(
+        "--schema",
+        dest="schema",
+        type=str,
+        required=False,
+        help="schema for the sample table",
     )
     parser.add_argument(
         "--no-db-commit",
