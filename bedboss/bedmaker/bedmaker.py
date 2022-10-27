@@ -275,12 +275,12 @@ class BedMaker:
             bedtype = self.get_bed_type(self.output_bed)
             self.pm.clean_add(temp)
 
-            if not is_command_callable("bedToBigBed"):
-                raise SystemExit(
-                    "To convert bed to BigBed file You must first install the bedToBigBed tool, "
-                    "with bigBedToBed in your PATH. Instruction: "
-                    "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
-                )
+            # if not is_command_callable("bedToBigBed"):
+                # raise SystemExit(
+                #     "To convert bed to BigBed file You must first install the bedToBigBed tool, "
+                #     "with bigBedToBed in your PATH. Instruction: "
+                #     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
+                # )
             if bedtype is not None:
                 cmd = "zcat " + self.output_bed + "  | sort -k1,1 -k2,2n > " + temp
                 self.pm.run(cmd, temp)

@@ -51,8 +51,7 @@ def run_bedqc(
     # run script
     script_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "bedboss",
-        "bedqc",
+        "bedmaker",
         "est_line.sh",
     )
     assert os.path.exists(script_path), FileNotFoundError(
