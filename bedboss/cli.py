@@ -1,16 +1,18 @@
 from argparse import ArgumentParser
 import sys
 import pypiper
-from bedboss import *
-from bedstat.bedstat import *
-from bedmaker.bedmaker import BedMaker
-from bedmaker.bedqc import *
+from .bedboss import *
+from .bedstat.bedstat import *
+from .bedmaker.bedmaker import BedMaker
+from .bedmaker.bedqc import *
+from ._version import __version__
 
 
 class ParseOpt(object):
     def __init__(self):
         parser = ArgumentParser(
-            description="A pipeline to convert bigwig or bedgraph files into bed format",
+            description="Warehouse of region-based file pipelines, "
+                        "which includes bedmaker, bedstat and bedqc pipelines.",
             usage="""bedmaker <command> [<args>]
 
 The commands used in bedmaker are:
@@ -20,11 +22,15 @@ The commands used in bedmaker are:
     stat        Run statistic calculation (bedstat)
 """,
         )
+        parser.add_argument(
+            "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+        )
         parser.add_argument("command", help="Subcommand to run")
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command):
             print("Unrecognized command, running bedmaker")
-            self.make()
+            parser.print_help()
+            return
         getattr(self, args.command)()
 
     @staticmethod
@@ -230,14 +236,8 @@ The commands used in bedmaker are:
         parser.add_argument(
             "--outfolder", help="a full path to output folder", required=True
         )
-
-        parser = pypiper.add_pypiper_args(
-            parser, groups=["pypiper", "common", "looper", "ngs"]
-        )
         args = parser.parse_args(sys.argv[2:])
-        bedfile = args.bedfile
-        outfolder = args.outfolder
-        run_bedqc(bedfile, outfolder)
+        run_bedqc(args.bedfile, args.outfolder)
 
     @staticmethod
     def stat():
