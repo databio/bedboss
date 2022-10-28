@@ -12,7 +12,7 @@ class ParseOpt(object):
     def __init__(self):
         parser = ArgumentParser(
             description="Warehouse of region-based file pipelines, "
-                        "which includes bedmaker, bedstat and bedqc pipelines.",
+            "which includes bedmaker, bedstat and bedqc pipelines.",
             usage="""bedmaker <command> [<args>]
 
 The commands used in bedmaker are:
