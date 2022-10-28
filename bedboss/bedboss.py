@@ -1,13 +1,14 @@
-import bedstat
-from bedmaker import BedMaker
 import os
-from .const import *
-from .exceptions import OSMException, GenomeException
 import urllib.request
 import logmuse
-from typing import NoReturn
+from typing import NoReturn, Union
 from argparse import ArgumentParser
 import sys
+
+from .bedstat.bedstat import run_bedstat
+from .bedmaker.bedmaker import BedMaker
+from .const import *
+from .exceptions import OSMException, GenomeException
 
 
 _LOGGER = logmuse.init_logger(name="bedboss")
@@ -28,7 +29,7 @@ def download_file(url: str, path: str) -> NoReturn:
     _LOGGER.info(f"File has been downloaded successfully!")
 
 
-def get_osm_path(genome: str) -> str:
+def get_osm_path(genome: str) -> Union[str, None]:
     """
     By providing genome name download Open Signal Matrix
     :param genome: genome assembly
@@ -42,9 +43,10 @@ def get_osm_path(genome: str) -> str:
     elif genome == "mm10":
         osm_name = OS_MM10
     else:
-        raise OSMException(
-            "For this genome open Signal Matrix was not found. Exiting..."
-        )
+        # raise OSMException(
+        #     "For this genome open Signal Matrix was not found. Exiting..."
+        # )
+        return None
     osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
@@ -69,8 +71,10 @@ def standard_genome_name(input_genome: str) -> str:
         return "hg19"
     elif input_genome == "mm10":
         return "mm10"
+    # else:
+    #     raise GenomeException("Incorrect genome assembly was provided")
     else:
-        raise GenomeException("Incorrect genome assembly was provided")
+        return input()
 
 
 def extract_file_name(file_path: str) -> str:
@@ -165,7 +169,7 @@ def run_bedboss(
         chrom_sizes=chrom_sizes,
     ).make()
 
-    bedstat.run_bedstat(
+    run_bedstat(
         bedfile=output_bed,
         bigbed=output_bigbed,
         genome_assembly=genome,
@@ -176,143 +180,3 @@ def run_bedboss(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
     )
-
-
-# run_bedboss(
-#     sample_name="new",
-#     input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
-#     input_type="bed",
-#     output_folder="../test_f",
-#     genome="hg38",
-#     rfg_config="../test_f/cfg_test.yaml",
-#     bedbase_config="/home/bnt4me/Virginia/repos/bedboss/bedboss/config_db_local.yaml",
-#     chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb4774114bfa966a62f823fdb6d21acf138d4/fasta/default"
-# )
-
-
-def _parse_cmdl():
-    parser = ArgumentParser(
-        description="Running bedmaker, bedqc and bedstat in one package."
-        "And uploading all data to the bedbase db",
-        usage="""e.g.
-sample_name="new",
-input_file="/home/bnt4me/Virginia/bed_base_all/bedbase/bedbase_tutorial/files/hg38/AML_db1.bed.gz",
-input_type="bed",
-output_folder="../test_f",
-genome="hg38",
-rfg_config="../test_f/cfg_test.yaml",
-bedbase_config="/home/bnt4me/Virginia/repos/bedboss/bedboss/config_db_local.yaml",
-chrom_sizes="/home/bnt4me/Virginia/repos/bedboss/test_f/data/2230c535660fb4774114bfa966a62f823fdb6d21acf138d4/fasta/default"
-""",
-    )
-    parser.add_argument(
-        "-s",
-        "--sample-name",
-        required=True,
-        help="name of the sample used to systematically build the output name",
-        type=str,
-    )
-    parser.add_argument(
-        "-f", "--input-file", required=True, help="Input file", type=str
-    )
-    parser.add_argument(
-        "-t",
-        "--input-type",
-        required=True,
-        help="Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)",
-        type=str,
-    )
-    parser.add_argument(
-        "-o", "--output_folder", required=True, help="Output folder", type=str
-    )
-    parser.add_argument(
-        "-g", "--genome", required=True, help="reference genome", type=str
-    )
-    parser.add_argument(
-        "-r",
-        "--rfg-config",
-        required=False,
-        help="file path to the genome config file",
-        type=str,
-    )
-    parser.add_argument(
-        "--chrom-sizes",
-        help="a full path to the chrom.sizes required for the bedtobigbed conversion",
-        type=str,
-        required=False,
-    )
-    parser.add_argument(
-        "-n",
-        "--narrowpeak",
-        help="whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks)",
-        type=bool,
-        required=False,
-    )
-    parser.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--check-qc",
-        help="Standardize chromosome names. Default: True",
-        action="store_false",
-    )
-    parser.add_argument(
-        "--open-signal-matrix",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the openSignalMatrix required for the tissue "
-        "specificity plots",
-    )
-    parser.add_argument(
-        "--ensdb",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
-    parser.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        help="a path to the bedbase configuration file",
-        required=True,
-    )
-    parser.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
-        required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
-    )
-    parser.add_argument(
-        "--no-db-commit",
-        action="store_true",
-        help="whether the JSON commit to the database should be skipped",
-    )
-    parser.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="whether just to commit the JSON to the database",
-    )
-    args = parser.parse_args(sys.argv[1:])
-
-    return args
-
-
-def main():
-    args = _parse_cmdl()
-    args_dict = vars(args)
-    run_bedboss(**args_dict)
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        print("Pipeline aborted.")
-        sys.exit(1)

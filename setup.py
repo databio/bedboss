@@ -55,7 +55,7 @@ setup(
     license="BSD2",
     entry_points={
         "console_scripts": [
-            "bedboss = bedboss.bedboss:main",
+            "bedboss = bedboss.cli:main",
             # "yamlcreate = bedboss.sample_yaml_creator:main"
         ],
     },
