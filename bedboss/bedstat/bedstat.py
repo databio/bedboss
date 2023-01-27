@@ -7,15 +7,12 @@ from hashlib import md5
 import json
 import yaml
 import os
-import sys
-import warnings
-import tempfile
 import requests
 import gzip
 
 import pypiper
 import bbconf
-import time
+
 
 
 SCHEMA_PATH = os.path.join(
@@ -213,89 +210,3 @@ def run_bedstat(
             del plot["name"]
             data.update({plot_id: plot})
         bbc.bed.report(record_identifier=bed_digest, values=data)
-
-
-def _parse_cmdl():
-    parser = ArgumentParser(
-        description="A pipeline to read a file in BED format and produce metadata "
-        "in JSON format."
-    )
-    parser.add_argument(
-        "--bedfile", help="a full path to bed file to process", required=True
-    )
-    parser.add_argument(
-        "--open-signal-matrix",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the openSignalMatrix required for the tissue "
-        "specificity plots",
-    )
-
-    parser.add_argument(
-        "--ensdb",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
-
-    parser.add_argument(
-        "--bigbed",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the bigbed files",
-    )
-
-    parser.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        default=None,
-        help="a path to the bedbase configuration file",
-    )
-    parser.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
-        required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
-    )
-    parser.add_argument(
-        "--genome",
-        dest="genome_assembly",
-        type=str,
-        required=True,
-        help="genome assembly of the sample",
-    )
-    exclusive_group = parser.add_mutually_exclusive_group()
-    exclusive_group.add_argument(
-        "--no-db-commit",
-        action="store_true",
-        help="whether the JSON commit to the database should be skipped",
-    )
-    exclusive_group.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="whether just to commit the JSON to the database",
-    )
-    args = parser.parse_args(sys.argv[1:])
-
-    return args
-
-
-def main():
-    args = _parse_cmdl()
-    args_dict = vars(args)
-    run_bedstat(**args_dict)
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        print("Pipeline aborted.")
-        sys.exit(1)
