@@ -97,6 +97,3 @@ def bedqc(
 
     pm.stop_pipeline()
     return True
-
-if __name__ == "__main__":
-    bedqc("/home/bnt4me/virginia/bedbase/files/1.bed.gz","/home/bnt4me/virginia/bedbase/files2")

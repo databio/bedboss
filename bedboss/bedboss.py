@@ -14,7 +14,7 @@ from .const import (
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
 )
-from utils import extract_file_name, standardize_genome_name, download_file
+from .utils import extract_file_name, standardize_genome_name, download_file
 from .exceptions import OSMException, GenomeException
 
 _LOGGER = logging.getLogger("bedboss")

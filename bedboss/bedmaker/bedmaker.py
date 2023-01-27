@@ -30,6 +30,7 @@ from bedboss.const import (
     GZIP_TEMPLATE,
     STANDARD_CHROM_LIST,
     BED_TO_BIGBED_PROGRAM,
+    BIGBED_TO_BED_PROGRAM,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -178,24 +179,26 @@ class BedMaker:
                 self.pm.clean_add(input_file)
 
             if self.input_type == "bedGraph":
-                cmd = BEDGRAPH_TEMPLATE.format(
-                    input=self.input_file, output=temp_bed_path, width=self.width
-                )
                 if not is_command_callable("macs2"):
                     raise SystemExit(
                         "To convert bedGraph file You must first install the macs2 tool, "
                         "and add it to your PATH. Instruction: "
                         "https://pypi.org/project/MACS2/"
                     )
+                else:
+                    cmd = BEDGRAPH_TEMPLATE.format(
+                        input=self.input_file, output=temp_bed_path, width=self.width
+                    )
             elif self.input_type == "bigWig":
-                cmd = BIGWIG_TEMPLATE.format(
-                    input=self.input_file, output=temp_bed_path, width=self.width
-                )
                 if not is_command_callable("bigWigToBedGraph"):
                     raise SystemExit(
                         "To convert bigWig file You must first install the bigWigToBedGraph tool, "
                         "with bigWigToBedGraph in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
+                    )
+                else:
+                    cmd = BIGWIG_TEMPLATE.format(
+                        input=self.input_file, output=temp_bed_path, width=self.width
                     )
             elif self.input_type == "wig":
 
@@ -203,38 +206,42 @@ class BedMaker:
 
                 # define a target for temporary bw files
                 temp_target = os.path.join(self.bed_parent, self.file_id + ".bw")
-                self.pm.clean_add(temp_target)
-                cmd1 = WIG_TEMPLATE.format(
-                    input=self.input_file,
-                    intermediate_bw=temp_target,
-                    chrom_sizes=chrom_sizes,
-                    width=self.width,
-                )
                 if not is_command_callable("wigToBigWig"):
                     raise SystemExit(
                         "To convert wig file You must first install the wigToBigWig tool, "
                         "with wigToBigWig in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
                     )
-                cmd2 = BIGWIG_TEMPLATE.format(
-                    input=temp_target, output=temp_bed_path, width=self.width
-                )
-                cmd = [cmd1, cmd2]
+                else:
+                    self.pm.clean_add(temp_target)
+                    cmd1 = WIG_TEMPLATE.format(
+                        input=self.input_file,
+                        intermediate_bw=temp_target,
+                        chrom_sizes=chrom_sizes,
+                        width=self.width,
+                    )
+
                 if not is_command_callable("bigWigToBedGraph"):
                     raise SystemExit(
                         "To convert bigWig file You must first install the bigWigToBedGraph tool, "
                         "with bigWigToBedGraph in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
                     )
+                else:
+                    cmd2 = BIGWIG_TEMPLATE.format(
+                        input=temp_target, output=temp_bed_path, width=self.width
+                    )
+                    cmd = [cmd1, cmd2]
             elif self.input_type == "bigBed":
-                cmd = BIGBED_TEMPLATE.format(
-                    input=self.input_file, output=temp_bed_path
-                )
-                if not is_command_callable("bigBedToBed"):
+                if not is_command_callable(BIGBED_TO_BED_PROGRAM):
                     raise SystemExit(
                         "To convert bigBed file You must first install the bigBedToBed tool, "
                         "with bigBedToBed in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
+                    )
+                else:
+                    cmd = BIGBED_TEMPLATE.format(
+                        input=self.input_file, output=temp_bed_path
                     )
             else:
                 raise NotImplementedError(

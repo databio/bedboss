@@ -10,14 +10,15 @@ BIGBED_FOLDER_NAME = "bigbed_files"
 
 # bedmaker
 
-BED_TO_BIGBED_PROGRAM = "./bedToBigBed"
+BED_TO_BIGBED_PROGRAM = "bedToBigBed"
+BIGBED_TO_BED_PROGRAM = "bigBedToBed"
 
 
 # COMMANDS TEMPLATES
 # bedGraph to bed
 BEDGRAPH_TEMPLATE = "macs2 {width} -i {input} -o {output}"
 # bigBed to bed
-BIGBED_TEMPLATE = "bigBedToBed {input} {output}"
+BIGBED_TEMPLATE = f"{BIGBED_TO_BED_PROGRAM} {{input}} {{output}}"
 # bigWig to bed
 BIGWIG_TEMPLATE = (
     "bigWigToBedGraph {input} /dev/stdout | macs2 {width} -i /dev/stdin -o {output}"

@@ -1,11 +1,11 @@
-# from argparse import ArgumentParser
-# import sys
-# import pypiper
+from argparse import ArgumentParser
+import sys
+import pypiper
 
-from bedboss.bedboss import *
-from bedboss.bedstat.bedstat import *
+from bedboss.bedboss import run_bedboss
+from bedboss.bedstat.bedstat import run_bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
-from bedboss.bedqc.bedqc import *
+from bedboss.bedqc.bedqc import bedqc
 from bedboss import __version__
 
 
@@ -13,12 +13,12 @@ class ParseOpt(object):
     def __init__(self):
         parser = ArgumentParser(
             description="Warehouse of region-based file pipelines, "
-            "which includes bedmaker, bedstat and bedqc pipelines.",
-            usage="""bedmaker <command> [<args>]
+            "which includes bedmaker, bedstat and bedqc.",
+            usage="""bedboss <command> [<args>]
 
 The commands used in bedmaker are:
-    run         Run all bedboss pipelines and insert data to bedbase.
-    make        Making bed and bigBed file from other formats (bedmaker)
+    boss        Run all bedboss pipelines and insert data into bedbase.
+    make        Make bed and bigBed file from other formats (bedmaker)
     qc          Run quality control on bed file (bedqc)
     stat        Run statistic calculation (bedstat)
 """,
@@ -26,7 +26,7 @@ The commands used in bedmaker are:
         parser.add_argument(
             "-V", "--version", action="version", version=f"%(prog)s {__version__}"
         )
-        parser.add_argument("command", help="Subcommand to run")
+        parser.add_argument("command", help="Command to run")
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command):
             print("Unrecognized command, running bedmaker")
@@ -35,10 +35,10 @@ The commands used in bedmaker are:
         getattr(self, args.command)()
 
     @staticmethod
-    def run():
+    def boss():
         parser = ArgumentParser(
-            description="Running bedmaker, bedqc and bedstat in one package."
-            "And uploading all data to the bedbase db",
+            description="Run bedmaker, bedqc and bedstat in one pipeline."
+                        "And upload all data to the bedbase",
         )
         parser.add_argument(
             "-s",
@@ -61,13 +61,13 @@ The commands used in bedmaker are:
             "-o", "--output_folder", required=True, help="Output folder", type=str
         )
         parser.add_argument(
-            "-g", "--genome", required=True, help="reference genome", type=str
+            "-g", "--genome", required=True, help="reference genome (assembly)", type=str
         )
         parser.add_argument(
             "-r",
             "--rfg-config",
             required=False,
-            help="file path to the genome config file",
+            help="file path to the genome config file(refgenie)",
             type=str,
         )
         parser.add_argument(
@@ -80,7 +80,7 @@ The commands used in bedmaker are:
             "-n",
             "--narrowpeak",
             help="whether the regions are narrow (transcription factor implies narrow, "
-            "histone mark implies broad peaks)",
+                 "histone mark implies broad peaks)",
             type=bool,
             required=False,
         )
@@ -91,7 +91,7 @@ The commands used in bedmaker are:
         )
         parser.add_argument(
             "--check-qc",
-            help="Standardize chromosome names. Default: True",
+            help="Check quality control before processing data. Default: True",
             action="store_false",
         )
         parser.add_argument(
@@ -107,7 +107,7 @@ The commands used in bedmaker are:
             type=str,
             required=False,
             default=None,
-            help="a full path to the ensdb gtf file required for genomes not in GDdata ",
+            help="A full path to the ensdb gtf file required for genomes not in GDdata ",
         )
         parser.add_argument(
             "--bedbase-config",
@@ -123,17 +123,17 @@ The commands used in bedmaker are:
             type=str,
             required=False,
             help="a yaml config file with sample attributes to pass on more metadata "
-            "into the database",
+                 "into the database",
         )
         parser.add_argument(
             "--no-db-commit",
             action="store_true",
-            help="whether the JSON commit to the database should be skipped",
+            help="skip the JSON commit to the database",
         )
         parser.add_argument(
             "--just-db-commit",
             action="store_true",
-            help="whether just to commit the JSON to the database",
+            help="just commit the JSON to the database",
         )
         args = parser.parse_args(sys.argv[2:])
         args_dict = vars(args)
@@ -142,7 +142,7 @@ The commands used in bedmaker are:
     @staticmethod
     def make():
         parser = ArgumentParser(
-            description="A pipeline to convert bigwig or bedgraph files into bed format"
+            description="A pipeline to convert bed, bigbed, bigwig or bedgraph files into bed and bigbed formats"
         )
 
         parser.add_argument(
@@ -235,7 +235,7 @@ The commands used in bedmaker are:
             "--bedfile", help="a full path to bed file to process", required=True
         )
         parser.add_argument(
-            "--outfolder", help="a full path to output folder", required=True
+            "--outfolder", help="a full path to output log folder.", required=True
         )
         args = parser.parse_args(sys.argv[2:])
         bedqc(args.bedfile, args.outfolder)
@@ -244,7 +244,7 @@ The commands used in bedmaker are:
     def stat():
         parser = ArgumentParser(
             description="A pipeline to read a file in BED format and produce metadata "
-            "in JSON format."
+                        "in JSON format."
         )
         parser.add_argument(
             "--bedfile", help="a full path to bed file to process", required=True
