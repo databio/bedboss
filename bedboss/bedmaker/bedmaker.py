@@ -16,7 +16,6 @@ from refgenconf import (
     CFG_ENV_VARS,
     CFG_FOLDER_KEY,
 )
-import logmuse
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
 
@@ -30,6 +29,7 @@ from bedboss.const import (
     WIG_TEMPLATE,
     GZIP_TEMPLATE,
     STANDARD_CHROM_LIST,
+    BED_TO_BIGBED_PROGRAM,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -48,7 +48,7 @@ class BedMaker:
         output_bigbed: str,
         sample_name: str,
         genome: str,
-        rfg_config: str,
+        rfg_config: str = None,
         chrom_sizes: str = None,
         narrowpeak: bool = False,
         standard_chrom: bool = False,
@@ -77,7 +77,13 @@ class BedMaker:
         self.output_bigbed = output_bigbed
         self.sample_name = sample_name
         self.genome = genome
-        self.rfg_config = rfg_config
+        cwd = os.getcwd()
+        if not rfg_config:
+            _LOGGER.info(f"Downloading refgenie files...")
+            self.rfg_config = os.path.join(cwd, "genome_config.yaml")
+        else:
+            self.rfg_config = rfg_config
+
         self.chrom_sizes = chrom_sizes
         self.check_qc = check_qc
 
@@ -257,9 +263,7 @@ class BedMaker:
         self.pm.run(cmd, target=self.output_bed)
 
         if self.check_qc:
-            qc = bedqc(self.output_bed, outfolder=os.path.join(self.bed_parent, "bedqc_logs"))
-            if len(qc) > 0:
-                raise QualityException(str(qc))
+            bedqc(self.output_bed, outfolder=os.path.join(self.bed_parent, "bedqc_logs"))
 
         _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
 
@@ -276,7 +280,7 @@ class BedMaker:
             bedtype = self.get_bed_type(self.output_bed)
             self.pm.clean_add(temp)
 
-            if not is_command_callable("bedToBigBed"):
+            if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
                 # raise SystemExit(
                 #     "To convert bed to BigBed file You must first install the bedToBigBed tool, "
                 #     "with bigBedToBed in your PATH. Instruction: "
@@ -292,11 +296,11 @@ class BedMaker:
                 cmd = "zcat " + self.output_bed + "  | sort -k1,1 -k2,2n > " + temp
                 self.pm.run(cmd, temp)
 
-                cmd = f"bedToBigBed -type={bedtype} {temp} {chrom_sizes} {big_narrow_peak}"
+                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bedtype} {temp} {chrom_sizes} {big_narrow_peak}"
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
                 except Exception as err:
-                    _LOGGER.info(
+                    _LOGGER.error(
                         f"Fail to generating bigBed files for {self.input_file}: "
                         f"unable to validate genome assembly with Refgenie. Error: {err}"
                     )
@@ -308,7 +312,7 @@ class BedMaker:
                     + temp
                 )
                 self.pm.run(cmd, temp)
-                cmd = f"bedToBigBed -type=bed3 {temp} {chrom_sizes} {big_narrow_peak}"
+                cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {chrom_sizes} {big_narrow_peak}"
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
                 except Exception as err:

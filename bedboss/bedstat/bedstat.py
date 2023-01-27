@@ -1,8 +1,3 @@
-"""
-bed file statistics generating pipeline
-"""
-
-from argparse import ArgumentParser
 from hashlib import md5
 import json
 import yaml
@@ -51,12 +46,6 @@ def convert_unit(size_in_bytes):
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
 
 
-def get_file_size(file_name):
-    """Get file in size in given unit like KB, MB or GB"""
-    size = os.path.getsize(file_name)
-    return convert_unit(size)
-
-
 def run_bedstat(
     bedfile: str,
     bedbase_config: str,
@@ -71,7 +60,7 @@ def run_bedstat(
     """
     Main function to run bedstats. Can be used without runing from command line
     :param bedfile: a full path to bed file to process
-    :param bigbed: a path to the bedbase configuration file
+    :param bigbed: a full path to bigbed
     :param bedbase_config: a path to the bedbase configuration file
     :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue
         specificity plots
@@ -79,7 +68,6 @@ def run_bedstat(
     :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param sample_yaml: a yaml config file with sample attributes to pass on more metadata
         into the database
-    :param schema: sample table schema
     :param just_db_commit: whether just to commit the JSON to the database
     :param no_db_commit: whether the JSON commit to the database should be skipped
     """
@@ -164,7 +152,7 @@ def run_bedstat(
             {
                 "bedfile": {
                     "path": bed_relpath,
-                    "size": get_file_size(bedfile),
+                    "size": os.path.getsize(bedfile),
                     "title": "Path to the BED file",
                 }
             }
@@ -189,7 +177,7 @@ def run_bedstat(
                 {
                     "bigbedfile": {
                         "path": bigbed_relpath,
-                        "size": get_file_size(os.path.join(bigbed, fileid + ".bigBed")),
+                        "size": os.path.getsize(os.path.join(bigbed, fileid + ".bigBed")),
                         "title": "Path to the big BED file",
                     }
                 }

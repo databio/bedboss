@@ -9,6 +9,10 @@ BED_FOLDER_NAME = "bed_files"
 BIGBED_FOLDER_NAME = "bigbed_files"
 
 # bedmaker
+
+BED_TO_BIGBED_PROGRAM = "./bedToBigBed"
+
+
 # COMMANDS TEMPLATES
 # bedGraph to bed
 BEDGRAPH_TEMPLATE = "macs2 {width} -i {input} -o {output}"

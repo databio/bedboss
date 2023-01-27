@@ -18,7 +18,7 @@ def bedqc(
     max_file_size: int = MAX_FILE_SIZE,
     max_region_size: int = MAX_REGION_SIZE,
     min_region_width: int = MIN_REGION_WIDTH,
-) -> list:
+) -> bool:
     """
     Main pipeline function
     :param bedfile: path to the bed file
@@ -83,7 +83,7 @@ def bedqc(
         detail.append(f"Mean region width is less than {min_region_width} bp.")
 
     if len(detail) > 0:
-        print("file_name: ", bedfile_name)
+        _LOGGER.info("file_name: ", bedfile_name)
         if os.path.exists(output_file):
             with open(output_file, "a") as f:
                 f.write(f"{bedfile_name}\t{detail} \n")
@@ -91,7 +91,12 @@ def bedqc(
             with open(output_file, "w") as f:
                 f.write(f"file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
+
+        pm.stop_pipeline()
+        raise QualityException(f"{str(detail)}")
+
     pm.stop_pipeline()
+    return True
 
-    return detail
-
+if __name__ == "__main__":
+    bedqc("/home/bnt4me/virginia/bedbase/files/1.bed.gz","/home/bnt4me/virginia/bedbase/files2")
