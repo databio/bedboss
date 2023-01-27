@@ -1,2 +1,2 @@
 # bedboss
-Python package with bed file processing tools and pipelines for bedbase
+bedboss- Python package that runs 3 crutial bedbase pipelines: bedmaker, bedqc, bedmaker 
