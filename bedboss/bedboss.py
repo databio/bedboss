@@ -65,7 +65,7 @@ def run_bedboss(
     no_db_commit: bool = False,
 ) -> NoReturn:
     """
-    Running bedmaker, bedqc and bedstat in one package
+    Run bedboss: bedmaker, bedqc and bedstat.
     :param sample_name: Sample name [required]
     :param input_file: Input file [required]
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)

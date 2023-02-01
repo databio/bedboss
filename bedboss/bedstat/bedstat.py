@@ -1,4 +1,5 @@
 from hashlib import md5
+from typing import NoReturn
 import json
 import yaml
 import os
@@ -9,14 +10,17 @@ import pypiper
 import bbconf
 
 
-
-SCHEMA_PATH = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
+SCHEMA_PATH_BEDSTAT = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "tools", "pep_schema.yaml"
 )
 
 
-def hash_bedfile(filepath):
-    """generate digest for bedfile"""
+def hash_bedfile(filepath: str) -> str:
+    """
+    Generate digest for bedfile
+    :param str filepath: path to the bed file
+    :return str: digest of the files
+    """
     with gzip.open(filepath, "rb") as f:
         # concate column values
         chrs = ",".join([row.split()[0].decode("utf-8") for row in f])
@@ -34,8 +38,12 @@ def hash_bedfile(filepath):
         return bed_digest
 
 
-def convert_unit(size_in_bytes):
-    """Convert the size from bytes to other units like KB, MB or GB"""
+def convert_unit(size_in_bytes: int) -> str:
+    """
+    Convert the size from bytes to other units like KB, MB or GB
+    :param int size_in_bytes: size in bytes
+    :return str: File size as string in different units
+    """
     if size_in_bytes < 1024:
         return str(size_in_bytes) + "bytes"
     elif size_in_bytes in range(1024, 1024 * 1024):
@@ -56,20 +64,20 @@ def run_bedstat(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
-):
+) -> NoReturn:
     """
-    Main function to run bedstats. Can be used without runing from command line
-    :param bedfile: a full path to bed file to process
-    :param bigbed: a full path to bigbed
-    :param bedbase_config: a path to the bedbase configuration file
-    :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue
+    Run bedstat pipeline. Can be used without running from command line
+    :param str bedfile: a full path to bed file to process
+    :param str bigbed: a full path to bigbed
+    :param str bedbase_config: a path to the bedbase configuration file
+    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue
         specificity plots
-    :param genome_assembly: genome assembly of the sample
-    :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param sample_yaml: a yaml config file with sample attributes to pass on more metadata
+    :param str genome_assembly: genome assembly of the sample
+    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
+    :param str sample_yaml: a yaml config file with sample attributes to pass on more metadata
         into the database
-    :param just_db_commit: whether just to commit the JSON to the database
-    :param no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool just_db_commit: whether just to commit the JSON to the database
+    :param bool no_db_commit: whether the JSON commit to the database should be skipped
     """
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
     bedstat_output_path = bbc.get_bedstat_output_path()
@@ -134,7 +142,7 @@ def run_bedstat(
             # get the sample-specific metadata from the sample yaml representation
             y = yaml.safe_load(open(sample_yaml, "r"))
             # if schema and os.path.exists(schema):
-            schema = yaml.safe_load(open(SCHEMA_PATH, "r"))
+            schema = yaml.safe_load(open(SCHEMA_PATH_BEDSTAT, "r"))
             schema = schema["properties"]["samples"]["items"]["properties"]
 
             for key in list(y):

@@ -1,4 +1,6 @@
 """ Package-level data """
+from bedboss.bedboss import *
+
 __version__ = '0.1.0'
 __package_name__ = 'bedboss'
 __author__ = [

@@ -36,7 +36,8 @@ setup(
     name=PACKAGE,
     packages=[PACKAGE],
     version=__version__,
-    description="Bedboss for bedbase.",
+    description="Pipelines for genomic region file to produce bed files, "
+                "and it's statistics",
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[

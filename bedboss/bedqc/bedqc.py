@@ -22,7 +22,7 @@ def bedqc(
     """
     Main pipeline function
     :param bedfile: path to the bed file
-    :param outfolder: path to the folder where store information about pipeline
+    :param outfolder: path to the folder where to store information about pipeline and logs
     :param max_file_size: maximum file size
     :param max_region_size: maximum region size
     :param min_region_width: min region width
