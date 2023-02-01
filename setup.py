@@ -3,7 +3,7 @@
 import os
 from setuptools import setup
 import sys
-from bedboss import __package_name__, __version__
+from bedboss import __package_name__, __version__, __author__
 
 PACKAGE = __package_name__
 REQDIR = "requirements"
@@ -50,7 +50,7 @@ setup(
     ],
     keywords="project, bioinformatics, sequencing, ngs, workflow",
     url="https://github.com/databio/{}/".format(PACKAGE),
-    author="Oleksandr Khoroshevskyi",
+    author=__author__,
     license="BSD2",
     entry_points={
         "console_scripts": [
