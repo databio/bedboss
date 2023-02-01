@@ -16,10 +16,12 @@ from refgenconf import (
     CFG_ENV_VARS,
     CFG_FOLDER_KEY,
 )
+from typing import NoReturn
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
 
-from bedboss.bedqc.bedqc import bedqc, QualityException
+from bedboss.bedqc.bedqc import bedqc
+from bedboss.exceptions import RequirementsException
 
 from bedboss.const import (
     BEDGRAPH_TEMPLATE,
@@ -59,7 +61,6 @@ class BedMaker:
     ):
         """
         A pipeline to convert bigwig, bedGraph, bed, bigBed or wig files into bed and bigBed format
-        :param check_qc: run quality control during badmaking
         :param input_file: path to the input file
         :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format
         :param output_bed: path to the output BED files
@@ -70,6 +71,7 @@ class BedMaker:
         :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion
         :param narrowpeak: whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks)
         :param sntandard_chrom: Standardize chromosome names. Default: False
+        :param check_qc: run quality control during badmaking
         :return: noReturn
         """
         self.input_file = input_file
@@ -98,9 +100,9 @@ class BedMaker:
         self.file_id = os.path.splitext(self.file_name)[0]
         self.input_extension = os.path.splitext(self.file_name)[
             1
-        ]  # is it gzipped or not?
-        # check if output bed is file or folder:
+        ]
 
+        # check if output bed is file or folder:
         self.output_bed_extension = os.path.splitext(self.output_bed)[1]
         if self.output_bed_extension == "":
             self.output_bed = f"{self.output_bed}/{os.path.splitext(os.path.splitext(os.path.split(input_file)[1])[0])[0]}.bed.gz"
@@ -145,13 +147,11 @@ class BedMaker:
             outfolder=self.logs_dir,
         )
 
-    def make(self):
+    def make(self) -> NoReturn:
         """
-        :return: True if conversion was successful and bed and bigBed file was created
+        Create bed and BigBed files.
+        This is main function that executes every step of the bedmaker pipeline.
         """
-        # pm = pypiper.PipelineManager(name="bedmaker", outfolder=logs_dir, args=args) # ArgParser and add_pypiper_args
-
-        # Define target folder for converted files and implement the conversions; True=TF_Chipseq False=Histone_Chipseq
 
         _LOGGER.info(f"Got input type: {self.input_type}")
         temp_bed_path = os.path.splitext(self.output_bed)[0]
@@ -180,7 +180,7 @@ class BedMaker:
 
             if self.input_type == "bedGraph":
                 if not is_command_callable("macs2"):
-                    raise SystemExit(
+                    raise RequirementsException(
                         "To convert bedGraph file You must first install the macs2 tool, "
                         "and add it to your PATH. Instruction: "
                         "https://pypi.org/project/MACS2/"
@@ -191,7 +191,7 @@ class BedMaker:
                     )
             elif self.input_type == "bigWig":
                 if not is_command_callable("bigWigToBedGraph"):
-                    raise SystemExit(
+                    raise  RequirementsException(
                         "To convert bigWig file You must first install the bigWigToBedGraph tool, "
                         "with bigWigToBedGraph in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
@@ -207,7 +207,7 @@ class BedMaker:
                 # define a target for temporary bw files
                 temp_target = os.path.join(self.bed_parent, self.file_id + ".bw")
                 if not is_command_callable("wigToBigWig"):
-                    raise SystemExit(
+                    raise RequirementsException(
                         "To convert wig file You must first install the wigToBigWig tool, "
                         "with wigToBigWig in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
@@ -222,7 +222,7 @@ class BedMaker:
                     )
 
                 if not is_command_callable("bigWigToBedGraph"):
-                    raise SystemExit(
+                    raise RequirementsException(
                         "To convert bigWig file You must first install the bigWigToBedGraph tool, "
                         "with bigWigToBedGraph in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
@@ -234,7 +234,7 @@ class BedMaker:
                     cmd = [cmd1, cmd2]
             elif self.input_type == "bigBed":
                 if not is_command_callable(BIGBED_TO_BED_PROGRAM):
-                    raise SystemExit(
+                    raise RequirementsException(
                         "To convert bigBed file You must first install the bigBedToBed tool, "
                         "with bigBedToBed in your PATH. Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
@@ -288,14 +288,8 @@ class BedMaker:
             self.pm.clean_add(temp)
 
             if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
-                # raise SystemExit(
-                #     "To convert bed to BigBed file You must first install the bedToBigBed tool, "
-                #     "with bigBedToBed in your PATH. Instruction: "
-                #     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
-                # )
-                _LOGGER.warning(
-                    "No bedToBigBed converter installed! "
-                    "You must first install the bedToBigBed tool, "
+                raise RequirementsException(
+                    "To convert bed to BigBed file You must first install the bedToBigBed tool, "
                     "with bigBedToBed in your PATH. Instruction: "
                     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
                 )

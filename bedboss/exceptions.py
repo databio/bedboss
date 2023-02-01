@@ -33,3 +33,15 @@ class QualityException(Exception):
         :param str reason: reason why quality control wasn't successful
         """
         super(QualityException, self).__init__(reason)
+
+
+class RequirementsException(Exception):
+    """Exception, when quoality of the bed file didn't pass."""
+
+    def __init__(self, reason: str = ""):
+        """
+        Optionally provide explanation for exceptional condition.
+
+        :param str reason: reason why quality control wasn't successful
+        """
+        super(RequirementsException, self).__init__(reason)
