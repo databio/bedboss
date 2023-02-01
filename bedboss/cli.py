@@ -225,10 +225,6 @@ The commands used in bedmaker are:
 
     @staticmethod
     def qc():
-        """
-        parser for bedqc
-        :return: NoReturn
-        """
         parser = ArgumentParser(description="A pipeline for bed file QC.")
 
         parser.add_argument(
