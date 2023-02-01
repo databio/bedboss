@@ -12,7 +12,7 @@ The commands used in bedmaker are:
     make        Make bed and bigBed file from other formats (bedmaker)
     qc          Run quality control on bed file (bedqc)
     stat        Run statistic calculation (bedstat)
-bedboss: error: the following arguments are required: command
+    
 ```
 To run all pipelines together use boss as first argument:
 `bedboss boss -h`
@@ -144,8 +144,17 @@ options:
 ```
 
 # Additional information
-## bedstat
 
+## bedmaker
+
+### Additional dependencies
+
+- bedToBigBed: http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed
+- bigBedToBed: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed
+- bigWigToBedGraph: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bigWigToBedGraph
+- wigToBigWig: http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/wigToBigWig
+
+## bedstat
 
 ### Additional dependencies
 regionstat.R script is used to calculate the bed file statistics, so the pipeline also depends on several R packages:
