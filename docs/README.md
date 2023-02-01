@@ -3,7 +3,7 @@ Mainly pipelines are intended to be run from command line but nevertheless,
 they are also available as a python function, so that user can implement them to his own code.
 
 ## CLI
-To see your CLI options, invoke geofetch -h:
+To see your CLI options, invoke bedboss -h:
 ```
 usage: bedboss <command> [<args>]
 
