@@ -12,12 +12,12 @@ from bedboss import __version__
 class ParseOpt(object):
     def __init__(self):
         parser = ArgumentParser(
-            description="Warehouse of region-based file pipelines, "
-            "which includes bedmaker, bedstat and bedqc.",
+            description="Warehouse of pipelines for BED-like files: "
+            "bedmaker, bedstat, and bedqc.",
             usage="""bedboss <command> [<args>]
 
 The commands used in bedmaker are:
-    boss        Run all bedboss pipelines and insert data into bedbase.
+    boss        Run all bedboss pipelines and insert data into bedbase
     make        Make bed and bigBed file from other formats (bedmaker)
     qc          Run quality control on bed file (bedqc)
     stat        Run statistic calculation (bedstat)
@@ -37,7 +37,7 @@ The commands used in bedmaker are:
     @staticmethod
     def boss():
         parser = ArgumentParser(
-            description="Run bedmaker, bedqc and bedstat in one pipeline."
+            description="Run bedmaker, bedqc and bedstat in one pipeline, "
                         "And upload all data to the bedbase",
         )
         parser.add_argument(

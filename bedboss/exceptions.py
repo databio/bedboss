@@ -1,5 +1,5 @@
 class OSMException(Exception):
-    """Exception when OSM does not exist."""
+    """Exception when Open Signal Matrix does not exist."""
 
     def __init__(self, reason: str = ""):
         """
@@ -18,13 +18,13 @@ class GenomeException(Exception):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: some context why genome is not avaliable
+        :param str reason: some context why genome is not available
         """
         super(GenomeException, self).__init__(reason)
 
 
 class QualityException(Exception):
-    """Exception, when quoality of the bed file didn't pass."""
+    """Exception, when quality of the bed file didn't pass."""
 
     def __init__(self, reason: str = ""):
         """
@@ -36,7 +36,7 @@ class QualityException(Exception):
 
 
 class RequirementsException(Exception):
-    """Exception, when quoality of the bed file didn't pass."""
+    """Exception, when quality of the bed file didn't pass."""
 
     def __init__(self, reason: str = ""):
         """
