@@ -1,3 +1,5 @@
+# Estimates the number of lines in a file
+
 file=$1
 nsample=1000
 headbytes=`head -q -n $nsample $file | wc -c`
