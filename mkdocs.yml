@@ -1,8 +1,8 @@
-site_name: bedbase
+site_name: bedboss
 #site_url: https://bedboss.databio.org/
 repo_url: https://github.com/bedbase/bedboss
 site_logo: img/geofetch_logo_dark.svg
-pypi_name: bedbase
+pypi_name: bedboss
 
 nav:
   - Getting started:
@@ -10,7 +10,7 @@ nav:
   - Tutorials:
     - Base Tutorial: tutorial.md
   - How-to Guides:
-    - Create bedbase config file: bedbase_config_file
+    - Create bedbase config file: bedbase_config_file.md
   - Reference:
     - Support: https://github.com/bedbase/bedboss/issues
     - Contributing: contributing.md
