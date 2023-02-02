@@ -46,7 +46,11 @@ def download_file(url: str, path: str) -> NoReturn:
     :param path: Local path with filename
     :return: NoReturn
     """
-    _LOGGER.info(f"Downloading file: {url}")
-    _LOGGER.info(f"Downloading location: {path}")
-    urllib.request.urlretrieve(url, path)
-    _LOGGER.info(f"File has been downloaded successfully!")
+    _LOGGER.info(f"Downloading remote file: {url}")
+    _LOGGER.info(f"Local path: {path}")
+    try:
+        urllib.request.urlretrieve(url, path)
+        _LOGGER.info(f"File downloaded successfully!")
+    except Exception e:
+        _LOGGER.error(f"File download failed.")
+        raise e
