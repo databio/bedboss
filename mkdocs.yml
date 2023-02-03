@@ -1,7 +1,7 @@
 site_name: bedboss
-#site_url: https://bedboss.databio.org/
+site_url: https://bedboss.databio.org/
 repo_url: https://github.com/bedbase/bedboss
-site_logo: img/geofetch_logo_dark.svg
+#site_logo: img/geofetch_logo_dark.svg
 pypi_name: bedboss
 
 nav:
@@ -17,7 +17,6 @@ nav:
     - Changelog: changelog.md
 
 theme: databio
-
 
 plugins:
   - search

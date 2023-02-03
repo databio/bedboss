@@ -41,8 +41,8 @@ def bedqc(
     # check number of regions
     script_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "bedmaker",
-        "../bedmaker/est_line.sh",
+        "bedqc",
+        "est_line.sh",
     )
     assert os.path.exists(script_path), FileNotFoundError(
         f"'{script_path}' script not found"

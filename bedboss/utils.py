@@ -51,6 +51,6 @@ def download_file(url: str, path: str) -> NoReturn:
     try:
         urllib.request.urlretrieve(url, path)
         _LOGGER.info(f"File downloaded successfully!")
-    except Exception e:
+    except Exception as e:
         _LOGGER.error(f"File download failed.")
         raise e
