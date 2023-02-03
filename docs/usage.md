@@ -1,27 +1,19 @@
-# Usage reference
 
-geofetch command-line usage instructions:
-
-`bedboss -V`
-```commandline
-bedboss 0.1.0
-```
-
-
-`bedboss -h`
-```commandline
-usage: bedmaker <command> [<args>]
+`bedboss --help`
+```{console}
+usage: bedboss <command> [<args>]
 
 The commands used in bedmaker are:
-    run         Run all bedboss pipelines and insert data to bedbase.
-    make        Making bed and bigBed file from other formats (bedmaker)
+    boss        Run all bedboss pipelines and insert data into bedbase.
+    make        Make bed and bigBed file from other formats (bedmaker)
     qc          Run quality control on bed file (bedqc)
     stat        Run statistic calculation (bedstat)
 
-Warehouse of region-based file pipelines, which includes bedmaker, bedstat and bedqc pipelines.
+Warehouse of region-based file pipelines, which includes bedmaker, bedstat and
+bedqc.
 
 positional arguments:
-  command        Subcommand to run
+  command        Command to run
 
 options:
   -h, --help     show this help message and exit
