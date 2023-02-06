@@ -40,7 +40,7 @@ _LOGGER = logging.getLogger("bedboss")
 
 class BedMaker:
     """
-    Python Package to convert various genome region files to bed file
+    Python Package to convert various genomic region files to bed file
     """
 
     def __init__(
@@ -60,16 +60,25 @@ class BedMaker:
         **kwargs,
     ):
         """
-        A pipeline to convert bigwig, bedGraph, bed, bigBed or wig files into bed and bigBed format
+        Pypiper pipeline to convert supported file formats into
+        BED format and bigBed format. Currently supported formats*:
+            - bedGraph
+            - bigBed
+            - bigWig
+            - wig
         :param input_file: path to the input file
-        :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format
+        :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be
+                           converted into BED format
         :param output_bed: path to the output BED files
         :param output_bigbed: path to the output bigBed files
-        :param sample_name: name of the sample used to systematically build the output name
+        :param sample_name: name of the sample used to systematically build the
+                            output name
         :param genome: reference genome
         :param rfg_config: file path to the genome config file
-        :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion
-        :param narrowpeak: whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks)
+        :param chrom_sizes: a full path to the chrom.sizes required for the
+                            bedtobigbed conversion
+        :param narrowpeak: whether the regions are narrow (transcription factor
+                           implies narrow, histone mark implies broad peaks)
         :param sntandard_chrom: Standardize chromosome names. Default: False
         :param check_qc: run quality control during badmaking
         :return: noReturn
@@ -98,14 +107,16 @@ class BedMaker:
 
         self.file_name = os.path.basename(input_file)
         self.file_id = os.path.splitext(self.file_name)[0]
-        self.input_extension = os.path.splitext(self.file_name)[
-            1
-        ]
+        self.input_extension = os.path.splitext(self.file_name)[1]
 
         # check if output bed is file or folder:
         self.output_bed_extension = os.path.splitext(self.output_bed)[1]
         if self.output_bed_extension == "":
-            self.output_bed = f"{self.output_bed}/{os.path.splitext(os.path.splitext(os.path.split(input_file)[1])[0])[0]}.bed.gz"
+            self.output_bed = os.path.join(
+                self.output_bed,
+                f"{os.path.splitext(os.path.splitext(os.path.split(input_file)[1])[0])[0]}"
+                ".bed.gz",
+            )
             self.output_bed_extension = os.path.splitext(self.output_bed)[1]
 
         # set output folders:
@@ -116,9 +127,14 @@ class BedMaker:
                     + ".bed.gz"
                 )
             else:
-                self.output_bed = os.path.splitext(self.output_bed)[0] + ".bed.gz"
+                self.output_bed = (
+                    os.path.splitext(self.output_bed)[0] + ".bed.gz"
+                )
         else:
-            if self.input_extension != ".gz" and self.output_bed_extension != ".gz":
+            if (
+                self.input_extension != ".gz"
+                and self.output_bed_extension != ".gz"
+            ):
                 self.output_bed = self.output_bed + ".gz"
             else:
                 self.output_bed = self.output_bed
@@ -137,9 +153,13 @@ class BedMaker:
             os.makedirs(self.output_bigbed)
 
         self.logs_name = "bedmaker_logs"
-        self.logs_dir = os.path.join(self.bed_parent, self.logs_name, self.sample_name)
+        self.logs_dir = os.path.join(
+            self.bed_parent, self.logs_name, self.sample_name
+        )
         if not os.path.exists(self.logs_dir):
-            _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
+            _LOGGER.info(
+                "bedmaker logs directory doesn't exist. Creating one..."
+            )
             os.makedirs(self.logs_dir)
 
         self.pm = pypiper.PipelineManager(
@@ -159,14 +179,6 @@ class BedMaker:
         if not self.input_type == "bed":
             _LOGGER.info(f"Converting {self.input_file} to BED format")
 
-            # # Call pyBigWig to ensure bigWig and bigBed files have the correct format
-            # if args.input_type in ["bigWig", "bigBed"]:
-            #     obj = pyBigWig.open(args.input_file)
-            #     validation_method = getattr(obj, "isBigBed" if args.input_type == "bigBed" else "isBigWig")
-            #     if not validation_method():
-            #         raise Exception("{} file did not pass the {} format validation".
-            #                         format(args.input_file, args.input_type))
-
             # Use the gzip and shutil modules to produce temporary unzipped files
             if self.input_extension == ".gz":
                 input_file = os.path.join(
@@ -181,35 +193,44 @@ class BedMaker:
             if self.input_type == "bedGraph":
                 if not is_command_callable("macs2"):
                     raise RequirementsException(
-                        "To convert bedGraph file You must first install the macs2 tool, "
-                        "and add it to your PATH. Instruction: "
+                        "To convert bedGraph file You must first install "
+                        "macs2 and add it to your PATH. "
+                        "Instruction: "
                         "https://pypi.org/project/MACS2/"
                     )
                 else:
                     cmd = BEDGRAPH_TEMPLATE.format(
-                        input=self.input_file, output=temp_bed_path, width=self.width
+                        input=self.input_file,
+                        output=temp_bed_path,
+                        width=self.width,
                     )
             elif self.input_type == "bigWig":
                 if not is_command_callable("bigWigToBedGraph"):
-                    raise  RequirementsException(
-                        "To convert bigWig file You must first install the bigWigToBedGraph tool, "
-                        "with bigWigToBedGraph in your PATH. Instruction: "
+                    raise RequirementsException(
+                        "To convert bigWig file You must first install "
+                        "bigWigToBedGraph and add it to your PATH. "
+                        "Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
                     )
                 else:
                     cmd = BIGWIG_TEMPLATE.format(
-                        input=self.input_file, output=temp_bed_path, width=self.width
+                        input=self.input_file,
+                        output=temp_bed_path,
+                        width=self.width,
                     )
             elif self.input_type == "wig":
 
                 chrom_sizes = self._get_chrom_sizes()
 
                 # define a target for temporary bw files
-                temp_target = os.path.join(self.bed_parent, self.file_id + ".bw")
+                temp_target = os.path.join(
+                    self.bed_parent, self.file_id + ".bw"
+                )
                 if not is_command_callable("wigToBigWig"):
                     raise RequirementsException(
-                        "To convert wig file You must first install the wigToBigWig tool, "
-                        "with wigToBigWig in your PATH. Instruction: "
+                        "To convert wig file You must first install "
+                        "wigToBigWig and add it in your PATH. "
+                        "Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
                     )
                 else:
@@ -223,20 +244,24 @@ class BedMaker:
 
                 if not is_command_callable("bigWigToBedGraph"):
                     raise RequirementsException(
-                        "To convert bigWig file You must first install the bigWigToBedGraph tool, "
-                        "with bigWigToBedGraph in your PATH. Instruction: "
+                        "To convert bigWig file You must first install "
+                        "bigWigToBedGraph and add it in your PATH. "
+                        "Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigWig.html"
                     )
                 else:
                     cmd2 = BIGWIG_TEMPLATE.format(
-                        input=temp_target, output=temp_bed_path, width=self.width
+                        input=temp_target,
+                        output=temp_bed_path,
+                        width=self.width,
                     )
                     cmd = [cmd1, cmd2]
             elif self.input_type == "bigBed":
                 if not is_command_callable(BIGBED_TO_BED_PROGRAM):
                     raise RequirementsException(
-                        "To convert bigBed file You must first install the bigBedToBed tool, "
-                        "with bigBedToBed in your PATH. Instruction: "
+                        "To convert bigBed file You must first install "
+                        "bigBedToBed and add it in your PATH. "
+                        "Instruction: "
                         "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
                     )
                 else:
@@ -250,7 +275,9 @@ class BedMaker:
 
         else:
             if self.input_extension == ".gz":
-                cmd = BED_TEMPLATE.format(input=self.input_file, output=self.output_bed)
+                cmd = BED_TEMPLATE.format(
+                    input=self.input_file, output=self.output_bed
+                )
             else:
                 cmd = [
                     BED_TEMPLATE.format(
@@ -258,19 +285,26 @@ class BedMaker:
                         output=os.path.splitext(self.output_bed)[0],
                     ),
                     GZIP_TEMPLATE.format(
-                        unzipped_converted_file=os.path.splitext(self.output_bed)[0]
+                        unzipped_converted_file=os.path.splitext(
+                            self.output_bed
+                        )[0]
                     ),
                 ]
 
         if self.input_type != "bed" and self.input_extension != ".gz":
-            gzip_cmd = GZIP_TEMPLATE.format(unzipped_converted_file=temp_bed_path)
+            gzip_cmd = GZIP_TEMPLATE.format(
+                unzipped_converted_file=temp_bed_path
+            )
             if not isinstance(cmd, list):
                 cmd = [cmd]
             cmd.append(gzip_cmd)
         self.pm.run(cmd, target=self.output_bed)
 
         if self.check_qc:
-            bedqc(self.output_bed, outfolder=os.path.join(self.bed_parent, "bedqc_logs"))
+            bedqc(
+                self.output_bed,
+                outfolder=os.path.join(self.bed_parent, "bedqc_logs"),
+            )
 
         _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
 
@@ -281,7 +315,9 @@ class BedMaker:
 
         chrom_sizes = self._get_chrom_sizes()
 
-        temp = os.path.join(self.output_bigbed, next(tempfile._get_candidate_names()))
+        temp = os.path.join(
+            self.output_bigbed, next(tempfile._get_candidate_names())
+        )
 
         if not os.path.exists(big_narrow_peak):
             bedtype = self.get_bed_type(self.output_bed)
@@ -289,21 +325,31 @@ class BedMaker:
 
             if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
                 raise RequirementsException(
-                    "To convert bed to BigBed file You must first install the bedToBigBed tool, "
-                    "with bigBedToBed in your PATH. Instruction: "
+                    "To convert bed to BigBed file You must first install "
+                    "bedToBigBed add in your PATH. "
+                    "Instruction: "
                     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
                 )
             if bedtype is not None:
-                cmd = "zcat " + self.output_bed + "  | sort -k1,1 -k2,2n > " + temp
+                cmd = (
+                    "zcat "
+                    + self.output_bed
+                    + "  | sort -k1,1 -k2,2n > "
+                    + temp
+                )
                 self.pm.run(cmd, temp)
 
-                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bedtype} {temp} {chrom_sizes} {big_narrow_peak}"
+                cmd = {
+                    f"{BED_TO_BIGBED_PROGRAM} "
+                    f"-type={bedtype} {temp} {chrom_sizes} {big_narrow_peak}"
+                }
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
                 except Exception as err:
                     _LOGGER.error(
                         f"Fail to generating bigBed files for {self.input_file}: "
-                        f"unable to validate genome assembly with Refgenie. Error: {err}"
+                        f"unable to validate genome assembly with Refgenie. "
+                        f"Error: {err}"
                     )
             else:
                 cmd = (
@@ -313,13 +359,18 @@ class BedMaker:
                     + temp
                 )
                 self.pm.run(cmd, temp)
-                cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {chrom_sizes} {big_narrow_peak}"
+                cmd = {
+                    f"{BED_TO_BIGBED_PROGRAM}"
+                    f"-type=bed3 {temp} {chrom_sizes} {big_narrow_peak}"
+                }
+
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
                 except Exception as err:
                     _LOGGER.info(
                         f"Fail to generating bigBed files for {self.input_file}: "
-                        f"unable to validate genome assembly with Refgenie. Error: {err}"
+                        f"unable to validate genome assembly with Refgenie. "
+                        f"Error: {err}"
                     )
 
         self.pm.stop_pipeline()
@@ -342,20 +393,24 @@ class BedMaker:
         if not refgenie_cfg_path:
             raise OSError(
                 "Could not determine path to a refgenie genome configuration file. "
-                "Use --rfg-config argument or set '{}' environment variable to provide it".format(
-                    CFG_ENV_VARS
-                )
+                f"Use --rfg-config argument or set the path with '{CFG_ENV_VARS}'."
             )
-        if isinstance(refgenie_cfg_path, str) and not os.path.exists(refgenie_cfg_path):
+        if isinstance(refgenie_cfg_path, str) and not os.path.exists(
+            refgenie_cfg_path
+        ):
             # file path not found, initialize a new config file
             _LOGGER.info(
-                f"File '{refgenie_cfg_path}' does not exist. Initializing refgenie genome configuration file."
+                f"File '{refgenie_cfg_path}' does not exist. "
+                "Initializing refgenie genome configuration file."
             )
-            rgc = RGC(entries={CFG_FOLDER_KEY: os.path.dirname(refgenie_cfg_path)})
+            rgc = RGC(
+                entries={CFG_FOLDER_KEY: os.path.dirname(refgenie_cfg_path)}
+            )
             rgc.initialize_config_file(filepath=refgenie_cfg_path)
         else:
             _LOGGER.info(
-                f"Reading refgenie genome configuration file from file: {refgenie_cfg_path}"
+                "Reading refgenie genome configuration file from file: "
+                f"{refgenie_cfg_path}"
             )
             rgc = RGC(filepath=refgenie_cfg_path)
         try:
@@ -369,7 +424,9 @@ class BedMaker:
             _LOGGER.info(chrom_sizes)
         except (UndefinedAliasError, RefgenconfError):
             # if chrom.sizes not found, pull it first
-            _LOGGER.info("Could not determine path to chrom.sizes asset, pulling")
+            _LOGGER.info(
+                "Could not determine path to chrom.sizes asset, pulling"
+            )
             rgc.pull(genome=self.genome, asset="fasta", tag="default")
             chrom_sizes = rgc.seek(
                 genome_name=self.genome,
@@ -410,7 +467,9 @@ class BedMaker:
         if self.standard_chrom:
             _LOGGER.info("Standardizing chromosomes...")
             df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-            df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
+            df.to_csv(
+                bed, compression="gzip", sep="\t", header=False, index=False
+            )
 
         num_cols = len(df.columns)
         bedtype = 0
@@ -434,7 +493,10 @@ class BedMaker:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}"
                 elif col == 4:
-                    if df[col].dtype == "int" and df[col].between(0, 1000).all():
+                    if (
+                        df[col].dtype == "int"
+                        and df[col].between(0, 1000).all()
+                    ):
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
