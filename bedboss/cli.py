@@ -24,7 +24,10 @@ The commands used in bedmaker are:
 """,
         )
         parser.add_argument(
-            "-V", "--version", action="version", version=f"%(prog)s {__version__}"
+            "-V",
+            "--version",
+            action="version",
+            version=f"%(prog)s {__version__}",
         )
         parser.add_argument("command", help="Command to run")
         args = parser.parse_args(sys.argv[1:2])
@@ -58,7 +61,11 @@ The commands used in bedmaker are:
             type=str,
         )
         parser.add_argument(
-            "-o", "--output_folder", required=True, help="Output folder", type=str
+            "-o",
+            "--output_folder",
+            required=True,
+            help="Output folder",
+            type=str,
         )
         parser.add_argument(
             "-g",
@@ -158,7 +165,9 @@ The commands used in bedmaker are:
             type=str,
         )
         parser.add_argument(
-            "--narrowpeak", action="store_true", help="whether it's a narrowpeak file"
+            "--narrowpeak",
+            action="store_true",
+            help="whether it's a narrowpeak file",
         )
         parser.add_argument(
             "-t",
@@ -209,7 +218,9 @@ The commands used in bedmaker are:
         )
         parser.add_argument(
             "--standard-chrom",
-            help="Standardize chromosome names. Default: False",
+            help="Standardize chromosome names. "
+            "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
+            "such as chrN_random and chrUn_random. Default: False",
             action="store_true",
         )
         # add pypiper args to make pipeline looper compatible
@@ -229,10 +240,14 @@ The commands used in bedmaker are:
         parser = ArgumentParser(description="A pipeline for bed file QC.")
 
         parser.add_argument(
-            "--bedfile", help="a full path to bed file to process", required=True
+            "--bedfile",
+            help="a full path to bed file to process",
+            required=True,
         )
         parser.add_argument(
-            "--outfolder", help="a full path to output log folder.", required=True
+            "--outfolder",
+            help="a full path to output log folder.",
+            required=True,
         )
 
         args = parser.parse_args(sys.argv[2:])
@@ -245,7 +260,9 @@ The commands used in bedmaker are:
             "in JSON format."
         )
         parser.add_argument(
-            "--bedfile", help="a full path to bed file to process", required=True
+            "--bedfile",
+            help="a full path to bed file to process",
+            required=True,
         )
         parser.add_argument(
             "--open-signal-matrix",

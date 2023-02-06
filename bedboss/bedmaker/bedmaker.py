@@ -41,6 +41,7 @@ _LOGGER = logging.getLogger("bedboss")
 class BedMaker:
     """
     Python Package to convert various genomic region files to bed file
+    and generate bigbed file for visulization.
     """
 
     def __init__(
@@ -83,31 +84,27 @@ class BedMaker:
         :param check_qc: run quality control during badmaking
         :return: noReturn
         """
+
+        # Define file paths
         self.input_file = input_file
         self.input_type = input_type
         self.output_bed = output_bed
         self.output_bigbed = output_bigbed
-        self.sample_name = sample_name
-        self.genome = genome
-        cwd = os.getcwd()
-        if not rfg_config:
-            _LOGGER.info(f"Downloading refgenie files...")
-            self.rfg_config = os.path.join(cwd, "genome_config.yaml")
-        else:
-            self.rfg_config = rfg_config
-
-        self.chrom_sizes = chrom_sizes
-        self.check_qc = check_qc
-
-        self.narrowpeak = narrowpeak
-        # Define whether Chip-seq data has broad or narrow peaks
-        self.width = "bdgbroadcall" if not self.narrowpeak else "bdgpeakcall"
-
-        self.standard_chrom = standard_chrom
-
         self.file_name = os.path.basename(input_file)
         self.file_id = os.path.splitext(self.file_name)[0]
         self.input_extension = os.path.splitext(self.file_name)[1]
+
+        self.sample_name = sample_name
+        self.genome = genome
+        self.chrom_sizes = chrom_sizes
+        self.check_qc = check_qc
+        self.rfg_config = rfg_config
+        # Define whether filter the input file to contain only the standard chromosomes
+        # If true, remove regions on ChrUn chromosomes
+        self.standard_chrom = standard_chrom
+        # Define whether input file data is broad or narrow peaks
+        self.narrowpeak = narrowpeak
+        self.width = "bdgbroadcall" if not self.narrowpeak else "bdgpeakcall"
 
         # check if output bed is file or folder:
         self.output_bed_extension = os.path.splitext(self.output_bed)[1]
@@ -119,7 +116,8 @@ class BedMaker:
             )
             self.output_bed_extension = os.path.splitext(self.output_bed)[1]
 
-        # set output folders:
+        # Set output folders:
+        # create one if doesn't exist
         if self.input_type != "bed":
             if self.input_extension == ".gz":
                 self.output_bed = (
@@ -152,6 +150,8 @@ class BedMaker:
             )
             os.makedirs(self.output_bigbed)
 
+        # Set pipeline log directory
+        # create one if doesn't exist
         self.logs_name = "bedmaker_logs"
         self.logs_dir = os.path.join(
             self.bed_parent, self.logs_name, self.sample_name
@@ -162,6 +162,7 @@ class BedMaker:
             )
             os.makedirs(self.logs_dir)
 
+        # initiate pipelineManager
         self.pm = pypiper.PipelineManager(
             name="bedmaker",
             outfolder=self.logs_dir,
@@ -174,8 +175,27 @@ class BedMaker:
         """
 
         _LOGGER.info(f"Got input type: {self.input_type}")
+
+        # converting to bed.gz if needed
+        self.make_bed()
+
+        # run bed_qc on bed file
+        if self.check_qc:
+            bedqc(
+                self.output_bed,
+                outfolder=os.path.join(self.bed_parent, "bedqc_logs"),
+            )
+
+        # generating bigbed file
+        self.make_bigbed()
+
+        self.pm.stop_pipeline()
+
+    def make_bed(self):
+        _LOGGER.info(f"Converting {self.input_file} to BED format.")
         temp_bed_path = os.path.splitext(self.output_bed)[0]
 
+        # creat cmd to run that convert non bed file to bed file
         if not self.input_type == "bed":
             _LOGGER.info(f"Converting {self.input_file} to BED format")
 
@@ -190,6 +210,7 @@ class BedMaker:
                         shutil.copyfileobj(f_in, f_out)
                 self.pm.clean_add(input_file)
 
+            # creating cmd for bedGraph files
             if self.input_type == "bedGraph":
                 if not is_command_callable("macs2"):
                     raise RequirementsException(
@@ -204,6 +225,7 @@ class BedMaker:
                         output=temp_bed_path,
                         width=self.width,
                     )
+            # creating cmd for bigWig files
             elif self.input_type == "bigWig":
                 if not is_command_callable("bigWigToBedGraph"):
                     raise RequirementsException(
@@ -218,9 +240,11 @@ class BedMaker:
                         output=temp_bed_path,
                         width=self.width,
                     )
+            # creating cmd for wig files
             elif self.input_type == "wig":
 
-                chrom_sizes = self._get_chrom_sizes()
+                if not self.chrom_sizes:
+                    self.chrom_sizes = self.get_chrom_sizes()
 
                 # define a target for temporary bw files
                 temp_target = os.path.join(
@@ -238,7 +262,7 @@ class BedMaker:
                     cmd1 = WIG_TEMPLATE.format(
                         input=self.input_file,
                         intermediate_bw=temp_target,
-                        chrom_sizes=chrom_sizes,
+                        chrom_sizes=self.chrom_sizes,
                         width=self.width,
                     )
 
@@ -256,6 +280,7 @@ class BedMaker:
                         width=self.width,
                     )
                     cmd = [cmd1, cmd2]
+            # creating cmd for bigBed files
             elif self.input_type == "bigBed":
                 if not is_command_callable(BIGBED_TO_BED_PROGRAM):
                     raise RequirementsException(
@@ -272,7 +297,15 @@ class BedMaker:
                 raise NotImplementedError(
                     f"'{self.input_type}' format is not supported"
                 )
-
+            # add cmd to create the gz file
+            if self.input_extension != ".gz":
+                gzip_cmd = GZIP_TEMPLATE.format(
+                    unzipped_converted_file=temp_bed_path
+                )
+                if not isinstance(cmd, list):
+                    cmd = [cmd]
+                cmd.append(gzip_cmd)
+        # creating cmd for bed files
         else:
             if self.input_extension == ".gz":
                 cmd = BED_TEMPLATE.format(
@@ -290,30 +323,17 @@ class BedMaker:
                         )[0]
                     ),
                 ]
-
-        if self.input_type != "bed" and self.input_extension != ".gz":
-            gzip_cmd = GZIP_TEMPLATE.format(
-                unzipped_converted_file=temp_bed_path
-            )
-            if not isinstance(cmd, list):
-                cmd = [cmd]
-            cmd.append(gzip_cmd)
         self.pm.run(cmd, target=self.output_bed)
 
-        if self.check_qc:
-            bedqc(
-                self.output_bed,
-                outfolder=os.path.join(self.bed_parent, "bedqc_logs"),
-            )
-
+    def make_bigbed(self):
         _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
 
         bedfile_name = os.path.split(self.output_bed)[1]
         fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
         # Produce bigBed (big_narrow_peak) file from peak file
         big_narrow_peak = os.path.join(self.output_bigbed, fileid + ".bigBed")
-
-        chrom_sizes = self._get_chrom_sizes()
+        if not self.chrom_sizes:
+            self.chrom_sizes = self.get_chrom_sizes()
 
         temp = os.path.join(
             self.output_bigbed, next(tempfile._get_candidate_names())
@@ -341,7 +361,7 @@ class BedMaker:
 
                 cmd = {
                     f"{BED_TO_BIGBED_PROGRAM} "
-                    f"-type={bedtype} {temp} {chrom_sizes} {big_narrow_peak}"
+                    f"-type={bedtype} {temp} {self.chrom_sizes} {big_narrow_peak}"
                 }
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
@@ -361,7 +381,7 @@ class BedMaker:
                 self.pm.run(cmd, temp)
                 cmd = {
                     f"{BED_TO_BIGBED_PROGRAM}"
-                    f"-type=bed3 {temp} {chrom_sizes} {big_narrow_peak}"
+                    f"-type=bed3 {temp} {self.chrom_sizes} {big_narrow_peak}"
                 }
 
                 try:
@@ -373,23 +393,22 @@ class BedMaker:
                         f"Error: {err}"
                     )
 
-        self.pm.stop_pipeline()
-
-    def _get_chrom_sizes(self):
+    def get_rgc(self):
         """
-        Get chrom.sizes file path by input arg, or Refgenie.
+        Get refgenie config file.
 
-        :return str: chrom.sizes file path
+        :return str: rfg_config file path
         """
+        if not self.rfg_config:
+            _LOGGER.info(f"Creating refgenie genome config file...")
+            cwd = os.getcwd()
+            self.rfg_config = os.path.join(cwd, "genome_config.yaml")
 
-        if self.chrom_sizes:
-            return self.chrom_sizes
-
-        _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
         # get path to the genome config; from arg or env var if arg not provided
         refgenie_cfg_path = select_genome_config(
             filename=self.rfg_config, check_exist=False
         )
+
         if not refgenie_cfg_path:
             raise OSError(
                 "Could not determine path to a refgenie genome configuration file. "
@@ -413,8 +432,22 @@ class BedMaker:
                 f"{refgenie_cfg_path}"
             )
             rgc = RGC(filepath=refgenie_cfg_path)
+
+        return rgc
+
+    def get_chrom_sizes(self):
+        """
+        Get chrom.sizes file with Refgenie.
+
+        :return str: chrom.sizes file path
+        """
+
+        _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
+        # initalizing refginie config file
+        rgc = self.get_rgc()
+
         try:
-            # get path to the chrom.sizes asset
+            # get local path to the chrom.sizes asset
             chrom_sizes = rgc.seek(
                 genome_name=self.genome,
                 asset_name="fasta",
@@ -423,7 +456,7 @@ class BedMaker:
             )
             _LOGGER.info(chrom_sizes)
         except (UndefinedAliasError, RefgenconfError):
-            # if chrom.sizes not found, pull it first
+            # if no local chrom.sizes file found, pull it first
             _LOGGER.info(
                 "Could not determine path to chrom.sizes asset, pulling"
             )
@@ -443,7 +476,11 @@ class BedMaker:
 
     def get_bed_type(self, bed: str):
         """
-        get bed type + standardize chromosomes if necessary
+        get the bed file type (ex. bed3, bed3+n )
+        standardize chromosomes if necessary:
+        filter the input file to contain only the standard chromosomes,
+        remove regions on ChrUn chromosomes
+
         :param bed: path to the bed file
         :return bed type
         """
@@ -463,7 +500,8 @@ class BedMaker:
         df = pd.read_csv(bed, sep="\t", header=None)
         df = df.dropna(axis=1)
 
-        # standardizing chromosome names
+        # standardizing chromosome
+        # remove regions on ChrUn chromosomes
         if self.standard_chrom:
             _LOGGER.info("Standardizing chromosomes...")
             df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
