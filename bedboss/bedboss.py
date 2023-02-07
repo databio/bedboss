@@ -1,10 +1,11 @@
 import logging
 import os
 import urllib.request
-from typing import NoReturn, Union
+from typing import NoReturn, Union, Dict
 
 from .bedstat.bedstat import run_bedstat
 from .bedmaker.bedmaker import BedMaker
+from .bedqc.bedqc import bedqc
 from .const import (
     OS_HG19,
     OS_HG38,
@@ -46,7 +47,7 @@ def get_osm_path(genome: str) -> Union[str, None]:
     return osm_path
 
 
-def run_bedboss(
+def run_all(
     sample_name: str,
     input_file: str,
     input_type: str,
@@ -136,3 +137,21 @@ def run_bedboss(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
     )
+
+
+def bedboss(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
+    """
+    Run pipeline that was specified in as positional argument.
+    :param str pipeline: one of the bedboss pipelines
+    :param dict args_dict: dict of arguments used in provided pipeline.
+    """
+    if pipeline == "all":
+        run_all(**args_dict)
+    elif pipeline == "make":
+        BedMaker(**args_dict).make()
+    elif pipeline == "qc":
+        bedqc(**args_dict)
+    elif pipeline == "stat":
+        run_bedstat(**args_dict)
+    else:
+        raise Exception("Incorrect pipeline name.")
