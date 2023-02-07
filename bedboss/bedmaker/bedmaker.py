@@ -192,7 +192,11 @@ class BedMaker:
 
         self.pm.stop_pipeline()
 
-    def make_bed(self):
+    def make_bed(self) -> NoReturn:
+        """
+        Convert the input file to BED format by construct the command based
+        on input file type and execute the command.
+        """
         _LOGGER.info(f"Converting {self.input_file} to BED format.")
         temp_bed_path = os.path.splitext(self.output_bed)[0]
 
@@ -326,7 +330,10 @@ class BedMaker:
                 ]
         self.pm.run(cmd, target=self.output_bed)
 
-    def make_bigbed(self):
+    def make_bigbed(self) -> NoReturn:
+        """
+        Generate bigBed file for the BED file.
+        """
         _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
 
         bedfile_name = os.path.split(self.output_bed)[1]
