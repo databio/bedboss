@@ -401,7 +401,7 @@ class BedMaker:
                         f"Error: {err}"
                     )
 
-    def get_rgc(self):
+    def get_rgc(self) -> str:
         """
         Get refgenie config file.
 
@@ -443,7 +443,7 @@ class BedMaker:
 
         return rgc
 
-    def get_chrom_sizes(self):
+    def get_chrom_sizes(self) -> str:
         """
         Get chrom.sizes file with Refgenie.
 
@@ -482,7 +482,7 @@ class BedMaker:
 
         return chrom_sizes
 
-    def get_bed_type(self, bed: str):
+    def get_bed_type(self, bed: str) -> str:
         """
         get the bed file type (ex. bed3, bed3+n )
         standardize chromosomes if necessary:
