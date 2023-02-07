@@ -218,7 +218,7 @@ The commands used in bedmaker are:
         )
         parser.add_argument(
             "--standard-chrom",
-            help="Standardize chromosome names. "
+            help="whether standardize chromosome names. "
             "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
             "such as chrN_random and chrUn_random. Default: False",
             action="store_true",

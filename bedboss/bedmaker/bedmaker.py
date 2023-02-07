@@ -80,7 +80,10 @@ class BedMaker:
                             bedtobigbed conversion
         :param narrowpeak: whether the regions are narrow (transcription factor
                            implies narrow, histone mark implies broad peaks)
-        :param sntandard_chrom: Standardize chromosome names. Default: False
+        :param sntandard_chrom: whether standardize chromosome names. Default: False
+                                If true, filter the input file to contain only
+                                the standard chromosomes, remove regions on
+                                ChrUn chromosomes
         :param check_qc: run quality control during badmaking
         :return: noReturn
         """
@@ -99,8 +102,6 @@ class BedMaker:
         self.chrom_sizes = chrom_sizes
         self.check_qc = check_qc
         self.rfg_config = rfg_config
-        # Define whether filter the input file to contain only the standard chromosomes
-        # If true, remove regions on ChrUn chromosomes
         self.standard_chrom = standard_chrom
         # Define whether input file data is broad or narrow peaks
         self.narrowpeak = narrowpeak
