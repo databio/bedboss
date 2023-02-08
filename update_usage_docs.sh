@@ -1,26 +1,22 @@
-# Run this script to build and deploy the mkdocs docs in /docs
+#!/bin/bash
+cp docs/usage.template usage.template
+#looper --help > USAGE.temp 2>&1
 
-JUPYTER_SOURCE=""
-JUPYTER_BUILD=""
-AUTODOC_MODULES=()
-AUTODOC_BUILD=""
-USAGE_TEMPLATE="docs/usage_template.md"
-USAGE_CMDS=("bedboss --help")
-
-
-# Build an auto-usage page in markdown
-if [ ! -z "$USAGE_CMDS" ]
-then
-  cp $USAGE_TEMPLATE usage_template.md
-  for cmd in "$USAGE_CMDS"; do
-    echo $cmd
-    echo -e "\n\`$cmd\`" >> usage_template.md
-    echo -e '```{console}' >> usage_template.md
-    $cmd >> usage_template.md 2>&1
-    echo -e '```' >> usage_template.md
-  done
-  mv usage_template.md  docs/usage.md
-  cat docs/usage.md
-else
-  echo "No USAGE_CMDS provided."
-fi
+for cmd in "--help" "all --help" "make --help" "qc --help" "stat --help"; do
+	echo $cmd
+	echo -e "## \`bedboss $cmd\`" > USAGE_header.temp
+	bedboss $cmd --help > USAGE.temp 2>&1
+	# sed -i 's/^/\t/' USAGE.temp
+	sed -i.bak '1s;^;\`\`\`console\
+;' USAGE.temp
+#	sed -i '1s/^/\n\`\`\`console\n/' USAGE.temp
+	echo -e "\`\`\`\n" >> USAGE.temp
+	#sed -i -e "/\`looper $cmd\`/r USAGE.temp" -e '$G' usage.template  # for -in place inserts
+	cat USAGE_header.temp USAGE.temp >> usage.template # to append to the end
+done
+rm USAGE.temp
+rm USAGE_header.temp
+rm USAGE.temp.bak
+mv usage.template  docs/usage.md
+cat docs/usage.md
+#rm USAGE.temp

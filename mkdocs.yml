@@ -12,6 +12,7 @@ nav:
   - How-to Guides:
     - Create bedbase config file: bedbase_config_file.md
   - Reference:
+    - Usage: usage.md
     - Support: https://github.com/bedbase/bedboss/issues
     - Contributing: contributing.md
     - Changelog: changelog.md
@@ -23,6 +24,6 @@ plugins:
 #  - databio:
 #      jupyter_source: "docs_jupyter"
 #      jupyter_build: "docs_jupyter/build"
-#      usage_template: "docs/usage_template.md"
+#      usage_template: "docs/usage.template"
 #      usage_cmds:
 #        - "geofetch --help"
