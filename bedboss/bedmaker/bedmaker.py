@@ -159,6 +159,7 @@ class BedMaker:
             self.pm = pypiper.PipelineManager(
                 name="bedmaker",
                 outfolder=self.logs_dir,
+                recover=True,
             )
 
     def make(self) -> NoReturn:
@@ -173,7 +174,7 @@ class BedMaker:
         if self.check_qc:
             bedqc(
                 self.output_bed,
-                outfolder=os.path.join(self.bed_parent, "bedqc_logs"),
+                outfolder=self.logs_dir,
                 pm=self.pm,
             )
 
@@ -340,11 +341,9 @@ class BedMaker:
                 cmd = "zcat " + self.output_bed + "  | sort -k1,1 -k2,2n > " + temp
                 self.pm.run(cmd, temp)
 
-                cmd = {
-                    f"{BED_TO_BIGBED_PROGRAM} "
-                    f"-type={bedtype} {temp} {self.chrom_sizes} {big_narrow_peak}"
-                }
+                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bedtype} {temp} {self.chrom_sizes} {big_narrow_peak}"
                 try:
+                    _LOGGER.info(f"Running: {cmd}")
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
                 except Exception as err:
                     _LOGGER.error(

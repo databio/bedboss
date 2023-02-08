@@ -172,7 +172,8 @@ def parse_opt() -> Tuple[str, dict]:
     sub_make.add_argument(
         "-r",
         "--rfg-config",
-        required=True,
+        required=False,
+        default=None,
         help="file path to the genome config file",
         type=str,
     )
@@ -199,6 +200,7 @@ def parse_opt() -> Tuple[str, dict]:
     sub_make.add_argument(
         "--chrom-sizes",
         help="a full path to the chrom.sizes required for the bedtobigbed conversion",
+        default=None,
         type=str,
         required=False,
     )

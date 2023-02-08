@@ -36,7 +36,7 @@ def bedqc(
     input_extension = os.path.splitext(bedfile_name)[1]
 
     if not pm:
-        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder)
+        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder, recover=True)
 
     detail = []
 
@@ -52,12 +52,11 @@ def bedqc(
 
     if input_extension == ".gz":
         file = os.path.join(outfolder, next(tempfile._get_candidate_names()))
+        pm.clean_add(file)
+        cmd = "zcat " + bedfile + " > " + file
+        pm.run(cmd, file)
     else:
         file = bedfile
-
-    pm.clean_add(file)
-    cmd = "zcat " + bedfile + " > " + file
-    pm.run(cmd, file)
 
     cmd = f"bash {script_path} {file} "
 
@@ -98,4 +97,5 @@ def bedqc(
         raise QualityException(f"{str(detail)}")
 
     pm.stop_pipeline()
+    _LOGGER.info(f"File ({file}) has passed Quality Control!")
     return True
