@@ -1,7 +1,7 @@
 """ Package-level data """
 from bedboss import *
 
-__version__ = "0.1.0"
+__version__ = "0.1.0-dev1"
 __package_name__ = "bedboss"
 __author__ = [
     "Michal Stolarczyk",
