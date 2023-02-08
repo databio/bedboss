@@ -2,6 +2,7 @@ import logging
 import os
 import urllib.request
 from typing import NoReturn, Union, Dict
+import pypiper
 
 from .bedstat.bedstat import run_bedstat
 from .bedmaker.bedmaker import BedMaker
@@ -107,10 +108,11 @@ def run_all(
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
-    # TODO: should we keep bed and bigfiles in output folder?
     # set env for bedstat:
     output_folder_bedstat = os.path.join(output_folder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
+
+    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=output_folder)
 
     BedMaker(
         input_file=input_file,
@@ -124,7 +126,8 @@ def run_all(
         check_qc=check_qc,
         standard_chrom=standard_chrom,
         chrom_sizes=chrom_sizes,
-    ).make()
+        pm=pm,
+    )
 
     run_bedstat(
         bedfile=output_bed,
@@ -136,6 +139,7 @@ def run_all(
         sample_yaml=sample_yaml,
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
+        pm=pm,
     )
 
 

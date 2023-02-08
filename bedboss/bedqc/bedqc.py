@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import os
 import tempfile
@@ -18,6 +17,7 @@ def bedqc(
     max_file_size: int = MAX_FILE_SIZE,
     max_region_size: int = MAX_REGION_SIZE,
     min_region_width: int = MIN_REGION_WIDTH,
+    pm: pypiper.PipelineManager = None,
 ) -> bool:
     """
     Main pipeline function
@@ -26,6 +26,7 @@ def bedqc(
     :param max_file_size: maximum file size
     :param max_region_size: maximum region size
     :param min_region_width: min region width
+    :param pm: pypiper object
     :return: True if file passed Quality check
     """
     _LOGGER.info("Running bedqc...")
@@ -34,7 +35,8 @@ def bedqc(
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
-    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder)
+    if not pm:
+        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder)
 
     detail = []
 
@@ -59,10 +61,7 @@ def bedqc(
 
     cmd = f"bash {script_path} {file} "
 
-    if (
-        pm.checkprint(cmd, lock_name=next(tempfile._get_candidate_names()))
-        > max_region_size
-    ):
+    if pm.run(cmd, lock_name=next(tempfile._get_candidate_names())) > max_region_size:
         detail.append("File contains more than 5 million regions.")
 
     # check file size
@@ -80,11 +79,7 @@ def bedqc(
     """
 
     if (
-        float(
-            subprocess.check_output(
-                ["awk", awk_command, file], text=True
-            ).split()[0]
-        )
+        float(subprocess.check_output(["awk", awk_command, file], text=True).split()[0])
         < min_region_width
     ):
         detail.append(f"Mean region width is less than {min_region_width} bp.")

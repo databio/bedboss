@@ -57,7 +57,7 @@ class BedMaker:
         narrowpeak: bool = False,
         standard_chrom: bool = False,
         check_qc: bool = True,
-        opts=None,
+        pm: pypiper.PipelineManager = None,
         **kwargs,
     ):
         """
@@ -85,6 +85,7 @@ class BedMaker:
                                 the standard chromosomes, remove regions on
                                 ChrUn chromosomes
         :param check_qc: run quality control during badmaking
+        :param pm: pypiper object
         :return: noReturn
         """
 
@@ -152,7 +153,7 @@ class BedMaker:
             os.makedirs(self.output_bigbed)
 
         # Set pipeline log directory
-        # create one if doesn't exist
+        # create one if it doesn't exist
         self.logs_name = "bedmaker_logs"
         self.logs_dir = os.path.join(
             self.bed_parent, self.logs_name, self.sample_name
@@ -163,33 +164,29 @@ class BedMaker:
             )
             os.makedirs(self.logs_dir)
 
-        # initiate pipelineManager
-        self.pm = pypiper.PipelineManager(
-            name="bedmaker",
-            outfolder=self.logs_dir,
-        )
+        if not pm:
+            self.pm = pypiper.PipelineManager(
+                name="bedmaker",
+                outfolder=self.logs_dir,
+            )
 
     def make(self) -> NoReturn:
         """
         Create bed and BigBed files.
         This is main function that executes every step of the bedmaker pipeline.
         """
-
         _LOGGER.info(f"Got input type: {self.input_type}")
-
         # converting to bed.gz if needed
         self.make_bed()
 
-        # run bed_qc on bed file
         if self.check_qc:
             bedqc(
                 self.output_bed,
                 outfolder=os.path.join(self.bed_parent, "bedqc_logs"),
+                pm=self.pm,
             )
 
-        # generating bigbed file
         self.make_bigbed()
-
         self.pm.stop_pipeline()
 
     def make_bed(self) -> NoReturn:
@@ -197,6 +194,7 @@ class BedMaker:
         Convert the input file to BED format by construct the command based
         on input file type and execute the command.
         """
+
         _LOGGER.info(f"Converting {self.input_file} to BED format.")
         temp_bed_path = os.path.splitext(self.output_bed)[0]
 

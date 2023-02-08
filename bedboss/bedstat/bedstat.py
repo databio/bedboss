@@ -5,7 +5,6 @@ import yaml
 import os
 import requests
 import gzip
-
 import pypiper
 import bbconf
 
@@ -64,6 +63,7 @@ def run_bedstat(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    pm: pypiper.PipelineManager = None,
 ) -> NoReturn:
     """
     Run bedstat pipeline. Can be used without running from command line
@@ -78,14 +78,14 @@ def run_bedstat(
         into the database
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param pm: pypiper object
     """
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
     bedstat_output_path = bbc.get_bedstat_output_path()
 
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
-    # bed_digest = hash_bedfile(args.bedfile)
     bedfile_name = os.path.split(bedfile)[1]
-    # need to split twice since there are 2 exts
+
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     outfolder = os.path.abspath(os.path.join(bedstat_output_path, bed_digest))
     json_file_path = os.path.abspath(os.path.join(outfolder, fileid + ".json"))
@@ -101,10 +101,11 @@ def run_bedstat(
         os.path.abspath(os.path.join(bedstat_output_path, os.pardir, os.pardir)),
     )
     if not just_db_commit:
-        pm = pypiper.PipelineManager(
-            name="bedstat-pipeline",
-            outfolder=outfolder,
-        )
+        if not pm:
+            pm = pypiper.PipelineManager(
+                name="bedstat-pipeline",
+                outfolder=outfolder,
+            )
 
         # run Rscript
         rscript_path = os.path.join(
@@ -122,7 +123,6 @@ def run_bedstat(
             f"--outputFolder={outfolder} --genome={genome_assembly} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
-        print(command)
         pm.run(cmd=command, target=json_file_path)
         pm.stop_pipeline()
 
@@ -170,7 +170,7 @@ def run_bedstat(
             os.path.join(bigbed, fileid + ".bigBed")
         ) and not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
             digest = requests.get(
-                f"http://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
             ).text.strip('""')
 
             data.update(
@@ -185,7 +185,9 @@ def run_bedstat(
                 {
                     "bigbedfile": {
                         "path": bigbed_relpath,
-                        "size": os.path.getsize(os.path.join(bigbed, fileid + ".bigBed")),
+                        "size": os.path.getsize(
+                            os.path.join(bigbed, fileid + ".bigBed")
+                        ),
                         "title": "Path to the big BED file",
                     }
                 }
