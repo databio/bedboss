@@ -14,18 +14,26 @@ def parse_opt() -> Tuple[str, dict]:
     parser = VersionInHelpParser(
         prog=__package_name__,
         description="Warehouse of pipelines for BED-like files: "
-                    "bedmaker, bedstat, and bedqc.",
+        "bedmaker, bedstat, and bedqc.",
         epilog="",
         version=__version__,
     )
 
     subparser = parser.add_subparsers()
-    sub_all = subparser.add_parser('all', help="Run all bedboss pipelines and insert data into bedbase")
-    sub_make = subparser.add_parser('make', help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
-                                                 "files into bed and bigbed formats")
-    sub_qc = subparser.add_parser('qc', help="Run quality control on bed file (bedqc)")
-    sub_stat = subparser.add_parser('stat', help="A pipeline to read a file in BED format and produce metadata "
-                                                 "in JSON format.")
+    sub_all = subparser.add_parser(
+        "all", help="Run all bedboss pipelines and insert data into bedbase"
+    )
+    sub_make = subparser.add_parser(
+        "make",
+        help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
+        "files into bed and bigbed formats",
+    )
+    sub_qc = subparser.add_parser("qc", help="Run quality control on bed file (bedqc)")
+    sub_stat = subparser.add_parser(
+        "stat",
+        help="A pipeline to read a file in BED format and produce metadata "
+        "in JSON format.",
+    )
 
     sub_all.add_argument(
         "-s",
@@ -67,7 +75,7 @@ def parse_opt() -> Tuple[str, dict]:
         "-n",
         "--narrowpeak",
         help="whether the regions are narrow (transcription factor implies narrow, "
-             "histone mark implies broad peaks)",
+        "histone mark implies broad peaks)",
         type=bool,
         required=False,
     )
@@ -87,7 +95,7 @@ def parse_opt() -> Tuple[str, dict]:
         required=False,
         default=None,
         help="a full path to the openSignalMatrix required for the tissue "
-             "specificity plots",
+        "specificity plots",
     )
     sub_all.add_argument(
         "--ensdb",
@@ -110,7 +118,7 @@ def parse_opt() -> Tuple[str, dict]:
         type=str,
         required=False,
         help="a yaml config file with sample attributes to pass on more metadata "
-             "into the database",
+        "into the database",
     )
     sub_all.add_argument(
         "--no-db-commit",
@@ -144,7 +152,7 @@ def parse_opt() -> Tuple[str, dict]:
         "-n",
         "--narrowpeak",
         help="whether the regions are narrow "
-             "(transcription factor implies narrow, histone mark implies broad peaks)",
+        "(transcription factor implies narrow, histone mark implies broad peaks)",
         type=bool,
     )
     sub_make.add_argument(
@@ -209,7 +217,7 @@ def parse_opt() -> Tuple[str, dict]:
         required=False,
         default=None,
         help="a full path to the openSignalMatrix required for the tissue "
-             "specificity plots",
+        "specificity plots",
     )
 
     sub_stat.add_argument(
@@ -242,7 +250,7 @@ def parse_opt() -> Tuple[str, dict]:
         type=str,
         required=False,
         help="a yaml config file with sample attributes to pass on more metadata "
-             "into the database",
+        "into the database",
     )
     sub_stat.add_argument(
         "--genome",
