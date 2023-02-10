@@ -74,10 +74,8 @@ def parse_opt() -> Tuple[str, dict]:
     sub_all.add_argument(
         "-n",
         "--narrowpeak",
-        help="whether the regions are narrow (transcription factor implies narrow, "
-        "histone mark implies broad peaks)",
-        type=bool,
-        required=False,
+        help="whether it's a narrowpeak file",
+        action="store_true",
     )
     sub_all.add_argument(
         "--standard-chrom",
@@ -133,10 +131,14 @@ def parse_opt() -> Tuple[str, dict]:
 
     # bed_qc
     sub_qc.add_argument(
-        "--bedfile", help="a full path to bed file to process", required=True
+        "--bedfile",
+        help="a full path to bed file to process",
+        required=True,
     )
     sub_qc.add_argument(
-        "--outfolder", help="a full path to output log folder.", required=True
+        "--outfolder", 
+        help="a full path to output log folder.", 
+        required=True
     )
 
     # bed_maker
@@ -151,15 +153,14 @@ def parse_opt() -> Tuple[str, dict]:
     sub_make.add_argument(
         "-n",
         "--narrowpeak",
-        help="whether the regions are narrow "
-        "(transcription factor implies narrow, histone mark implies broad peaks)",
-        type=bool,
+        help="whether it's a narrowpeak file",
+        action="store_true",
     )
     sub_make.add_argument(
         "-t",
         "--input-type",
         required=True,
-        help="a bigwig or a bedgraph file that will be converted into BED format",
+        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig)",
         type=str,
     )
     sub_make.add_argument(
@@ -199,7 +200,9 @@ def parse_opt() -> Tuple[str, dict]:
     )
     sub_make.add_argument(
         "--chrom-sizes",
-        help="a full path to the chrom.sizes required for the bedtobigbed conversion",
+        help="whether standardize chromosome names. "
+            "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
+            "such as chrN_random and chrUn_random. [Default: False]",
         default=None,
         type=str,
         required=False,
