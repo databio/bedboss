@@ -1,6 +1,6 @@
 #!/bin/bash
-cp docs/usage.template usage.template
-#looper --help > USAGE.temp 2>&1
+cp docs/templates/usage.template usage.template
+# bedboss --help > USAGE.temp 2>&1
 
 for cmd in "--help" "all --help" "make --help" "qc --help" "stat --help"; do
 	echo $cmd
@@ -19,4 +19,4 @@ rm USAGE_header.temp
 rm USAGE.temp.bak
 mv usage.template  docs/usage.md
 cat docs/usage.md
-#rm USAGE.temp
+# rm USAGE.temp
