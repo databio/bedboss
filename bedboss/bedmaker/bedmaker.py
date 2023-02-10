@@ -442,7 +442,7 @@ class BedMaker:
                 seek_key="chrom_sizes",
             )
 
-        _LOGGER.info("Determined path to chrom.sizes asset: {}".format(chrom_sizes))
+        _LOGGER.info(f"Determined path to chrom.sizes asset: {chrom_sizes}")
 
         return chrom_sizes
 
