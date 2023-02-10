@@ -17,7 +17,7 @@ from .const import (
     BIGBED_FOLDER_NAME,
 )
 from .utils import extract_file_name, standardize_genome_name, download_file
-from .exceptions import OSMException, GenomeException
+from .exceptions import OpenSignalMatrixException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -28,6 +28,7 @@ def get_osm_path(genome: str) -> Union[str, None]:
     :param genome: genome assembly
     :return: path to the Open Signal Matrix
     """
+    # TODO: add more osm
     _LOGGER.info(f"Getting Open Signal Matrix file path...")
     if genome == "hg19":
         osm_name = OS_HG19
@@ -36,10 +37,10 @@ def get_osm_path(genome: str) -> Union[str, None]:
     elif genome == "mm10":
         osm_name = OS_MM10
     else:
-        # raise OSMException(
-        #     "For this genome open Signal Matrix was not found. Exiting..."
-        # )
-        return None
+        raise OpenSignalMatrixException(
+            "For this genome open Signal Matrix was not found. Exiting..."
+        )
+        # return None
     osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
