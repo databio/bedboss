@@ -319,6 +319,11 @@ The commands used in bedmaker are:
             action="store_true",
             help="whether just to commit the JSON to the database",
         )
+        parser.add_argument(
+            "--force_overwrite",
+            action="store_true",
+            help="whether to overwrite the existing record",
+        )
         args = parser.parse_args(sys.argv[2:])
         args_dict = vars(args)
         run_bedstat(**args_dict)

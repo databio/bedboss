@@ -64,20 +64,25 @@ def run_bedstat(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    force_overwrite: bool = False,
 ) -> NoReturn:
     """
     Run bedstat pipeline. Can be used without running from command line
     :param str bedfile: a full path to bed file to process
     :param str bigbed: a full path to bigbed
     :param str bedbase_config: a path to the bedbase configuration file
-    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue
-        specificity plots
+    :param str open_signal_matrix: a full path to the openSignalMatrix
+        required for the tissue specificity plots
     :param str genome_assembly: genome assembly of the sample
-    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param str sample_yaml: a yaml config file with sample attributes to pass on more metadata
+    :param str ensdb: a full path to the ensdb gtf file required for genomes
+        not in GDdata
+    :param str sample_yaml: a yaml config file with sample attributes to pass
+        on more metadata
         into the database
     :param bool just_db_commit: whether just to commit the JSON to the database
-    :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool no_db_commit: whether the JSON commit to the database should be
+        skipped
+    :param bool force_overwrite: whether to overwrite the existing record
     """
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
     bedstat_output_path = bbc.get_bedstat_output_path()
@@ -94,11 +99,15 @@ def run_bedstat(
     )
     bed_relpath = os.path.relpath(
         bedfile,
-        os.path.abspath(os.path.join(bedstat_output_path, os.pardir, os.pardir)),
+        os.path.abspath(
+            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+        ),
     )
     bigbed_relpath = os.path.relpath(
         os.path.join(bigbed, fileid + ".bigBed"),
-        os.path.abspath(os.path.join(bedstat_output_path, os.pardir, os.pardir)),
+        os.path.abspath(
+            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+        ),
     )
     if not just_db_commit:
         pm = pypiper.PipelineManager(
@@ -123,7 +132,10 @@ def run_bedstat(
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
         print(command)
-        pm.run(cmd=command, target=json_file_path)
+
+        if force_overwrite:
+            new_start = True
+        pm.run(cmd=command, target=json_file_path, new_start=new_start)
         pm.stop_pipeline()
 
     # now get the resulting json file and load it into Elasticsearch
@@ -149,13 +161,20 @@ def run_bedstat(
                 if key in schema:
                     if not schema[key]["db_commit"]:
                         y.pop(key, None)
-                elif key in ["bedbase_config", "pipeline_interfaces", "yaml_file"]:
+                elif key in [
+                    "bedbase_config",
+                    "pipeline_interfaces",
+                    "yaml_file",
+                ]:
                     y.pop(key, None)
             data.update({"other": y})
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
         # postgres column identifiers
-        data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+        data = {
+            k.lower(): v[0] if isinstance(v, list) else v
+            for k, v in data.items()
+        }
         data.update(
             {
                 "bedfile": {
@@ -185,7 +204,9 @@ def run_bedstat(
                 {
                     "bigbedfile": {
                         "path": bigbed_relpath,
-                        "size": os.path.getsize(os.path.join(bigbed, fileid + ".bigBed")),
+                        "size": os.path.getsize(
+                            os.path.join(bigbed, fileid + ".bigBed")
+                        ),
                         "title": "Path to the big BED file",
                     }
                 }
@@ -205,4 +226,8 @@ def run_bedstat(
             plot_id = plot["name"]
             del plot["name"]
             data.update({plot_id: plot})
-        bbc.bed.report(record_identifier=bed_digest, values=data)
+        bbc.bed.report(
+            record_identifier=bed_digest,
+            values=data,
+            force_overwrite=force_overwrite,
+        )
