@@ -5,6 +5,7 @@ library(ensembldb)
 library(optparse)
 library(tools)
 library(R.utils)
+library(rjson)
 
 trim <- IRanges::trim
 
@@ -92,110 +93,141 @@ getPlotReportDF <- function(plotId, title){
 doItAall <- function(query, fileId, genome, cellMatrix) {
   plots = data.frame(stringsAsFactors=F)
   bsGenomeAvail = ifelse((requireNamespace(BSg, quietly=TRUE) | requireNamespace(BSgm, quietly=TRUE)), TRUE, FALSE)
+  
+  # check if json file exist for the input bed file
+  if (file.exists(paste0(outfolder, "/", fileId, ".json"))){
+    bedmeta = fromJSON(file=paste0(outfolder, "/", fileId, ".json"))
+    plots = fromJSON(paste0(outfolder, "/", fileId, "_plots.json"))
+  }
   # TSS distance plot
-  tryCatch(
-    expr = {
-      if (!(genome %in% c("hg19", "hg38", "mm10", "mm9")) && gtffile == "None"){
-        message("Ensembl annotation gtf file not provided. Skipping TSS distance plot ... ")
-      } else{
-        if (genome %in% c("hg19", "hg38", "mm10", "mm9")) {
-          TSSdist = calcFeatureDistRefTSS(query, genome)
-          plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
-        } else {
-        tss = getTssFromGTF(gtffile, TRUE)
-        TSSdist = calcFeatureDist(query, tss)
-        plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
-        }
-      }
-      plots = rbind(plots, getPlotReportDF("tssdist", "Region-TSS distance distribution"))
-      message("Successfully calculated and plot TSS distance.")
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
-    }
-  ) 
-  
-  
-  # Chromosomes region distribution plot
-  tryCatch(
-    expr = {
-      if (genome %in% c("mm39", "dm3", "dm6", "ce10", "ce11", "danRer10", "danRer10", "T2T")){
-        chromSizes = myChromSizes(genome)
-        genomeBins  = getGenomeBins(chromSizes)
-        plotBoth("chrombins", plotChromBins(calcChromBins(query, genomeBins)))
-      } else{
-        plotBoth("chrombins", plotChromBins(calcChromBinsRef(query, genome)))
-      }
-      
-      plots = rbind(plots, getPlotReportDF("chrombins", "Regions distribution over chromosomes"))
-      message("Successfully calculated and plot chromosomes region distribution.")
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
-    }
-  ) 
-  
-  
-  # OPTIONAL: Plot GC content only if proper BSgenome package is installed. 
-  if (bsGenomeAvail) {
+  if (!exists("bedmeta") | !("median_TSS_dist" %in% names(bedmeta)) ){
     tryCatch(
       expr = {
-        if (requireNamespace(BSgm, quietly=TRUE)){
-          library (BSgm, character.only = TRUE)
-          bsg = eval(as.name(BSgm))
-          gcvec = calcGCContent(query, bsg)
-        } else {
-          library (BSg, character.only = TRUE)
-          bsg = eval(as.name(BSg))
-          gcvec = calcGCContent(query, bsg)
+        if (!(genome %in% c("hg19", "hg38", "mm10", "mm9")) && gtffile == "None"){
+          message("Ensembl annotation gtf file not provided. Skipping TSS distance plot ... ")
+        } else{
+          if (genome %in% c("hg19", "hg38", "mm10", "mm9")) {
+            TSSdist = calcFeatureDistRefTSS(query, genome)
+            plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
+          } else {
+            tss = getTssFromGTF(gtffile, TRUE)
+            TSSdist = calcFeatureDist(query, tss)
+            plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
+          }
         }
-        plotBoth("gccontent", plotGCContent(gcvec))
-        plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
-        message("Successfully calculated and plot GC content.")
+        if (exists("bedmeta")){
+          tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
+          bedmeta = append(bedmeta, tss)
+        }
+        plots = rbind(plots, getPlotReportDF("tssdist", "Region-TSS distance distribution"))
+        message("Successfully calculated and plot TSS distance.")
       },
       error = function(e){
         message('Caught an error!')
-        print(e, gcvec)
+        print(e)
       }
     ) 
   }
   
-  # Partition plots, default to percentages
-  tryCatch(
-    expr = {
-      if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
-        message("Ensembl annotation gtf file not provided. Skipping partition plot ... ")
-      } else {
-        if (genome %in% c("hg19", "hg38", "mm10")) {
-          gp = calcPartitionsRef(query, genome)
-          plotBoth("paritions", plotPartitions(gp))
-        } else {
-          partitionList = myPartitionList(gtffile)
-          gp = calcPartitions(query, partitionList)
-          plotBoth("paritions", plotPartitions(gp))
+  
+  
+  # Chromosomes region distribution plot
+  if (!exists("bedmeta") ){
+    tryCatch(
+      expr = {
+        if (genome %in% c("mm39", "dm3", "dm6", "ce10", "ce11", "danRer10", "danRer10", "T2T")){
+          chromSizes = myChromSizes(genome)
+          genomeBins  = getGenomeBins(chromSizes)
+          plotBoth("chrombins", plotChromBins(calcChromBins(query, genomeBins)))
+        } else{
+          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query, genome)))
         }
-        plots = rbind(plots, getPlotReportDF("paritions", "Regions distribution over genomic partitions"))
-        # flatten the result returned by the function above
-        partiotionNames = as.vector(gp[,"partition"])
-        partitionsList = list()
-        for(i in seq_along(partiotionNames)){
-          partitionsList[[paste0(partiotionNames[i], "_frequency")]] = 
-            as.vector(gp[,"Freq"])[i]
-          partitionsList[[paste0(partiotionNames[i], "_percentage")]] = 
-            as.vector(gp[,"Freq"])[i]/length(query)	        
-        }
-        message("Successfully calculated and plot regions distribution over genomic partitions.")
+        
+        plots = rbind(plots, getPlotReportDF("chrombins", "Regions distribution over chromosomes"))
+        message("Successfully calculated and plot chromosomes region distribution.")
+      },
+      error = function(e){
+        message('Caught an error!')
+        print(e)
       }
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
+    ) 
+  }
+  
+  
+  
+  
+  # OPTIONAL: Plot GC content only if proper BSgenome package is installed. 
+  if (!exists("bedmeta") | !("gc_content" %in% names(bedmeta)) ){
+    if (bsGenomeAvail) {
+      tryCatch(
+        expr = {
+          if (requireNamespace(BSgm, quietly=TRUE)){
+            library (BSgm, character.only = TRUE)
+            bsg = eval(as.name(BSgm))
+            gcvec = calcGCContent(query, bsg)
+          } else {
+            library (BSg, character.only = TRUE)
+            bsg = eval(as.name(BSg))
+            gcvec = calcGCContent(query, bsg)
+          }
+          plotBoth("gccontent", plotGCContent(gcvec))
+          if (exists("bedmeta")){
+            gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
+            bedmeta = append(bedmeta, gc_content)
+          }
+          plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
+          message("Successfully calculated and plot GC content.")
+        },
+        error = function(e){
+          message('Caught an error!')
+          print(e, gcvec)
+        }
+      ) 
     }
-  ) 
+  }
+  
+  
+  # Partition plots, default to percentages
+  if (!exists("bedmeta") | !("exon_frequency" %in% names(bedmeta))){
+    tryCatch(
+      expr = {
+        if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
+          message("Ensembl annotation gtf file not provided. Skipping partition plot ... ")
+        } else {
+          if (genome %in% c("hg19", "hg38", "mm10")) {
+            gp = calcPartitionsRef(query, genome)
+            plotBoth("paritions", plotPartitions(gp))
+          } else {
+            partitionList = myPartitionList(gtffile)
+            gp = calcPartitions(query, partitionList)
+            plotBoth("paritions", plotPartitions(gp))
+          }
+          plots = rbind(plots, getPlotReportDF("paritions", "Regions distribution over genomic partitions"))
+          # flatten the result returned by the function above
+          partiotionNames = as.vector(gp[,"partition"])
+          partitionsList = list()
+          for(i in seq_along(partiotionNames)){
+            partitionsList[[paste0(partiotionNames[i], "_frequency")]] = 
+              as.vector(gp[,"Freq"])[i]
+            partitionsList[[paste0(partiotionNames[i], "_percentage")]] = 
+              as.vector(gp[,"Freq"])[i]/length(query)	        
+          }
+          if (exists("bedmeta")){
+            bedmeta = append(bedmeta, partitionsList)
+          }
+          message("Successfully calculated and plot regions distribution over genomic partitions.")
+        }
+      },
+      error = function(e){
+        message('Caught an error!')
+        print(e)
+      }
+    ) 
+  }
+ 
   
   # Expected partition plots
+  if (!exists("bedmeta") ){
   tryCatch(
     expr = {
       if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
@@ -218,8 +250,10 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       print(e)
     }
   ) 
+  }
  
   # Cumulative partition plots
+  if (!exists("bedmeta") ){
   tryCatch(
     expr = {
       if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
@@ -240,12 +274,18 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       print(e)
     }
   ) 
+  }
   
   # QThist plot
+  if (!exists("bedmeta") | !("mean_region_width" %in% names(bedmeta))  ){
   tryCatch(
     expr = {
       widths = calcWidth(query)
       plotBoth("widths_histogram", plotQTHist(widths))
+      if (exists("bedmeta")){
+        mean_region_width <- list(mean_region_width = signif(mean(widths), digits = 4))
+        bedmeta = append(bedmeta, mean_region_width)
+      }
       plots = rbind(plots, getPlotReportDF("widths_histogram", "Quantile-trimmed histogram of widths"))
       message("Successfully calculated and plot quantile-trimmed histogram of widths.")
     },
@@ -254,29 +294,15 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       print(e, widths)
     }
   ) 
+  }
   
   # Neighbor regions distance plots
-  tryCatch(
-    expr = {
-      plotBoth("neighbor_distances", plotNeighborDist(calcNeighborDist(query)))
-      plots = rbind(plots, getPlotReportDF("neighbor_distances", "Distance between neighbor regions"))
-      message("Successfully calculated and plot distance between neighbor regions.")
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
-    }
-  ) 
-  
-  # Tissue specificity plot if open signal matrix is provided
-  if (cellMatrix == "None") {
-    message("open signal matrix not provided. Skipping tissue specificity plot ... ")
-  } else {
+  if (!exists("bedmeta") ){
     tryCatch(
       expr = {
-        plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
-        plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
-        message("Successfully calculated and plot cell specific enrichment for open chromatin.")
+        plotBoth("neighbor_distances", plotNeighborDist(calcNeighborDist(query)))
+        plots = rbind(plots, getPlotReportDF("neighbor_distances", "Distance between neighbor regions"))
+        message("Successfully calculated and plot distance between neighbor regions.")
       },
       error = function(e){
         message('Caught an error!')
@@ -285,31 +311,57 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
     ) 
   }
   
-  # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
-  bedmeta = list(
-    name=fileId,
-    regions_no=length(query),
-    mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
-    md5sum=opt$digest
-  )
-  if (exists('gcvec') && !isEmpty(gcvec)){
-    gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
-    bedmeta = append(bedmeta, gc_content)
-  }
-  if (exists('TSSdist') && !all(is.na(TSSdist))){
-    tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
-    bedmeta = append(bedmeta, tss)
-  }
-  if (exists('partitionsList')){
-    write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
-  } else {
-     write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
-    }
   
-  if (exists('plots')){
-    write(jsonlite::toJSON(plots, pretty=TRUE), paste0(outfolder, "/", fileId, "_plots.json"))
+  # Tissue specificity plot if open signal matrix is provided
+  if (!exists("bedmeta") ){
+    if (cellMatrix == "None") {
+      message("open signal matrix not provided. Skipping tissue specificity plot ... ")
+    } else {
+      tryCatch(
+        expr = {
+          plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
+          plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
+          message("Successfully calculated and plot cell specific enrichment for open chromatin.")
+        },
+        error = function(e){
+          message('Caught an error!')
+          print(e)
+        }
+      ) 
+    }
   }
-}
+ 
+  
+  # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
+  if (exists("bedmeta")){
+    write(jsonlite::toJSON(bedmeta, pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
+    write(jsonlite::toJSON(plots, pretty=TRUE), paste0(outfolder, "/", fileId, "_plots.json"))
+  } else {
+    bedmeta = list(
+      name=fileId,
+      regions_no=length(query),
+      mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
+      md5sum=opt$digest
+    )
+    if (exists('gcvec') && !isEmpty(gcvec)){
+      gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
+      bedmeta = append(bedmeta, gc_content)
+    }
+    if (exists('TSSdist') && !all(is.na(TSSdist))){
+      tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
+      bedmeta = append(bedmeta, tss)
+    }
+    if (exists('partitionsList')){
+      write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
+    } else {
+      write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
+    }
+    
+    if (exists('plots')){
+      write(jsonlite::toJSON(plots, pretty=TRUE), paste0(outfolder, "/", fileId, "_plots.json"))
+    }
+  }
+  }
 
 # define values and output folder for doitall()
 fileId = opt$fileId
