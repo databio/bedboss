@@ -62,7 +62,7 @@ The commands used in bedmaker are:
         )
         parser.add_argument(
             "-o",
-            "--output_folder",
+            "--output-folder",
             required=True,
             help="Output folder",
             type=str,
@@ -320,7 +320,7 @@ The commands used in bedmaker are:
             help="whether just to commit the JSON to the database",
         )
         parser.add_argument(
-            "--force_overwrite",
+            "--force-overwrite",
             action="store_true",
             help="whether to overwrite the existing record",
         )
