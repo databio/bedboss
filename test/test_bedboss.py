@@ -1,4 +1,4 @@
-from bedboss import bedstat, bedmaker, bedboss
+from bedboss import bedstat, bedmaker, run_all
 from bedboss.bedqc import bedqc
 import os
 import subprocess
@@ -45,7 +45,7 @@ class TestAllBedboss:
     )
     def test_this_code(self, input_file, genome, sample_name, input_type, bedbase_config, tmpdir):
         print("Hi")
-        bedboss.run_all(
+        run_all(
             input_file=input_file,
             genome=genome,
             sample_name=sample_name,

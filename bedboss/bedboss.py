@@ -144,7 +144,7 @@ def run_all(
     )
 
 
-def bedboss(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
+def main(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
     :param str pipeline: one of the bedboss pipelines
