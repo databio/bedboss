@@ -61,8 +61,8 @@ r_check_req() {
 cmd=$(echo "Rscript -e 'library(\"$1\")'")
     packageInstalled=$(eval $cmd 2>&1)
     if [[ "$packageInstalled" == *Error* ]]; then
-        echo $(fail "Fail: Please install the R package, $1, and checkinstall again.")
-#        printf "\n"
+        echo $(fail "Error: Please install the R package, $1, and checkinstall again.")
+#       printf "\n"
         NATIVE_INSTALL=1
     else
         echo -e $(success "SUCCESS: R package: ${1}")
@@ -71,45 +71,47 @@ cmd=$(echo "Rscript -e 'library(\"$1\")'")
 
 ################################################################################
 echo -e "Checking native installation...                            "
-NATIVE_INSTALL=0
+INSTALL_ERROR=0
+INSTALL_WARNINGS=0
 
 echo -e "Language compilers...                            "
 echo -e "-----------------------------------------------------------"
 
 # Check Python installation
-if is_executable "python"; then
-    NATIVE_INSTALL=1
+if ! is_executable "python"; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 # is R installation
-if is_executable "R"; then
-    NATIVE_INSTALL=1
+if ! is_executable "R"; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 echo -e "-----------------------------------------------------------"
 echo -e "Checking bedmaker dependencies...                            "
 echo -e "-----------------------------------------------------------"
 
-if pip_check "bedboss"; then
-    NATIVE_INSTALL=1
+if ! pip_check "bedboss"; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
-if pip_check "refgenconf"; then
-    NATIVE_INSTALL=1
+if ! pip_check "refgenconf"; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 
 # Check bedmaker packages
-if is_executable "bedToBigBed"; then
-    NATIVE_INSTALL=1
+if ! is_executable "bedToBigBed"; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
+    echo $(fail "ERROR: 'bedToBigBed' is not installed. To install 'bedToBigBed' check bedboss documentation: https://bedboss.databio.org/")
 fi
 
-if is_executable "bigBedToBed"; then
-    NATIVE_INSTALL=1
+if ! is_executable "bigBedToBed"; then
+    INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
 
-if is_executable "bigWigToBedGraph"; then
-    NATIVE_INSTALL=1
+if ! is_executable "bigWigToBedGraph"; then
+    INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
 
-if is_executable "wigToBigWig"; then
-    NATIVE_INSTALL=1
+if ! is_executable "wigToBigWig"; then
+    INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
 
 echo -e "-----------------------------------------------------------"
@@ -118,8 +120,11 @@ echo -e "-----------------------------------------------------------"
 
 declare -a requiredRPackages=("devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils")
 for package in "${requiredRPackages[@]}"; do
-  if r_check_req $package; then
-    NATIVE_INSTALL=1
+  if ! r_check_req $package; then
+    INSTALL_ERROR=$((INSTALL_ERROR+1))
   fi
 done
 
+echo "Number of WARNINGS: $INSTALL_WARNINGS"
+
+exit $INSTALL_ERROR
