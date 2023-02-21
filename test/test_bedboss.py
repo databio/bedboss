@@ -4,8 +4,8 @@ import os
 import subprocess
 import pytest
 
-FILE_PATH = "./data/bed/hg19/correct/hg19_example1.bed"
-BEDBASE_CONFIG = "./bedbase_cofig_test.yaml"
+FILE_PATH = "./test/data/bed/hg19/correct/hg19_example1.bed"
+BEDBASE_CONFIG = "./test/bedbase_cofig_test.yaml"
 
 def test_dependencies():
     test_dep_return_code = subprocess.run(["./test_dependencies/run_test.sh"], shell=True)
@@ -22,8 +22,8 @@ def test_dependencies():
 )
 def test_just_qc(bedfile, tmpdir):
     bedqc.bedqc(
-        bedfile="./data/bed/hg19/correct/hg19_example1.bed",
-        outfolder="./bedqc",
+        bedfile="./test/data/bed/hg19/correct/hg19_example1.bed",
+        outfolder="./test/bedqc",
     )
     assert True
 
