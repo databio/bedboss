@@ -7,7 +7,7 @@ import pytest
 # FILE_PATH = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/test/data/bed/hg19/correct/hg19_example1.bed"
 FILE_PATH = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/test/data/bed/hg19/correct/sample1.bed.gz"
 BEDBASE_CONFIG = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/test/bedbase_config_test.yaml"
-DEPENDENCIES_TEST_SCRIPT = "./test/test_dependencies/run_test.sh"
+DEPENDENCIES_TEST_SCRIPT = "./test_dependencies/run_test.sh"
 
 
 def test_dependencies():
@@ -81,5 +81,5 @@ def test_boss(input_file, genome, sample_name, input_type, bedbase_config, tmpdi
     }
     )
 
-    print(os.listdir())
+    print(os.listdir(os.path.join(tmpdir, "output", "bedstat_output", "c557c915a9901ce377ef724806ff7a2c")))
     assert True

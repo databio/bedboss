@@ -120,7 +120,7 @@ echo -e "-----------------------------------------------------------"
 echo -e "Checking required R packages for bedstat...                            "
 echo -e "-----------------------------------------------------------"
 
-declare -a requiredRPackages=("devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils")
+declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA")
 for package in "${requiredRPackages[@]}"; do
   if ! r_check_req $package; then
     INSTALL_ERROR=$((INSTALL_ERROR+1))
