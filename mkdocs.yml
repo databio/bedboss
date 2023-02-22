@@ -24,6 +24,6 @@ theme: databio
 plugins:
   - search
 
-#  - databio:
-#      jupyter_source: "docs_jupyter"
-#      jupyter_build: "docs_jupyter/build"
+  - databio:
+      jupyter_source: "docs_jupyter"
+      jupyter_build: "docs_jupyter/build"

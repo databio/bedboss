@@ -79,7 +79,9 @@ echo -e "-----------------------------------------------------------"
 
 # Check Python installation
 if ! is_executable "python"; then
-    INSTALL_ERROR=$((INSTALL_ERROR+1))
+    if ! is_executable "python3"; then
+      INSTALL_ERROR=$((INSTALL_ERROR+1))
+    fi
 fi
 # is R installation
 if ! is_executable "R"; then

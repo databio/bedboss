@@ -1,7 +1,5 @@
 """ Package-level data """
-from .bedboss import *
-
-
+from bedboss import *
 
 __version__ = "0.1.0-dev1"
 __package_name__ = "bedboss"
@@ -14,4 +12,4 @@ __author__ = [
 ]
 __email__ = "khorosh@virginia.edu"
 
-__all__ = ["__version__", "__package_name__", "__author__", "bedstat", "bedqc", "run_all"]
+__all__ = ["__version__", "__package_name__", "__author__"]

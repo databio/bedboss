@@ -136,9 +136,7 @@ def parse_opt() -> Tuple[str, dict]:
         required=True,
     )
     sub_qc.add_argument(
-        "--outfolder", 
-        help="a full path to output log folder.", 
-        required=True
+        "--outfolder", help="a full path to output log folder.", required=True
     )
 
     # bed_maker
@@ -201,8 +199,8 @@ def parse_opt() -> Tuple[str, dict]:
     sub_make.add_argument(
         "--chrom-sizes",
         help="whether standardize chromosome names. "
-            "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
-            "such as chrN_random and chrUn_random. [Default: False]",
+        "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
+        "such as chrN_random and chrUn_random. [Default: False]",
         default=None,
         type=str,
         required=False,

@@ -9,8 +9,9 @@ def get_bed_path(file_correctness, file_name):
         "bed",
         "hg19",
         file_correctness,
-        file_name
+        file_name,
     )
+
 
 def get_list_of_correct_bed():
     get_bed_path

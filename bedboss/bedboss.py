@@ -4,9 +4,11 @@ import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
 
-from .bedstat.bedstat import run_bedstat
-from .bedmaker.bedmaker import BedMaker
-from .bedqc.bedqc import bedqc
+from bedboss.bedstat.bedstat import run_bedstat
+from bedboss.bedmaker.bedmaker import BedMaker
+from bedboss.bedqc.bedqc import bedqc
+from bedboss.cli import parse_opt
+
 from .const import (
     OS_HG19,
     OS_HG38,
@@ -66,6 +68,7 @@ def run_all(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    **kwargs,
 ) -> NoReturn:
     """
     Run bedboss: bedmaker, bedqc and bedstat.
@@ -89,7 +92,7 @@ def run_all(
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :return: NoReturn
     """
-
+    _LOGGER.warning(f"Unused arguments: {kwargs}")
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
 
@@ -113,7 +116,9 @@ def run_all(
     output_folder_bedstat = os.path.join(output_folder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
 
-    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=output_folder)
+    pm = pypiper.PipelineManager(
+        name="bedQC-pipeline", outfolder=output_folder, multi=True
+    )
 
     BedMaker(
         input_file=input_file,
@@ -128,7 +133,7 @@ def run_all(
         standard_chrom=standard_chrom,
         chrom_sizes=chrom_sizes,
         pm=pm,
-    )
+    ).make()
 
     run_bedstat(
         bedfile=output_bed,
@@ -144,18 +149,32 @@ def run_all(
     )
 
 
-def main(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
+def main(test_cli: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
     :param str pipeline: one of the bedboss pipelines
     :param dict args_dict: dict of arguments used in provided pipeline.
     """
+    if test_cli:
+        pipeline = test_cli.get("pipeline")
+        args_dict = test_cli
+        args_dict["pm"] = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=args_dict.get("outfolder"),
+            recover=True,
+            multi=True,
+        )
+
+    else:
+        pipeline, args_dict = parse_opt()
+        # args_dict["pm"] = pypiper.PipelineManager(name="bedboss-pipeline", outfolder=outfolder, recover=True)
+
     if pipeline == "all":
         run_all(**args_dict)
     elif pipeline == "make":
         BedMaker(**args_dict).make()
     elif pipeline == "qc":
-        bedqc(**args_dict)
+        return bedqc(**args_dict)
     elif pipeline == "stat":
         run_bedstat(**args_dict)
     else:

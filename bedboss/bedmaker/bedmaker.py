@@ -161,6 +161,8 @@ class BedMaker:
                 outfolder=self.logs_dir,
                 recover=True,
             )
+        else:
+            self.pm = pm
 
     def make(self) -> NoReturn:
         """
