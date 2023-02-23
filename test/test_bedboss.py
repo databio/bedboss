@@ -8,8 +8,8 @@ FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "data", "bed", "hg19", "correct")
 FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 
-BEDBASE_CONFIG = f"{FILE_DIR}/bedbase_config_test.yaml"
-DEPENDENCIES_TEST_SCRIPT = f"{FILE_DIR}/test_dependencies/run_test.sh"
+BEDBASE_CONFIG = os.path.join(FILE_DIR, "test_dependencies", "bedbase_config_test.yaml")
+DEPENDENCIES_TEST_SCRIPT = f"{FILE_DIR}/bash_requirements_test.sh"
 
 
 def test_dependencies():

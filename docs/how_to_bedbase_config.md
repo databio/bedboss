@@ -12,6 +12,7 @@ path:
   pipeline_output_path: $BEDBOSS_OUTPUT_PATH  # do not change it
   bedstat_dir: bedstat_output
   remote_url_base: null
+  bedbuncher_dir: bedbucher_output
 database:
   host: $DB_HOST_URL
   port: $POSTGRES_PORT
