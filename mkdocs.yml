@@ -15,6 +15,7 @@ nav:
   - How-to Guides:
     - Create bedbase config file: how_to_bedbase_config.md
     - Create bedbase postgres database: how_to_create_database.md
+    - How to install R dependencies: how_to_install_r_dep.md
   - Reference:
     - Usage: usage.md
     - Support: https://github.com/bedbase/bedboss/issues

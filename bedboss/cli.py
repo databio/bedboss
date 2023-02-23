@@ -39,24 +39,31 @@ def parse_opt() -> Tuple[str, dict]:
         "-s",
         "--sample-name",
         required=True,
-        help="name of the sample used to systematically build the output name",
+        help="name of the sample used to systematically build the output name [Required]",
         type=str,
     )
     sub_all.add_argument(
-        "-f", "--input-file", required=True, help="Input file", type=str
+        "-f", "--input-file", required=True, help="Input file [Required]", type=str
     )
     sub_all.add_argument(
         "-t",
         "--input-type",
         required=True,
-        help="Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)",
+        help="Input type [Required] options: (bigwig|bedgraph|bed|bigbed|wig)",
         type=str,
     )
     sub_all.add_argument(
-        "-o", "--output_folder", required=True, help="Output folder", type=str
+        "-o", "--output_folder",
+        required=True,
+        help="Output folder [Required]",
+        type=str
     )
     sub_all.add_argument(
-        "-g", "--genome", required=True, help="reference genome (assembly)", type=str
+        "-g",
+        "--genome",
+        required=True,
+        help="reference genome (assembly) [Required]",
+        type=str
     )
     sub_all.add_argument(
         "-r",
@@ -106,7 +113,7 @@ def parse_opt() -> Tuple[str, dict]:
         "--bedbase-config",
         dest="bedbase_config",
         type=str,
-        help="a path to the bedbase configuration file",
+        help="a path to the bedbase configuration file [Required]",
         required=True,
     )
     sub_all.add_argument(
@@ -132,11 +139,13 @@ def parse_opt() -> Tuple[str, dict]:
     # bed_qc
     sub_qc.add_argument(
         "--bedfile",
-        help="a full path to bed file to process",
+        help="a full path to bed file to process [Required]",
         required=True,
     )
     sub_qc.add_argument(
-        "--outfolder", help="a full path to output log folder.", required=True
+        "--outfolder",
+        help="a full path to output log folder. [Required]",
+        required=True,
     )
 
     # bed_maker
@@ -145,7 +154,7 @@ def parse_opt() -> Tuple[str, dict]:
         "-f",
         "--input-file",
         required=True,
-        help="path to the input file",
+        help="path to the input file [Required]",
         type=str,
     )
     sub_make.add_argument(
@@ -158,14 +167,14 @@ def parse_opt() -> Tuple[str, dict]:
         "-t",
         "--input-type",
         required=True,
-        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig)",
+        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig) [Required]",
         type=str,
     )
     sub_make.add_argument(
         "-g",
         "--genome",
         required=True,
-        help="reference genome",
+        help="reference genome [Required]",
         type=str,
     )
     sub_make.add_argument(
@@ -180,20 +189,20 @@ def parse_opt() -> Tuple[str, dict]:
         "-o",
         "--output-bed",
         required=True,
-        help="path to the output BED files",
+        help="path to the output BED files [Required]",
         type=str,
     )
     sub_make.add_argument(
         "--output-bigbed",
         required=True,
-        help="path to the folder of output bigBed files",
+        help="path to the folder of output bigBed files [Required]",
         type=str,
     )
     sub_make.add_argument(
         "-s",
         "--sample-name",
         required=True,
-        help="name of the sample used to systematically build the output name",
+        help="name of the sample used to systematically build the output name [Required]",
         type=str,
     )
     sub_make.add_argument(
@@ -212,7 +221,9 @@ def parse_opt() -> Tuple[str, dict]:
     )
     # bed_stat
     sub_stat.add_argument(
-        "--bedfile", help="a full path to bed file to process", required=True
+        "--bedfile",
+        help="a full path to bed file to process [Required]",
+        required=True
     )
     sub_stat.add_argument(
         "--open-signal-matrix",
@@ -243,8 +254,8 @@ def parse_opt() -> Tuple[str, dict]:
         "--bedbase-config",
         dest="bedbase_config",
         type=str,
-        default=None,
-        help="a path to the bedbase configuration file",
+        required=True,
+        help="a path to the bedbase configuration file [Required]",
     )
     sub_stat.add_argument(
         "-y",
@@ -260,7 +271,7 @@ def parse_opt() -> Tuple[str, dict]:
         dest="genome_assembly",
         type=str,
         required=True,
-        help="genome assembly of the sample",
+        help="genome assembly of the sample [Required]",
     )
     sub_stat.add_argument(
         "--no-db-commit",
