@@ -53,7 +53,7 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
 
 
-def run_bedstat(
+def bedstat(
     bedfile: str,
     bedbase_config: str,
     genome_assembly: str,

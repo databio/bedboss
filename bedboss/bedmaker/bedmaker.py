@@ -164,6 +164,8 @@ class BedMaker:
         else:
             self.pm = pm
 
+        self.make()
+
     def make(self) -> NoReturn:
         """
         Create bed and BigBed files.

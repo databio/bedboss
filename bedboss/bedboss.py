@@ -4,7 +4,7 @@ import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
 
-from bedboss.bedstat.bedstat import run_bedstat
+from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.cli import parse_opt
@@ -133,9 +133,9 @@ def run_all(
         standard_chrom=standard_chrom,
         chrom_sizes=chrom_sizes,
         pm=pm,
-    ).make()
+    )
 
-    run_bedstat(
+    bedstat(
         bedfile=output_bed,
         bigbed=output_bigbed,
         genome_assembly=genome,
@@ -147,7 +147,6 @@ def run_all(
         no_db_commit=no_db_commit,
         pm=pm,
     )
-
 
 def main(test_cli: dict = None) -> NoReturn:
     """
@@ -172,10 +171,10 @@ def main(test_cli: dict = None) -> NoReturn:
     if pipeline == "all":
         run_all(**args_dict)
     elif pipeline == "make":
-        BedMaker(**args_dict).make()
+        BedMaker(**args_dict)
     elif pipeline == "qc":
         return bedqc(**args_dict)
     elif pipeline == "stat":
-        run_bedstat(**args_dict)
+        bedstat(**args_dict)
     else:
         raise Exception("Incorrect pipeline name.")
