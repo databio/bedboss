@@ -80,7 +80,7 @@ def run_bedstat(
     :param bool no_db_commit: whether the JSON commit to the database should be skipped
     :param pm: pypiper object
     """
-    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=just_db_commit)
+    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
     bedstat_output_path = bbc.get_bedstat_output_path()
 
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()

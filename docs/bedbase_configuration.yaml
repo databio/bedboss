@@ -2,12 +2,13 @@ path:
   pipeline_output_path: $BEDBOSS_OUTPUT_PATH  # do not change it
   bedstat_dir: bedstat_output
   remote_url_base: null
+  bedbuncher_dir: bedbucher_output
 database:
-  host: $DB_HOST_URL
-  port: $POSTGRES_PORT
-  password: $POSTGRES_PASSWORD
-  user: $POSTGRES_USER
-  name: $POSTGRES_DB
+  host: localhost
+  port: 5432
+  password: docker
+  user: postgres
+  name: pep-db
   dialect: postgresql
   driver: psycopg2
 server:
