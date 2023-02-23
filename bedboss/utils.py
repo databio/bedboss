@@ -1,5 +1,6 @@
 import os
 import logging
+import requests
 import urllib
 from typing import NoReturn
 
