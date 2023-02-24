@@ -3,11 +3,12 @@ import os
 import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
+from argparse import Namespace
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
-from bedboss.cli import parse_opt
+from bedboss.cli import build_argparser
 
 from .const import (
     OS_HG19,
@@ -68,6 +69,7 @@ def run_all(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
     """
@@ -90,6 +92,7 @@ def run_all(
         (basically genomes that's not in GDdata)
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param pm: pypiper object
     :return: NoReturn
     """
     _LOGGER.warning(f"Unused arguments: {kwargs}")
@@ -115,10 +118,6 @@ def run_all(
     # set env for bedstat:
     output_folder_bedstat = os.path.join(output_folder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
-
-    pm = pypiper.PipelineManager(
-        name="bedQC-pipeline", outfolder=output_folder, multi=True
-    )
 
     BedMaker(
         input_file=input_file,
@@ -156,26 +155,29 @@ def main(test_args: dict = None) -> NoReturn:
     """
     # parser = logmuse.add_logging_options(build_argparser())
     parser = build_argparser()
-    args, _ = parser.parse_known_args()
-    # args = parser.parse_args(user_argv[1:])
-
-    # TODO: use Pypiper to simplify/standardize arg parsing
-
     if test_args:
-        args.__dict__.update(test_args)
+        args_dict = test_args
+    else:
+        args, _ = parser.parse_known_args()
+        args_dict = vars(args)
+    # TODO: use Pypiper to simplify/standardize arg parsing
 
     pm = pypiper.PipelineManager( 
         name="bedboss-pipeline",
-        outfolder=args.outfolder,
-        recover=True)
+        outfolder=args_dict.get("outfolder") if args_dict.get("outfolder") else "test_outfolder",
+        recover=True,
+        multi=True,
+    )
 
-    if args.command == "all":
-        run_all(pm, **args)
-    elif args.command == "make":
-        BedMaker(pm, **args)
-    elif args.command == "qc":
-        return bedqc(pm, **args)
-    elif args.command == "stat":
-        bedstat(pm, **args)
+    if args_dict["command"] == "all":
+        run_all(pm=pm, **args_dict)
+    elif args_dict["command"] == "make":
+        BedMaker(pm=pm, **args_dict)
+    elif args_dict["command"] == "qc":
+        bedqc(pm=pm, **args_dict)
+    elif args_dict["command"] == "stat":
+        bedstat(pm=pm, **args_dict)
     else:
+        pm.stop_pipeline()
         raise Exception("Incorrect pipeline name.")
+    pm.stop_pipeline()

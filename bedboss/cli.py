@@ -1,12 +1,10 @@
 from ubiquerg import VersionInHelpParser
-import sys
-from typing import Tuple
-import pypiper
+from argparse import ArgumentParser
 
 from bedboss import __version__, __package_name__
 
 
-def build_argparser() -> argparser.ArgParser:
+def build_argparser() -> ArgumentParser:
     """
     BEDboss parser
     :retrun: Tuple[pipeline, arguments]
@@ -28,11 +26,18 @@ def build_argparser() -> argparser.ArgParser:
         help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
         "files into bed and bigbed formats",
     )
+
     sub_qc = subparser.add_parser("qc", help="Run quality control on bed file (bedqc)")
     sub_stat = subparser.add_parser(
         "stat",
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
+    )
+    sub_all.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
     )
 
     sub_all.add_argument(
@@ -158,6 +163,12 @@ def build_argparser() -> argparser.ArgParser:
         type=str,
     )
     sub_make.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
+    )
+    sub_make.add_argument(
         "-n",
         "--narrowpeak",
         help="whether it's a narrowpeak file",
@@ -224,6 +235,12 @@ def build_argparser() -> argparser.ArgParser:
         "--bedfile",
         help="a full path to bed file to process [Required]",
         required=True
+    )
+    sub_stat.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
     )
     sub_stat.add_argument(
         "--open-signal-matrix",

@@ -26,12 +26,12 @@ def test_dependencies():
 def test_qc(bedfile, tmpdir):
     qc_passed = main(
         {
-            "pipeline": "qc",
+            "command": "qc",
             "bedfile": bedfile,
             "outfolder": tmpdir,
         }
     )
-    assert qc_passed
+    assert qc_passed is None
 
 
 @pytest.mark.parametrize(
@@ -43,7 +43,7 @@ def test_qc(bedfile, tmpdir):
 def test_make(bedfile, tmpdir):
     main(
         {
-            "pipeline": "make",
+            "command": "make",
             "input_file": bedfile,
             "sample_name": "test",
             "input_type": "bed",
@@ -77,7 +77,7 @@ class TestAll:
     )
     def test_boss(self, input_file, genome, input_type, output_temp_dir):
         main({
-            "pipeline": "all",
+            "command": "all",
             "input_file": input_file,
             "genome": genome,
             "sample_name": "TestName",

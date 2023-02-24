@@ -124,7 +124,6 @@ def bedstat(
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
         pm.run(cmd=command, target=json_file_path)
-        pm.stop_pipeline()
 
     # now get the resulting json file and load it into Elasticsearch
     # if the file exists, of course

@@ -183,7 +183,6 @@ class BedMaker:
             )
 
         self.make_bigbed()
-        self.pm.stop_pipeline()
 
     def make_bed(self) -> NoReturn:
         """

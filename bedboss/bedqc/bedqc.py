@@ -99,9 +99,8 @@ def bedqc(
                 f.write(f"file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
 
-        pm.stop_pipeline()
+
         raise QualityException(f"{str(detail)}")
 
-    pm.stop_pipeline()
     _LOGGER.info(f"File ({file}) has passed Quality Control!")
     return True
