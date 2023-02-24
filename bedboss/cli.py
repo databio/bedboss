@@ -6,7 +6,7 @@ import pypiper
 from bedboss import __version__, __package_name__
 
 
-def parse_opt() -> Tuple[str, dict]:
+def build_argparser() -> argparser.ArgParser:
     """
     BEDboss parser
     :retrun: Tuple[pipeline, arguments]
@@ -19,7 +19,7 @@ def parse_opt() -> Tuple[str, dict]:
         version=__version__,
     )
 
-    subparser = parser.add_subparsers()
+    subparser = parser.add_subparsers(dest="command")
     sub_all = subparser.add_parser(
         "all", help="Run all bedboss pipelines and insert data into bedbase"
     )
@@ -283,10 +283,5 @@ def parse_opt() -> Tuple[str, dict]:
         action="store_true",
         help="whether just to commit the JSON to the database",
     )
-    user_argv = sys.argv
-    if len(user_argv) > 1:
-        pipeline = user_argv[1]
-    else:
-        pipeline = None
-    args = parser.parse_args(user_argv[1:])
-    return pipeline, vars(args)
+
+    return parser

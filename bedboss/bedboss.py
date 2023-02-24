@@ -148,33 +148,34 @@ def run_all(
         pm=pm,
     )
 
-def main(test_cli: dict = None) -> NoReturn:
+def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
     :param str pipeline: one of the bedboss pipelines
     :param dict args_dict: dict of arguments used in provided pipeline.
     """
-    if test_cli:
-        pipeline = test_cli.get("pipeline")
-        args_dict = test_cli
-        args_dict["pm"] = pypiper.PipelineManager(
-            name="bedboss-pipeline",
-            outfolder=args_dict.get("outfolder"),
-            recover=True,
-            multi=True,
-        )
+    # parser = logmuse.add_logging_options(build_argparser())
+    parser = build_argparser()
+    args, _ = parser.parse_known_args()
+    # args = parser.parse_args(user_argv[1:])
 
-    else:
-        pipeline, args_dict = parse_opt()
-        # args_dict["pm"] = pypiper.PipelineManager(name="bedboss-pipeline", outfolder=outfolder, recover=True)
+    # TODO: use Pypiper to simplify/standardize arg parsing
 
-    if pipeline == "all":
-        run_all(**args_dict)
-    elif pipeline == "make":
-        BedMaker(**args_dict)
-    elif pipeline == "qc":
-        return bedqc(**args_dict)
-    elif pipeline == "stat":
-        bedstat(**args_dict)
+    if test_args:
+        args.__dict__.update(test_args)
+
+    pm = pypiper.PipelineManager( 
+        name="bedboss-pipeline",
+        outfolder=args.outfolder,
+        recover=True)
+
+    if args.command == "all":
+        run_all(pm, **args)
+    elif args.command == "make":
+        BedMaker(pm, **args)
+    elif args.command == "qc":
+        return bedqc(pm, **args)
+    elif args.command == "stat":
+        bedstat(pm, **args)
     else:
         raise Exception("Incorrect pipeline name.")
