@@ -60,7 +60,7 @@ def bedqc(
     cmd = f"bash {script_path} {file} "
 
     if (
-        pm.checkprint(cmd, lock_name=next(tempfile._get_candidate_names()))
+        int(pm.checkprint(cmd))
         > max_region_size
     ):
         detail.append("File contains more than 5 million regions.")
@@ -103,4 +103,5 @@ def bedqc(
         raise QualityException(f"{str(detail)}")
 
     pm.stop_pipeline()
+    _LOGGER.info("Done with bedqc...")
     return True
