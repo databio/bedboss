@@ -11,7 +11,7 @@ import bbconf
 
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "tools", "pep_schema.yaml"
+    os.path.dirname(os.path.realpath(__file__)),  "pep_schema.yaml"
 )
 
 
@@ -110,9 +110,12 @@ def run_bedstat(
         ),
     )
     if not just_db_commit:
+        if force_overwrite:
+            new_start = True
         pm = pypiper.PipelineManager(
             name="bedstat-pipeline",
             outfolder=outfolder,
+            new_start=new_start
         )
 
         # run Rscript
@@ -133,9 +136,7 @@ def run_bedstat(
         )
         print(command)
 
-        if force_overwrite:
-            new_start = True
-        pm.run(cmd=command, target=json_file_path, new_start=new_start)
+        pm.run(cmd=command, target=json_file_path)
         pm.stop_pipeline()
 
     # now get the resulting json file and load it into Elasticsearch
@@ -187,7 +188,20 @@ def run_bedstat(
 
         if os.path.exists(
             os.path.join(bigbed, fileid + ".bigBed")
-        ) and not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
+        ):
+          data.update(
+                {
+                    "bigbedfile": {
+                        "path": bigbed_relpath,
+                        "size": os.path.getsize(
+                            os.path.join(bigbed, fileid + ".bigBed")
+                        ),
+                        "title": "Path to the big BED file",
+                    }
+                }
+            )
+
+          if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
             digest = requests.get(
                 f"http://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
             ).text.strip('""')
@@ -200,19 +214,7 @@ def run_bedstat(
                     }
                 }
             )
-            data.update(
-                {
-                    "bigbedfile": {
-                        "path": bigbed_relpath,
-                        "size": os.path.getsize(
-                            os.path.join(bigbed, fileid + ".bigBed")
-                        ),
-                        "title": "Path to the big BED file",
-                    }
-                }
-            )
-
-        else:
+          else:
             data.update(
                 {
                     "genome": {
@@ -225,6 +227,7 @@ def run_bedstat(
         for plot in plots:
             plot_id = plot["name"]
             del plot["name"]
+            print(plot)
             data.update({plot_id: plot})
         bbc.bed.report(
             record_identifier=bed_digest,

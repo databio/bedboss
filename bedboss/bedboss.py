@@ -63,6 +63,7 @@ def run_bedboss(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    force_overwrite: bool = False,
 ) -> NoReturn:
     """
     Run bedboss: bedmaker, bedqc and bedstat.
@@ -135,4 +136,5 @@ def run_bedboss(
         sample_yaml=sample_yaml,
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
+        force_overwrite=force_overwrite,
     )

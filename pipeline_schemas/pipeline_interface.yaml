@@ -4,7 +4,7 @@ pre_submit:
   python_functions:
     - looper.write_sample_yaml
 command_template: >
-  bedboss
+  bedboss boss
   --sample-name {sample.sample_name}
   --input-file {sample.input_file_path}
   --input-type {sample.format}

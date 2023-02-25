@@ -95,12 +95,28 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   bsGenomeAvail = ifelse((requireNamespace(BSg, quietly=TRUE) | requireNamespace(BSgm, quietly=TRUE)), TRUE, FALSE)
   
   # check if json file exist for the input bed file
-  if (file.exists(paste0(outfolder, "/", fileId, ".json"))){
-    bedmeta = fromJSON(file=paste0(outfolder, "/", fileId, ".json"))
-    plots = fromJSON(paste0(outfolder, "/", fileId, "_plots.json"))
+  meta_path = paste0(outfolder, "/", fileId, ".json")
+  plot_path = paste0(outfolder, "/", fileId, "_plots.json")
+  if (file.exists(meta_path)){
+    bedmeta = fromJSON(file=meta_path)
+    plots = fromJSON(file=plot_path) 
+    plots = as.data.frame(do.call(rbind, plots))
+  } else{
+    plots = data.frame(stringsAsFactors=F)
   }
+
+  run_plot = TRUE
   # TSS distance plot
-  if (!exists("bedmeta") | !("median_TSS_dist" %in% names(bedmeta)) ){
+  if (exists("bedmeta")){
+    if ("median_TSS_dist" %in% names(bedmeta)){
+      run_plot = FALSE
+    } else {
+      run_plot = TRUE
+    }
+  } else {
+    run_plot = TRUE
+  }
+  if (run_plot){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10", "mm9")) && gtffile == "None"){
@@ -157,7 +173,17 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   
   
   # OPTIONAL: Plot GC content only if proper BSgenome package is installed. 
-  if (!exists("bedmeta") | !("gc_content" %in% names(bedmeta)) ){
+  if (exists("bedmeta")){
+    if ("gc_content" %in% names(bedmeta)){
+      run_plot = FALSE
+    } else {
+      run_plot = TRUE
+    }
+  } else {
+      run_plot = TRUE
+  }
+
+  if (run_plot){
     if (bsGenomeAvail) {
       tryCatch(
         expr = {
@@ -188,7 +214,17 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   
   
   # Partition plots, default to percentages
-  if (!exists("bedmeta") | !("exon_frequency" %in% names(bedmeta))){
+  if (exists("bedmeta")){
+    if ("exon_frequency" %in% names(bedmeta)){
+      run_plot = FALSE
+    } else {
+      run_plot = TRUE
+    }
+  } else {
+      run_plot = TRUE
+  }  
+
+  if (run_plot){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
@@ -228,72 +264,82 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   
   # Expected partition plots
   if (!exists("bedmeta") ){
-  tryCatch(
-    expr = {
-      if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
-        message("Ensembl annotation gtf file not provided. Skipping expected partition plot ... ")
-      } else{
-        if (genome %in% c("hg19", "hg38", "mm10")) {
-          plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitionsRef(query, genome)))
-        } else {
-          partitionList = myPartitionList(gtffile)
-          chromSizes = myChromSizes(genome)
-          genomeSize = sum(chromSizes)
-          plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitions(query, partitionList, genomeSize)))
+    tryCatch(
+      expr = {
+        if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
+          message("Ensembl annotation gtf file not provided. Skipping expected partition plot ... ")
+        } else{
+          if (genome %in% c("hg19", "hg38", "mm10")) {
+            plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitionsRef(query, genome)))
+          } else {
+            partitionList = myPartitionList(gtffile)
+            chromSizes = myChromSizes(genome)
+            genomeSize = sum(chromSizes)
+            plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitions(query, partitionList, genomeSize)))
+          }
+          plots = rbind(plots, getPlotReportDF("expected_partitions", "Expected distribution over genomic partitions"))
+          message("Successfully calculated and plot expected distribution over genomic partitions.")
         }
-        plots = rbind(plots, getPlotReportDF("expected_partitions", "Expected distribution over genomic partitions"))
-        message("Successfully calculated and plot expected distribution over genomic partitions.")
+      },
+      error = function(e){
+        message('Caught an error!')
+        print(e)
       }
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
-    }
-  ) 
+    ) 
   }
  
   # Cumulative partition plots
   if (!exists("bedmeta") ){
-  tryCatch(
-    expr = {
-      if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
-        message("Ensembl annotation gtf file not provided. Skipping cumulative partition plot ... ")
-      } else{
-        if (genome %in% c("hg19", "hg38", "mm10")) {
-          plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitionsRef(query, genome)))
+    tryCatch(
+      expr = {
+        if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
+          message("Ensembl annotation gtf file not provided. Skipping cumulative partition plot ... ")
         } else{
-          partitionList = myPartitionList(gtffile)
-          plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitions(query, partitionList)))
+          if (genome %in% c("hg19", "hg38", "mm10")) {
+            plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitionsRef(query, genome)))
+          } else{
+            partitionList = myPartitionList(gtffile)
+            plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitions(query, partitionList)))
+          }
+          plots = rbind(plots, getPlotReportDF("cumulative_partitions", "Cumulative distribution over genomic partitions"))
+          message("Successfully calculated and plot cumulative distribution over genomic partitions.")
         }
-        plots = rbind(plots, getPlotReportDF("cumulative_partitions", "Cumulative distribution over genomic partitions"))
-        message("Successfully calculated and plot cumulative distribution over genomic partitions.")
+      },
+      error = function(e){
+        message('Caught an error!')
+        print(e)
       }
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e)
-    }
-  ) 
+    ) 
   }
   
   # QThist plot
-  if (!exists("bedmeta") | !("mean_region_width" %in% names(bedmeta))  ){
-  tryCatch(
-    expr = {
-      widths = calcWidth(query)
-      plotBoth("widths_histogram", plotQTHist(widths))
-      if (exists("bedmeta")){
-        mean_region_width <- list(mean_region_width = signif(mean(widths), digits = 4))
-        bedmeta = append(bedmeta, mean_region_width)
-      }
-      plots = rbind(plots, getPlotReportDF("widths_histogram", "Quantile-trimmed histogram of widths"))
-      message("Successfully calculated and plot quantile-trimmed histogram of widths.")
-    },
-    error = function(e){
-      message('Caught an error!')
-      print(e, widths)
+  if (exists("bedmeta")){
+    if ("mean_region_width" %in% names(bedmeta)){
+      run_plot = FALSE
+    } else {
+      run_plot = TRUE
     }
-  ) 
+  } else {
+      run_plot = TRUE
+  }
+
+  if (run_plot){
+    tryCatch(
+      expr = {
+        widths = calcWidth(query)
+        plotBoth("widths_histogram", plotQTHist(widths))
+        if (exists("bedmeta")){
+          mean_region_width <- list(mean_region_width = signif(mean(widths), digits = 4))
+          bedmeta = append(bedmeta, mean_region_width)
+        }
+        plots = rbind(plots, getPlotReportDF("widths_histogram", "Quantile-trimmed histogram of widths"))
+        message("Successfully calculated and plot quantile-trimmed histogram of widths.")
+      },
+      error = function(e){
+        message('Caught an error!')
+        print(e, widths)
+      }
+    ) 
   }
   
   # Neighbor regions distance plots
@@ -334,8 +380,8 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   
   # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
   if (exists("bedmeta")){
-    write(jsonlite::toJSON(bedmeta, pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
-    write(jsonlite::toJSON(plots, pretty=TRUE), paste0(outfolder, "/", fileId, "_plots.json"))
+    write(jsonlite::toJSON(bedmeta, pretty=TRUE), meta_path)
+    write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
   } else {
     bedmeta = list(
       name=fileId,
@@ -352,13 +398,13 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       bedmeta = append(bedmeta, tss)
     }
     if (exists('partitionsList')){
-      write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
+      write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), meta_path)
     } else {
-      write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), paste0(outfolder, "/", fileId, ".json"))
+      write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), meta_path)
     }
     
     if (exists('plots')){
-      write(jsonlite::toJSON(plots, pretty=TRUE), paste0(outfolder, "/", fileId, "_plots.json"))
+      write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
     }
   }
   }
