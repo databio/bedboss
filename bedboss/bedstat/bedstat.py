@@ -169,7 +169,7 @@ def bedstat(
             os.path.join(bigbed, fileid + ".bigBed")
         ) and not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
             digest = requests.get(
-                f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                f"http://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
             ).text.strip('""')
 
             data.update(
