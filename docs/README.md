@@ -45,13 +45,6 @@ pipeline for obtaining statistics about bed files
 ### Additional dependencies
 regionstat.R script is used to calculate the bed file statistics, so the pipeline also depends on several R packages:
 
-- BiocManager
-- optparse
-- devtools
-- GenomicRanges
-- GenomicDistributions
-- BSgenome.<organim>.UCSC.<genome> depending on the genome used
-- LOLA
-- you can use installRdeps.R helper script to easily install the required packages:
+All dependencies you can find in R helper script, and use it to easily install the required packages:
 
-- Rscript scripts/installRdeps.R
+- Rscript scripts/installRdeps.R [How to install R dependencies](./how_to_install_r_dep.md)
