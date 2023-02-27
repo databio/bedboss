@@ -1,10 +1,17 @@
-# BedBoss
-bedboss is a command-line pipeline that standardizes and calculates statistics for genomic interval data, and enters the results into a BEDbase database. It has 3 components: 1) bedmaker (`bedboss make`); 2) bedqc (`bedboss qc`); and 3) bedstat `bedboss stat`. You may run all 3 pipelines together,  or separately.
+# BEDboss
+bedboss is a command-line pipeline that standardizes and calculates statistics for genomic interval data, and enters the results into a BEDbase database. 
+It has 3 components: 
+
+1) bedmaker (`bedboss make`); </br>
+2) bedqc (`bedboss qc`);</br>
+3) bedstat (`bedboss stat`).
+
+You may run all 3 pipelines together, or separately.
 
 Mainly pipelines are intended to be run from command line but nevertheless, 
 they are also available as a python function, so that user can implement them to his own code.
 ----
-## BedBoss consist of 3 main pipelines:
+## BEDboss consist of 3 main pipelines:
 
 ### bedmaker
 bedmaker - pipeline to convert supported file types* into BED format and bigBed format. Currently supported formats:
