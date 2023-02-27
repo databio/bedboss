@@ -1,2 +1,2 @@
-geofetch
 https://github.com/databio/mkdocs-databio/archive/master.zip
+mkdocs >= 1.2.2
