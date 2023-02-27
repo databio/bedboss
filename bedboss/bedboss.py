@@ -69,6 +69,7 @@ def run_all(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    force_overwrite: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
@@ -91,6 +92,7 @@ def run_all(
     :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
+    :param force_overwrite: force overwrite analysis
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :param pm: pypiper object
     :return: NoReturn
@@ -144,6 +146,7 @@ def run_all(
         sample_yaml=sample_yaml,
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
+        force_overwrite=force_overwrite,
         pm=pm,
     )
 

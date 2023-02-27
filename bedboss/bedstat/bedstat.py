@@ -10,7 +10,7 @@ import bbconf
 
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "tools", "pep_schema.yaml"
+    os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
 )
 
 
@@ -63,6 +63,7 @@ def bedstat(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    force_overwrite: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> NoReturn:
     """
@@ -70,14 +71,18 @@ def bedstat(
     :param str bedfile: a full path to bed file to process
     :param str bigbed: a full path to bigbed
     :param str bedbase_config: a path to the bedbase configuration file
-    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue
-        specificity plots
+    :param str open_signal_matrix: a full path to the openSignalMatrix
+        required for the tissue specificity plots
     :param str genome_assembly: genome assembly of the sample
-    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param str sample_yaml: a yaml config file with sample attributes to pass on more metadata
+    :param str ensdb: a full path to the ensdb gtf file required for genomes
+        not in GDdata
+    :param str sample_yaml: a yaml config file with sample attributes to pass
+        on more metadata
         into the database
     :param bool just_db_commit: whether just to commit the JSON to the database
-    :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool no_db_commit: whether the JSON commit to the database should be
+        skipped
+    :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
@@ -94,13 +99,20 @@ def bedstat(
     )
     bed_relpath = os.path.relpath(
         bedfile,
-        os.path.abspath(os.path.join(bedstat_output_path, os.pardir, os.pardir)),
+        os.path.abspath(
+            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+        ),
     )
     bigbed_relpath = os.path.relpath(
         os.path.join(bigbed, fileid + ".bigBed"),
-        os.path.abspath(os.path.join(bedstat_output_path, os.pardir, os.pardir)),
+        os.path.abspath(
+            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+        ),
     )
     if not just_db_commit:
+        if force_overwrite:
+            new_start = True
+
         if not pm:
             pm = pypiper.PipelineManager(
                 name="bedstat-pipeline",
@@ -123,6 +135,7 @@ def bedstat(
             f"--outputFolder={outfolder} --genome={genome_assembly} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
+
         pm.run(cmd=command, target=json_file_path)
 
     # now get the resulting json file and load it into Elasticsearch
@@ -148,13 +161,20 @@ def bedstat(
                 if key in schema:
                     if not schema[key]["db_commit"]:
                         y.pop(key, None)
-                elif key in ["bedbase_config", "pipeline_interfaces", "yaml_file"]:
+                elif key in [
+                    "bedbase_config",
+                    "pipeline_interfaces",
+                    "yaml_file",
+                ]:
                     y.pop(key, None)
             data.update({"other": y})
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
         # postgres column identifiers
-        data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+        data = {
+            k.lower(): v[0] if isinstance(v, list) else v
+            for k, v in data.items()
+        }
         data.update(
             {
                 "bedfile": {
@@ -165,21 +185,7 @@ def bedstat(
             }
         )
 
-        if os.path.exists(
-            os.path.join(bigbed, fileid + ".bigBed")
-        ) and not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
-            digest = requests.get(
-                f"http://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
-            ).text.strip('""')
-
-            data.update(
-                {
-                    "genome": {
-                        "alias": genome_assembly,
-                        "digest": digest,
-                    }
-                }
-            )
+        if os.path.exists(os.path.join(bigbed, fileid + ".bigBed")):
             data.update(
                 {
                     "bigbedfile": {
@@ -192,6 +198,19 @@ def bedstat(
                 }
             )
 
+            if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
+                digest = requests.get(
+                    f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                ).text.strip('""')
+
+                data.update(
+                    {
+                        "genome": {
+                            "alias": genome_assembly,
+                            "digest": digest,
+                        }
+                    }
+                )
         else:
             data.update(
                 {
@@ -206,4 +225,8 @@ def bedstat(
             plot_id = plot["name"]
             del plot["name"]
             data.update({plot_id: plot})
-        bbc.bed.report(record_identifier=bed_digest, values=data)
+        bbc.bed.report(
+            record_identifier=bed_digest,
+            values=data,
+            force_overwrite=force_overwrite,
+        )

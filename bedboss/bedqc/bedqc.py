@@ -66,7 +66,7 @@ def bedqc(
 
     cmd = f"bash {script_path} {file} "
 
-    if pm.run(cmd, lock_name=next(tempfile._get_candidate_names())) > max_region_size:
+    if int(pm.checkprint(cmd)) > max_region_size:
         detail.append("File contains more than 5 million regions.")
 
     # check file size
@@ -84,7 +84,11 @@ def bedqc(
     """
 
     if (
-        float(subprocess.check_output(["awk", awk_command, file], text=True).split()[0])
+        float(
+            subprocess.check_output(
+                ["awk", awk_command, file], text=True
+            ).split()[0]
+        )
         < min_region_width
     ):
         detail.append(f"Mean region width is less than {min_region_width} bp.")
