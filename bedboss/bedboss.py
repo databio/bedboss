@@ -1,10 +1,12 @@
 import logging
 import os
 import urllib.request
-from typing import NoReturn, Union
+from typing import NoReturn, Union, Dict
+import pypiper
 
 from .bedstat.bedstat import run_bedstat
 from .bedmaker.bedmaker import BedMaker
+from .bedqc.bedqc import bedqc
 from .const import (
     OS_HG19,
     OS_HG38,
@@ -15,7 +17,7 @@ from .const import (
     BIGBED_FOLDER_NAME,
 )
 from .utils import extract_file_name, standardize_genome_name, download_file
-from .exceptions import OSMException, GenomeException
+from .exceptions import OpenSignalMatrixException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -26,6 +28,7 @@ def get_osm_path(genome: str) -> Union[str, None]:
     :param genome: genome assembly
     :return: path to the Open Signal Matrix
     """
+    # TODO: add more osm
     _LOGGER.info(f"Getting Open Signal Matrix file path...")
     if genome == "hg19":
         osm_name = OS_HG19
@@ -34,10 +37,10 @@ def get_osm_path(genome: str) -> Union[str, None]:
     elif genome == "mm10":
         osm_name = OS_MM10
     else:
-        # raise OSMException(
-        #     "For this genome open Signal Matrix was not found. Exiting..."
-        # )
-        return None
+        raise OpenSignalMatrixException(
+            "For this genome open Signal Matrix was not found. Exiting..."
+        )
+        # return None
     osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
@@ -46,7 +49,7 @@ def get_osm_path(genome: str) -> Union[str, None]:
     return osm_path
 
 
-def run_bedboss(
+def run_all(
     sample_name: str,
     input_file: str,
     input_type: str,
@@ -107,10 +110,11 @@ def run_bedboss(
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
-    # TODO: should we keep bed and bigfiles in output folder?
     # set env for bedstat:
     output_folder_bedstat = os.path.join(output_folder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
+
+    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=output_folder)
 
     BedMaker(
         input_file=input_file,
@@ -124,7 +128,8 @@ def run_bedboss(
         check_qc=check_qc,
         standard_chrom=standard_chrom,
         chrom_sizes=chrom_sizes,
-    ).make()
+        pm=pm,
+    )
 
     run_bedstat(
         bedfile=output_bed,
@@ -137,4 +142,23 @@ def run_bedboss(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
         force_overwrite=force_overwrite,
+        pm=pm,
     )
+
+
+def bedboss(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
+    """
+    Run pipeline that was specified in as positional argument.
+    :param str pipeline: one of the bedboss pipelines
+    :param dict args_dict: dict of arguments used in provided pipeline.
+    """
+    if pipeline == "all":
+        run_all(**args_dict)
+    elif pipeline == "make":
+        BedMaker(**args_dict).make()
+    elif pipeline == "qc":
+        bedqc(**args_dict)
+    elif pipeline == "stat":
+        run_bedstat(**args_dict)
+    else:
+        raise Exception("Incorrect pipeline name.")

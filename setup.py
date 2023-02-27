@@ -16,7 +16,7 @@ extra = {}
 
 def read_reqs(reqs_name):
     deps = []
-    with open(os.path.join(REQDIR, "requirements-{}.txt".format(reqs_name)), "r") as f:
+    with open(os.path.join(REQDIR, f"requirements-{reqs_name}.txt"), "r") as f:
         for l in f:
             if not l.strip():
                 continue
@@ -37,7 +37,7 @@ setup(
     packages=[PACKAGE],
     version=__version__,
     description="Pipelines for genomic region file to produce bed files, "
-                "and it's statistics",
+    "and it's statistics",
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[
@@ -49,7 +49,7 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     keywords="project, bioinformatics, sequencing, ngs, workflow",
-    url="https://github.com/databio/{}/".format(PACKAGE),
+    url=f"https://github.com/databio/{PACKAGE}/",
     author=__author__,
     license="BSD2",
     entry_points={

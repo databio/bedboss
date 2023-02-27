@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 import os
 import tempfile
@@ -18,6 +17,7 @@ def bedqc(
     max_file_size: int = MAX_FILE_SIZE,
     max_region_size: int = MAX_REGION_SIZE,
     min_region_width: int = MIN_REGION_WIDTH,
+    pm: pypiper.PipelineManager = None,
 ) -> bool:
     """
     Main pipeline function
@@ -26,6 +26,7 @@ def bedqc(
     :param max_file_size: maximum file size
     :param max_region_size: maximum region size
     :param min_region_width: min region width
+    :param pm: pypiper object
     :return: True if file passed Quality check
     """
     _LOGGER.info("Running bedqc...")
@@ -34,7 +35,8 @@ def bedqc(
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
-    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder)
+    if not pm:
+        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder, recover=True)
 
     detail = []
 
@@ -50,12 +52,11 @@ def bedqc(
 
     if input_extension == ".gz":
         file = os.path.join(outfolder, next(tempfile._get_candidate_names()))
+        pm.clean_add(file)
+        cmd = "zcat " + bedfile + " > " + file
+        pm.run(cmd, file)
     else:
         file = bedfile
-
-    pm.clean_add(file)
-    cmd = "zcat " + bedfile + " > " + file
-    pm.run(cmd, file)
 
     cmd = f"bash {script_path} {file} "
 
@@ -80,11 +81,7 @@ def bedqc(
     """
 
     if (
-        float(
-            subprocess.check_output(
-                ["awk", awk_command, file], text=True
-            ).split()[0]
-        )
+        float(subprocess.check_output(["awk", awk_command, file], text=True).split()[0])
         < min_region_width
     ):
         detail.append(f"Mean region width is less than {min_region_width} bp.")
@@ -103,5 +100,6 @@ def bedqc(
         raise QualityException(f"{str(detail)}")
 
     pm.stop_pipeline()
-    _LOGGER.info("Done with bedqc...")
+
+    _LOGGER.info(f"File ({file}) has passed Quality Control!")
     return True
