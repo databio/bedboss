@@ -68,50 +68,56 @@ class TestAll:
         "input_file, genome, input_type",
         [
             (
-                    FILE_PATH,
-                    "hg19",
-                    "bed",
-
+                FILE_PATH,
+                "hg19",
+                "bed",
             ),
-        ]
+        ],
     )
     def test_boss(self, input_file, genome, input_type, output_temp_dir):
-        main({
-            "command": "all",
-            "input_file": input_file,
-            "genome": genome,
-            "sample_name": "TestName",
-            "input_type": input_type,
-            "bedbase_config": BEDBASE_CONFIG,
-            "no_db_commit": True,
-            "outfolder": output_temp_dir,
-        }
+        main(
+            {
+                "command": "all",
+                "input_file": input_file,
+                "genome": genome,
+                "sample_name": "TestName",
+                "input_type": input_type,
+                "bedbase_config": BEDBASE_CONFIG,
+                "no_db_commit": True,
+                "outfolder": output_temp_dir,
+            }
         )
         assert True
 
     case_name = "sample1"
+
     @pytest.mark.parametrize(
         "file",
-        [f'{case_name}_cumulative_partitions.png',
-         f'{case_name}_expected_partitions.pdf',
-         f'{case_name}_paritions.png',
-         f'{case_name}_paritions.pdf',
-         f'{case_name}_cumulative_partitions.pdf',
-         f'{case_name}_chrombins.pdf',
-         f'{case_name}_widths_histogram.pdf',
-         f'{case_name}_tssdist.pdf',
-         f'{case_name}_tssdist.png',
-         f'{case_name}_neighbor_distances.pdf',
-         f'{case_name}_chrombins.png',
-         f'{case_name}_expected_partitions.png',
-         f'{case_name}_plots.json',
-         f'{case_name}_widths_histogram.png',
-         f'{case_name}_neighbor_distances.png',
-         ]
+        [
+            f"{case_name}_cumulative_partitions.png",
+            f"{case_name}_expected_partitions.pdf",
+            f"{case_name}_paritions.png",
+            f"{case_name}_paritions.pdf",
+            f"{case_name}_cumulative_partitions.pdf",
+            f"{case_name}_chrombins.pdf",
+            f"{case_name}_widths_histogram.pdf",
+            f"{case_name}_tssdist.pdf",
+            f"{case_name}_tssdist.png",
+            f"{case_name}_neighbor_distances.pdf",
+            f"{case_name}_chrombins.png",
+            f"{case_name}_expected_partitions.png",
+            f"{case_name}_plots.json",
+            f"{case_name}_widths_histogram.png",
+            f"{case_name}_neighbor_distances.png",
+        ],
     )
     def test_check_file_exists(self, file, output_temp_dir):
-        assert os.path.isfile(os.path.join(output_temp_dir,
-                                           "output",
-                                           "bedstat_output",
-                                           "c557c915a9901ce377ef724806ff7a2c",
-                                           file))
+        assert os.path.isfile(
+            os.path.join(
+                output_temp_dir,
+                "output",
+                "bedstat_output",
+                "c557c915a9901ce377ef724806ff7a2c",
+                file,
+            )
+        )

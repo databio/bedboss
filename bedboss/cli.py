@@ -62,7 +62,7 @@ def build_argparser() -> ArgumentParser:
         "--genome",
         required=True,
         help="reference genome (assembly) [Required]",
-        type=str
+        type=str,
     )
     sub_all.add_argument(
         "-r",
@@ -226,9 +226,7 @@ def build_argparser() -> ArgumentParser:
     )
     # bed_stat
     sub_stat.add_argument(
-        "--bedfile",
-        help="a full path to bed file to process [Required]",
-        required=True
+        "--bedfile", help="a full path to bed file to process [Required]", required=True
     )
     sub_stat.add_argument(
         "--outfolder",

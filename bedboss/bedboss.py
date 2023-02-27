@@ -147,6 +147,7 @@ def run_all(
         pm=pm,
     )
 
+
 def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
@@ -162,9 +163,11 @@ def main(test_args: dict = None) -> NoReturn:
         args_dict = vars(args)
     # TODO: use Pypiper to simplify/standardize arg parsing
 
-    pm = pypiper.PipelineManager( 
+    pm = pypiper.PipelineManager(
         name="bedboss-pipeline",
-        outfolder=args_dict.get("outfolder") if args_dict.get("outfolder") else "test_outfolder",
+        outfolder=args_dict.get("outfolder")
+        if args_dict.get("outfolder")
+        else "test_outfolder",
         recover=True,
         multi=True,
     )

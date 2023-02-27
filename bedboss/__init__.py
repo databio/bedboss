@@ -15,4 +15,11 @@ __author__ = [
 ]
 __email__ = "khorosh@virginia.edu"
 
-__all__ = ["__version__", "__package_name__", "__author__", "bedqc", "bedmaker", "bedstat"]
+__all__ = [
+    "__version__",
+    "__package_name__",
+    "__author__",
+    "bedqc",
+    "bedmaker",
+    "bedstat",
+]

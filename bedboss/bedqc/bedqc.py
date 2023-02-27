@@ -99,7 +99,6 @@ def bedqc(
                 f.write(f"file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
 
-
         raise QualityException(f"{str(detail)}")
 
     _LOGGER.info(f"File ({file}) has passed Quality Control!")
