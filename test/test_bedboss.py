@@ -83,7 +83,6 @@ class TestAll:
             "sample_name": "TestName",
             "input_type": input_type,
             "bedbase_config": BEDBASE_CONFIG,
-            "output_folder": output_temp_dir,
             "no_db_commit": True,
             "outfolder": output_temp_dir,
         }

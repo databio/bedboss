@@ -56,7 +56,7 @@ def run_all(
     sample_name: str,
     input_file: str,
     input_type: str,
-    output_folder: str,
+    outfolder: str,
     genome: str,
     bedbase_config: str,
     rfg_config: str = None,
@@ -77,7 +77,7 @@ def run_all(
     :param sample_name: Sample name [required]
     :param input_file: Input file [required]
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
-    :param output_folder: Folder, where output should be saved  [required]
+    :param outfolder: Folder, where output should be saved  [required]
     :param genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
     :param bedbase_config: a path to the bedbase configuration file. [required] #TODO: add example
     :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
@@ -109,14 +109,14 @@ def run_all(
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"
 
-    output_bed = os.path.join(output_folder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
-    output_bigbed = os.path.join(output_folder, BIGBED_FOLDER_NAME)
+    output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
+    output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
 
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
     # set env for bedstat:
-    output_folder_bedstat = os.path.join(output_folder, "output")
+    output_folder_bedstat = os.path.join(outfolder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
 
     BedMaker(

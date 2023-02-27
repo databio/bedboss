@@ -58,12 +58,6 @@ def build_argparser() -> ArgumentParser:
         type=str,
     )
     sub_all.add_argument(
-        "-o", "--output_folder",
-        required=True,
-        help="Output folder [Required]",
-        type=str
-    )
-    sub_all.add_argument(
         "-g",
         "--genome",
         required=True,
