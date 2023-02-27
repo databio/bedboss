@@ -1,5 +1,5 @@
 OPEN_SIGNAL_FOLDER = "./openSignalMatrix"
-OPEN_SIGNAL_URL = "https://big.databio.org/open_chromatin_matrix/"
+OPEN_SIGNAL_URL = "http://big.databio.org/open_chromatin_matrix/"
 
 OS_HG38 = "openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
 OS_HG19 = "openSignalMatrix_hg19_percentile99_01_quantNormalized_round4d.txt.gz"
@@ -10,7 +10,8 @@ BIGBED_FOLDER_NAME = "bigbed_files"
 
 # bedmaker
 
-BED_TO_BIGBED_PROGRAM = "bedToBigBed"
+# BED_TO_BIGBED_PROGRAM = "bedToBigBed"
+BED_TO_BIGBED_PROGRAM = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/bedToBigBed"
 BIGBED_TO_BED_PROGRAM = "bigBedToBed"
 
 

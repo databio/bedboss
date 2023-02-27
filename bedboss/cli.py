@@ -1,12 +1,10 @@
 from ubiquerg import VersionInHelpParser
-import sys
-from typing import Tuple
-import pypiper
+from argparse import ArgumentParser
 
 from bedboss import __version__, __package_name__
 
 
-def parse_opt() -> Tuple[str, dict]:
+def build_argparser() -> ArgumentParser:
     """
     BEDboss parser
     :retrun: Tuple[pipeline, arguments]
@@ -19,7 +17,7 @@ def parse_opt() -> Tuple[str, dict]:
         version=__version__,
     )
 
-    subparser = parser.add_subparsers()
+    subparser = parser.add_subparsers(dest="command")
     sub_all = subparser.add_parser(
         "all", help="Run all bedboss pipelines and insert data into bedbase"
     )
@@ -28,35 +26,43 @@ def parse_opt() -> Tuple[str, dict]:
         help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
         "files into bed and bigbed formats",
     )
+
     sub_qc = subparser.add_parser("qc", help="Run quality control on bed file (bedqc)")
     sub_stat = subparser.add_parser(
         "stat",
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
     )
+    sub_all.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
+    )
 
     sub_all.add_argument(
         "-s",
         "--sample-name",
         required=True,
-        help="name of the sample used to systematically build the output name",
+        help="name of the sample used to systematically build the output name [Required]",
         type=str,
     )
     sub_all.add_argument(
-        "-f", "--input-file", required=True, help="Input file", type=str
+        "-f", "--input-file", required=True, help="Input file [Required]", type=str
     )
     sub_all.add_argument(
         "-t",
         "--input-type",
         required=True,
-        help="Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)",
+        help="Input type [Required] options: (bigwig|bedgraph|bed|bigbed|wig)",
         type=str,
     )
     sub_all.add_argument(
-        "-o", "--output_folder", required=True, help="Output folder", type=str
-    )
-    sub_all.add_argument(
-        "-g", "--genome", required=True, help="reference genome (assembly)", type=str
+        "-g",
+        "--genome",
+        required=True,
+        help="reference genome (assembly) [Required]",
+        type=str,
     )
     sub_all.add_argument(
         "-r",
@@ -106,7 +112,7 @@ def parse_opt() -> Tuple[str, dict]:
         "--bedbase-config",
         dest="bedbase_config",
         type=str,
-        help="a path to the bedbase configuration file",
+        help="a path to the bedbase configuration file [Required]",
         required=True,
     )
     sub_all.add_argument(
@@ -132,13 +138,13 @@ def parse_opt() -> Tuple[str, dict]:
     # bed_qc
     sub_qc.add_argument(
         "--bedfile",
-        help="a full path to bed file to process",
+        help="a full path to bed file to process [Required]",
         required=True,
     )
     sub_qc.add_argument(
-        "--outfolder", 
-        help="a full path to output log folder.", 
-        required=True
+        "--outfolder",
+        help="a full path to output log folder. [Required]",
+        required=True,
     )
 
     # bed_maker
@@ -147,7 +153,13 @@ def parse_opt() -> Tuple[str, dict]:
         "-f",
         "--input-file",
         required=True,
-        help="path to the input file",
+        help="path to the input file [Required]",
+        type=str,
+    )
+    sub_make.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
         type=str,
     )
     sub_make.add_argument(
@@ -160,14 +172,14 @@ def parse_opt() -> Tuple[str, dict]:
         "-t",
         "--input-type",
         required=True,
-        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig)",
+        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig) [Required]",
         type=str,
     )
     sub_make.add_argument(
         "-g",
         "--genome",
         required=True,
-        help="reference genome",
+        help="reference genome [Required]",
         type=str,
     )
     sub_make.add_argument(
@@ -182,27 +194,27 @@ def parse_opt() -> Tuple[str, dict]:
         "-o",
         "--output-bed",
         required=True,
-        help="path to the output BED files",
+        help="path to the output BED files [Required]",
         type=str,
     )
     sub_make.add_argument(
         "--output-bigbed",
         required=True,
-        help="path to the folder of output bigBed files",
+        help="path to the folder of output bigBed files [Required]",
         type=str,
     )
     sub_make.add_argument(
         "-s",
         "--sample-name",
         required=True,
-        help="name of the sample used to systematically build the output name",
+        help="name of the sample used to systematically build the output name [Required]",
         type=str,
     )
     sub_make.add_argument(
         "--chrom-sizes",
         help="whether standardize chromosome names. "
-            "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
-            "such as chrN_random and chrUn_random. [Default: False]",
+        "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
+        "such as chrN_random and chrUn_random. [Default: False]",
         default=None,
         type=str,
         required=False,
@@ -214,7 +226,13 @@ def parse_opt() -> Tuple[str, dict]:
     )
     # bed_stat
     sub_stat.add_argument(
-        "--bedfile", help="a full path to bed file to process", required=True
+        "--bedfile", help="a full path to bed file to process [Required]", required=True
+    )
+    sub_stat.add_argument(
+        "--outfolder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
     )
     sub_stat.add_argument(
         "--open-signal-matrix",
@@ -245,8 +263,8 @@ def parse_opt() -> Tuple[str, dict]:
         "--bedbase-config",
         dest="bedbase_config",
         type=str,
-        default=None,
-        help="a path to the bedbase configuration file",
+        required=True,
+        help="a path to the bedbase configuration file [Required]",
     )
     sub_stat.add_argument(
         "-y",
@@ -262,7 +280,7 @@ def parse_opt() -> Tuple[str, dict]:
         dest="genome_assembly",
         type=str,
         required=True,
-        help="genome assembly of the sample",
+        help="genome assembly of the sample [Required]",
     )
     sub_stat.add_argument(
         "--no-db-commit",
@@ -274,10 +292,5 @@ def parse_opt() -> Tuple[str, dict]:
         action="store_true",
         help="whether just to commit the JSON to the database",
     )
-    user_argv = sys.argv
-    if len(user_argv) > 1:
-        pipeline = user_argv[1]
-    else:
-        pipeline = None
-    args = parser.parse_args(user_argv[1:])
-    return pipeline, vars(args)
+
+    return parser

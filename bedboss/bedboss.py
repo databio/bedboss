@@ -3,10 +3,13 @@ import os
 import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
+from argparse import Namespace
 
-from .bedstat.bedstat import run_bedstat
-from .bedmaker.bedmaker import BedMaker
-from .bedqc.bedqc import bedqc
+from bedboss.bedstat.bedstat import bedstat
+from bedboss.bedmaker.bedmaker import BedMaker
+from bedboss.bedqc.bedqc import bedqc
+from bedboss.cli import build_argparser
+
 from .const import (
     OS_HG19,
     OS_HG38,
@@ -53,7 +56,7 @@ def run_all(
     sample_name: str,
     input_file: str,
     input_type: str,
-    output_folder: str,
+    outfolder: str,
     genome: str,
     bedbase_config: str,
     rfg_config: str = None,
@@ -66,13 +69,15 @@ def run_all(
     sample_yaml: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
+    pm: pypiper.PipelineManager = None,
+    **kwargs,
 ) -> NoReturn:
     """
     Run bedboss: bedmaker, bedqc and bedstat.
     :param sample_name: Sample name [required]
     :param input_file: Input file [required]
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
-    :param output_folder: Folder, where output should be saved  [required]
+    :param outfolder: Folder, where output should be saved  [required]
     :param genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
     :param bedbase_config: a path to the bedbase configuration file. [required] #TODO: add example
     :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
@@ -87,9 +92,10 @@ def run_all(
         (basically genomes that's not in GDdata)
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param pm: pypiper object
     :return: NoReturn
     """
-
+    _LOGGER.warning(f"Unused arguments: {kwargs}")
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
 
@@ -103,17 +109,15 @@ def run_all(
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"
 
-    output_bed = os.path.join(output_folder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
-    output_bigbed = os.path.join(output_folder, BIGBED_FOLDER_NAME)
+    output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
+    output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
 
     _LOGGER.info(f"output_bed = {output_bed}")
     _LOGGER.info(f"output_bigbed = {output_bigbed}")
 
     # set env for bedstat:
-    output_folder_bedstat = os.path.join(output_folder, "output")
+    output_folder_bedstat = os.path.join(outfolder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
-
-    pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=output_folder)
 
     BedMaker(
         input_file=input_file,
@@ -130,7 +134,7 @@ def run_all(
         pm=pm,
     )
 
-    run_bedstat(
+    bedstat(
         bedfile=output_bed,
         bigbed=output_bigbed,
         genome_assembly=genome,
@@ -144,19 +148,39 @@ def run_all(
     )
 
 
-def bedboss(pipeline: str, args_dict: Dict[str, str]) -> NoReturn:
+def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
     :param str pipeline: one of the bedboss pipelines
     :param dict args_dict: dict of arguments used in provided pipeline.
     """
-    if pipeline == "all":
-        run_all(**args_dict)
-    elif pipeline == "make":
-        BedMaker(**args_dict).make()
-    elif pipeline == "qc":
-        bedqc(**args_dict)
-    elif pipeline == "stat":
-        run_bedstat(**args_dict)
+    # parser = logmuse.add_logging_options(build_argparser())
+    parser = build_argparser()
+    if test_args:
+        args_dict = test_args
     else:
+        args, _ = parser.parse_known_args()
+        args_dict = vars(args)
+    # TODO: use Pypiper to simplify/standardize arg parsing
+
+    pm = pypiper.PipelineManager(
+        name="bedboss-pipeline",
+        outfolder=args_dict.get("outfolder")
+        if args_dict.get("outfolder")
+        else "test_outfolder",
+        recover=True,
+        multi=True,
+    )
+
+    if args_dict["command"] == "all":
+        run_all(pm=pm, **args_dict)
+    elif args_dict["command"] == "make":
+        BedMaker(pm=pm, **args_dict)
+    elif args_dict["command"] == "qc":
+        bedqc(pm=pm, **args_dict)
+    elif args_dict["command"] == "stat":
+        bedstat(pm=pm, **args_dict)
+    else:
+        pm.stop_pipeline()
         raise Exception("Incorrect pipeline name.")
+    pm.stop_pipeline()

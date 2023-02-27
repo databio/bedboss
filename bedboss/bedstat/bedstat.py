@@ -53,7 +53,7 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
 
 
-def run_bedstat(
+def bedstat(
     bedfile: str,
     bedbase_config: str,
     genome_assembly: str,
@@ -124,7 +124,6 @@ def run_bedstat(
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
         pm.run(cmd=command, target=json_file_path)
-        pm.stop_pipeline()
 
     # now get the resulting json file and load it into Elasticsearch
     # if the file exists, of course
@@ -170,7 +169,7 @@ def run_bedstat(
             os.path.join(bigbed, fileid + ".bigBed")
         ) and not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
             digest = requests.get(
-                f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                f"http://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
             ).text.strip('""')
 
             data.update(

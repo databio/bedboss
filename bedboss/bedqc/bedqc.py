@@ -18,6 +18,7 @@ def bedqc(
     max_region_size: int = MAX_REGION_SIZE,
     min_region_width: int = MIN_REGION_WIDTH,
     pm: pypiper.PipelineManager = None,
+    **kwargs,
 ) -> bool:
     """
     Main pipeline function
@@ -30,13 +31,18 @@ def bedqc(
     :return: True if file passed Quality check
     """
     _LOGGER.info("Running bedqc...")
+    _LOGGER.warning(f"Unused arguments: {kwargs}")
 
     output_file = os.path.join(outfolder, "flagged_bed.csv")
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
+    file_exists = os.path.isfile(bedfile)
+
     if not pm:
-        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder, recover=True)
+        pm = pypiper.PipelineManager(
+            name="bedQC-pipeline", outfolder=outfolder, recover=True, multi=True
+        )
 
     detail = []
 
@@ -93,9 +99,7 @@ def bedqc(
                 f.write(f"file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
 
-        pm.stop_pipeline()
         raise QualityException(f"{str(detail)}")
 
-    pm.stop_pipeline()
     _LOGGER.info(f"File ({file}) has passed Quality Control!")
     return True

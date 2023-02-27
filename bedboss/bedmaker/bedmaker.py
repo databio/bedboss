@@ -161,6 +161,10 @@ class BedMaker:
                 outfolder=self.logs_dir,
                 recover=True,
             )
+        else:
+            self.pm = pm
+
+        self.make()
 
     def make(self) -> NoReturn:
         """
@@ -179,7 +183,6 @@ class BedMaker:
             )
 
         self.make_bigbed()
-        self.pm.stop_pipeline()
 
     def make_bed(self) -> NoReturn:
         """
