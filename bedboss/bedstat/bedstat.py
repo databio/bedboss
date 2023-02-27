@@ -10,7 +10,7 @@ import bbconf
 
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)),  "pep_schema.yaml"
+    os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
 )
 
 
@@ -186,10 +186,8 @@ def run_bedstat(
             }
         )
 
-        if os.path.exists(
-            os.path.join(bigbed, fileid + ".bigBed")
-        ):
-          data.update(
+        if os.path.exists(os.path.join(bigbed, fileid + ".bigBed")):
+            data.update(
                 {
                     "bigbedfile": {
                         "path": bigbed_relpath,
@@ -201,19 +199,19 @@ def run_bedstat(
                 }
             )
 
-          if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
-            digest = requests.get(
-                f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
-            ).text.strip('""')
+            if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
+                digest = requests.get(
+                    f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                ).text.strip('""')
 
-            data.update(
-                {
-                    "genome": {
-                        "alias": genome_assembly,
-                        "digest": digest,
+                data.update(
+                    {
+                        "genome": {
+                            "alias": genome_assembly,
+                            "digest": digest,
+                        }
                     }
-                }
-            )
+                )
         else:
             data.update(
                 {

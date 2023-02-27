@@ -36,7 +36,9 @@ def bedqc(
     input_extension = os.path.splitext(bedfile_name)[1]
 
     if not pm:
-        pm = pypiper.PipelineManager(name="bedQC-pipeline", outfolder=outfolder, recover=True)
+        pm = pypiper.PipelineManager(
+            name="bedQC-pipeline", outfolder=outfolder, recover=True
+        )
 
     detail = []
 
@@ -60,10 +62,7 @@ def bedqc(
 
     cmd = f"bash {script_path} {file} "
 
-    if (
-        int(pm.checkprint(cmd))
-        > max_region_size
-    ):
+    if int(pm.checkprint(cmd)) > max_region_size:
         detail.append("File contains more than 5 million regions.")
 
     # check file size
@@ -81,7 +80,11 @@ def bedqc(
     """
 
     if (
-        float(subprocess.check_output(["awk", awk_command, file], text=True).split()[0])
+        float(
+            subprocess.check_output(
+                ["awk", awk_command, file], text=True
+            ).split()[0]
+        )
         < min_region_width
     ):
         detail.append(f"Mean region width is less than {min_region_width} bp.")

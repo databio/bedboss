@@ -28,13 +28,14 @@ def parse_opt() -> Tuple[str, dict]:
         help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
         "files into bed and bigbed formats",
     )
-    sub_qc = subparser.add_parser("qc", help="Run quality control on bed file (bedqc)")
+    sub_qc = subparser.add_parser(
+        "qc", help="Run quality control on bed file (bedqc)"
+    )
     sub_stat = subparser.add_parser(
         "stat",
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
     )
-
 
     sub_all.add_argument(
         "-s",
@@ -57,7 +58,11 @@ def parse_opt() -> Tuple[str, dict]:
         "-o", "--output_folder", required=True, help="Output folder", type=str
     )
     sub_all.add_argument(
-        "-g", "--genome", required=True, help="reference genome (assembly)", type=str
+        "-g",
+        "--genome",
+        required=True,
+        help="reference genome (assembly)",
+        type=str,
     )
     sub_all.add_argument(
         "-r",
@@ -130,10 +135,10 @@ def parse_opt() -> Tuple[str, dict]:
         help="just commit the JSON to the database",
     )
     sub_all.add_argument(
-            "--force-overwrite",
-            action="store_true",
-            help="whether to overwrite the existing record",
-        )
+        "--force-overwrite",
+        action="store_true",
+        help="whether to overwrite the existing record",
+    )
 
     # bed_qc
     sub_qc.add_argument(
@@ -142,9 +147,7 @@ def parse_opt() -> Tuple[str, dict]:
         required=True,
     )
     sub_qc.add_argument(
-        "--outfolder", 
-        help="a full path to output log folder.", 
-        required=True
+        "--outfolder", help="a full path to output log folder.", required=True
     )
 
     # bed_maker
@@ -207,8 +210,8 @@ def parse_opt() -> Tuple[str, dict]:
     sub_make.add_argument(
         "--chrom-sizes",
         help="whether standardize chromosome names. "
-            "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
-            "such as chrN_random and chrUn_random. [Default: False]",
+        "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
+        "such as chrN_random and chrUn_random. [Default: False]",
         default=None,
         type=str,
         required=False,
@@ -230,7 +233,7 @@ def parse_opt() -> Tuple[str, dict]:
         help="a full path to the openSignalMatrix required for the tissue "
         "specificity plots",
     )
-    
+
     sub_stat.add_argument(
         "--ensdb",
         type=str,
