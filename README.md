@@ -28,4 +28,4 @@ This threshold can be changed in bedqc function arguments.
 
 # Documentation
 
-Detailed information about each pipeline can be in the [bedboss Readme](./docs/README.md).
+Detailed information about each pipeline can be found in the [bedboss Readme](./docs/README.md).

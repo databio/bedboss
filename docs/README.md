@@ -15,10 +15,11 @@ they are also available as a python function, so that user can implement them to
 
 ### bedmaker
 bedmaker - pipeline to convert supported file types* into BED format and bigBed format. Currently supported formats:
-   - bedGraph
-   - bigBed
-   - bigWig
-   - wig
+
+- bedGraph
+- bigBed
+- bigWig
+- wig
 
 ### bedqc
 flag bed files for further evaluation to determine whether they should be included in the downstream analysis. 
@@ -28,6 +29,20 @@ This threshold can be changed in bedqc function arguments.
 ### bedstat
 
 pipeline for obtaining statistics about bed files
+
+It produces BED file Statistics:
+
+- **GC content**.The average GC content of the region set. 
+- **Number of regions**. The total number of regions in the BED file. 
+- **Median TSS distance**. The median absolute distance to the Transcription Start Sites (TSS)
+- **Mean region width**. The average region width of the region set.
+- **Exon percentage**.	The percentage of the regions in the BED file that are annotated as exon. 
+- **Intron percentage**.	The percentage of the regions in the BED file that are annotated as intron.
+- **Promoter proc percentage**.	The percentage of the regions in the BED file that are annotated as promoter-prox.
+- **Intergenic percentage**. The percentage of the regions in the BED file that are annotated as intergenic.
+- **Promoter core percentage**.	The percentage of the regions in the BED file that are annotated as promoter-core.
+- **5' UTR percentage**. The percentage of the regions in the BED file that are annotated as 5'-UTR.
+- **3' UTR percentage**. The percentage of the regions in the BED file that are annotated as 3'-UTR.
 
 # Additional information
 
