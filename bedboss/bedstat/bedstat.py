@@ -66,7 +66,7 @@ def bedstat(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     pm: pypiper.PipelineManager = None,
-    **kwargs
+    **kwargs,
 ) -> NoReturn:
     """
     Run bedstat pipeline. Can be used without running from command line
@@ -88,7 +88,7 @@ def bedstat(
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
-    outfolder_stats = os.path.join(outfolder,"output", "bedstat_output")
+    outfolder_stats = os.path.join(outfolder, "output", "bedstat_output")
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
     # outfolder_stats = bbc.get_bedstat_output_path()
 
@@ -103,15 +103,11 @@ def bedstat(
     )
     bed_relpath = os.path.relpath(
         bedfile,
-        os.path.abspath(
-            os.path.join(outfolder_stats, os.pardir, os.pardir)
-        ),
+        os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     bigbed_relpath = os.path.relpath(
         os.path.join(bigbed, fileid + ".bigBed"),
-        os.path.abspath(
-            os.path.join(outfolder_stats, os.pardir, os.pardir)
-        ),
+        os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     if not just_db_commit:
         if force_overwrite:
@@ -175,10 +171,7 @@ def bedstat(
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
         # postgres column identifiers
-        data = {
-            k.lower(): v[0] if isinstance(v, list) else v
-            for k, v in data.items()
-        }
+        data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
         data.update(
             {
                 "bedfile": {
