@@ -168,7 +168,6 @@ def main(test_args: dict = None) -> NoReturn:
         _LOGGER = logmuse.logger_via_cli(args, make_root=True)
 
     args_dict = vars(args)
-    # TODO: use Pypiper to simplify/standardize arg parsing
 
     pm = pypiper.PipelineManager(
         name="bedboss-pipeline",

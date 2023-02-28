@@ -60,31 +60,6 @@ def test_make(bedfile, tmpdir):
     assert os.path.isfile(os.path.join(tmpdir, "bigbed", "sample1.bigBed"))
 
 
-# @pytest.mark.parametrize(
-#     "bedfile, bigbed_file, genome",
-#     [
-#         (
-#             FILE_PATH,
-#             BIGBED_PATH,
-#             "hg19",
-#         )
-#     ],
-# )
-# def test_stat(bedfile, bigbed_file, genome, tmpdir):
-#     main(
-#         {
-#             "command": "stat",
-#             "bedfile": bedfile,
-#             "outfolder": tmpdir,
-#             "bedbase_config": BEDBASE_CONFIG,
-#             "genome": genome,
-#             "bigbed": bigbed_file,
-#         }
-#     )
-#     print(os.listdir())
-#     assert True
-
-
 class TestStat:
     @pytest.fixture(scope="session")
     def output_temp_dir(self, tmp_path_factory):
@@ -110,6 +85,7 @@ class TestStat:
                 "bedbase_config": BEDBASE_CONFIG,
                 "genome": genome,
                 "bigbed": bigbed_file,
+                "no_db_commit": True,
             }
         )
         assert True
