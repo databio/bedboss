@@ -278,7 +278,7 @@ def build_argparser() -> ArgumentParser:
     )
     sub_stat.add_argument(
         "--genome",
-        dest="genome_assembly",
+        dest="genome",
         type=str,
         required=True,
         help="genome assembly of the sample [Required]",
