@@ -4,6 +4,7 @@ import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
 from argparse import Namespace
+import logmuse
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
@@ -21,6 +22,7 @@ from .const import (
 )
 from .utils import extract_file_name, standardize_genome_name, download_file
 from .exceptions import OpenSignalMatrixException
+from bedboss import __version__
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -154,16 +156,17 @@ def run_all(
 def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
-    :param str pipeline: one of the bedboss pipelines
-    :param dict args_dict: dict of arguments used in provided pipeline.
+    :param str test_args: one of the bedboss pipelines
     """
-    # parser = logmuse.add_logging_options(build_argparser())
     parser = build_argparser()
     if test_args:
-        args_dict = test_args
+        args = Namespace(**test_args)
     else:
         args, _ = parser.parse_known_args()
-        args_dict = vars(args)
+        global _LOGGER
+        _LOGGER = logmuse.logger_via_cli(args, make_root=True)
+
+    args_dict = vars(args)
     # TODO: use Pypiper to simplify/standardize arg parsing
 
     pm = pypiper.PipelineManager(
@@ -173,6 +176,7 @@ def main(test_args: dict = None) -> NoReturn:
         else "test_outfolder",
         recover=True,
         multi=True,
+        version=__version__,
     )
 
     if args_dict["command"] == "all":
@@ -184,6 +188,6 @@ def main(test_args: dict = None) -> NoReturn:
     elif args_dict["command"] == "stat":
         bedstat(pm=pm, **args_dict)
     else:
-        pm.stop_pipeline()
-        raise Exception("Incorrect pipeline name.")
+        parser.print_help()
+        # raise Exception("Incorrect pipeline name.")
     pm.stop_pipeline()

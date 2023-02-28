@@ -1,5 +1,6 @@
 from ubiquerg import VersionInHelpParser
 from argparse import ArgumentParser
+import logmuse
 
 from bedboss import __version__, __package_name__
 
@@ -293,4 +294,4 @@ def build_argparser() -> ArgumentParser:
         help="whether just to commit the JSON to the database",
     )
 
-    return parser
+    return logmuse.add_logging_options(parser)
