@@ -56,7 +56,8 @@ def convert_unit(size_in_bytes: int) -> str:
 def bedstat(
     bedfile: str,
     bedbase_config: str,
-    genome_assembly: str,
+    genome: str,
+    outfolder: str,
     ensdb: str = None,
     open_signal_matrix: str = None,
     bigbed: str = None,
@@ -65,6 +66,7 @@ def bedstat(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     pm: pypiper.PipelineManager = None,
+    **kwargs
 ) -> NoReturn:
     """
     Run bedstat pipeline. Can be used without running from command line
@@ -73,7 +75,8 @@ def bedstat(
     :param str bedbase_config: a path to the bedbase configuration file
     :param str open_signal_matrix: a full path to the openSignalMatrix
         required for the tissue specificity plots
-    :param str genome_assembly: genome assembly of the sample
+    :param str outfolder: folder for storing results of the pipeline
+    :param str genome: genome assembly of the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
     :param str sample_yaml: a yaml config file with sample attributes to pass
@@ -85,14 +88,15 @@ def bedstat(
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
+    outfolder_stats = os.path.join(outfolder,"output", "bedstat_output")
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
-    bedstat_output_path = bbc.get_bedstat_output_path()
+    # outfolder_stats = bbc.get_bedstat_output_path()
 
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
     bedfile_name = os.path.split(bedfile)[1]
 
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
-    outfolder = os.path.abspath(os.path.join(bedstat_output_path, bed_digest))
+    outfolder = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
     json_file_path = os.path.abspath(os.path.join(outfolder, fileid + ".json"))
     json_plots_file_path = os.path.abspath(
         os.path.join(outfolder, fileid + "_plots.json")
@@ -100,13 +104,13 @@ def bedstat(
     bed_relpath = os.path.relpath(
         bedfile,
         os.path.abspath(
-            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+            os.path.join(outfolder_stats, os.pardir, os.pardir)
         ),
     )
     bigbed_relpath = os.path.relpath(
         os.path.join(bigbed, fileid + ".bigBed"),
         os.path.abspath(
-            os.path.join(bedstat_output_path, os.pardir, os.pardir)
+            os.path.join(outfolder_stats, os.pardir, os.pardir)
         ),
     )
     if not just_db_commit:
@@ -132,7 +136,7 @@ def bedstat(
         command = (
             f"Rscript {rscript_path} --bedfilePath={bedfile} "
             f"--fileId={fileid} --openSignalMatrix={open_signal_matrix} "
-            f"--outputFolder={outfolder} --genome={genome_assembly} "
+            f"--outputFolder={outfolder} --genome={genome} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
 
@@ -200,13 +204,13 @@ def bedstat(
 
             if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
                 digest = requests.get(
-                    f"https://refgenomes.databio.org/genomes/genome_digest/{genome_assembly}"
+                    f"https://refgenomes.databio.org/genomes/genome_digest/{genome}"
                 ).text.strip('""')
 
                 data.update(
                     {
                         "genome": {
-                            "alias": genome_assembly,
+                            "alias": genome,
                             "digest": digest,
                         }
                     }
@@ -215,7 +219,7 @@ def bedstat(
             data.update(
                 {
                     "genome": {
-                        "alias": genome_assembly,
+                        "alias": genome,
                         "digest": "",
                     }
                 }

@@ -138,19 +138,18 @@ def run_all(
         pm=pm,
     )
 
-    bedstat(
-        bedfile=output_bed,
-        bigbed=output_bigbed,
-        genome_assembly=genome,
-        ensdb=ensdb,
-        open_signal_matrix=open_signal_matrix,
-        bedbase_config=bedbase_config,
-        sample_yaml=sample_yaml,
-        just_db_commit=just_db_commit,
-        no_db_commit=no_db_commit,
-        force_overwrite=force_overwrite,
-        pm=pm,
-    )
+    bedstat(bedfile=output_bed,
+            outfolder=outfolder,
+            bedbase_config=bedbase_config,
+            genome=genome,
+            ensdb=ensdb,
+            open_signal_matrix=open_signal_matrix,
+            bigbed=output_bigbed,
+            sample_yaml=sample_yaml,
+            just_db_commit=just_db_commit,
+            no_db_commit=no_db_commit,
+            force_overwrite=force_overwrite,
+            pm=pm)
 
 
 def main(test_args: dict = None) -> NoReturn:
