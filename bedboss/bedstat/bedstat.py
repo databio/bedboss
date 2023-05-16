@@ -14,9 +14,10 @@ SCHEMA_PATH_BEDSTAT = os.path.join(
 )
 
 
-def hash_bedfile(filepath: str) -> str:
+def digest_bedfile(filepath: str) -> str:
     """
     Generate digest for bedfile
+
     :param str filepath: path to the bed file
     :return str: digest of the files
     """
@@ -69,13 +70,17 @@ def bedstat(
     **kwargs,
 ) -> NoReturn:
     """
-    Run bedstat pipeline. Can be used without running from command line
-    :param str bedfile: a full path to bed file to process
-    :param str bigbed: a full path to bigbed
-    :param str bedbase_config: a path to the bedbase configuration file
+    Run bedstat pipeline - pipeline for obtaining statistics about bed files
+        and inserting them into the database
+
+    :param str bedfile: the full path to the bed file to process
+    :param str bigbed: the full path to the bigbed file. Defaults to None.
+        (bigbed won't be created and some producing of some statistics will
+        be skipped.)
+    :param str bedbase_config: The path to the bedbase configuration file.
     :param str open_signal_matrix: a full path to the openSignalMatrix
         required for the tissue specificity plots
-    :param str outfolder: folder for storing results of the pipeline
+    :param str outfolder: The folder for storing the pipeline results.
     :param str genome: genome assembly of the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
@@ -119,7 +124,6 @@ def bedstat(
                 outfolder=outfolder,
             )
 
-        # run Rscript
         rscript_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "bedstat",
@@ -138,8 +142,7 @@ def bedstat(
 
         pm.run(cmd=command, target=json_file_path)
 
-    # now get the resulting json file and load it into Elasticsearch
-    # if the file exists, of course
+    # commit to the database if no_db_commit is not set
     if not no_db_commit:
         data = {}
         if os.path.exists(json_file_path):

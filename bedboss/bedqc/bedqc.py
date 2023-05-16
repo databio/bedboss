@@ -4,7 +4,7 @@ import tempfile
 import pypiper
 import subprocess
 
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_SIZE, MIN_REGION_WIDTH
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.exceptions import QualityException
 
 
@@ -15,20 +15,21 @@ def bedqc(
     bedfile: str,
     outfolder: str,
     max_file_size: int = MAX_FILE_SIZE,
-    max_region_size: int = MAX_REGION_SIZE,
+    max_region_number: int = MAX_REGION_NUMBER,
     min_region_width: int = MIN_REGION_WIDTH,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> bool:
     """
-    Main pipeline function
+    Perform quality checks on a BED file.
+
     :param bedfile: path to the bed file
     :param outfolder: path to the folder where to store information about pipeline and logs
-    :param max_file_size: maximum file size
-    :param max_region_size: maximum region size
-    :param min_region_width: min region width
-    :param pm: pypiper object
-    :return: True if file passed Quality check
+    :param max_file_size: Maximum file size threshold to pass the quality check.
+    :param max_region_number: Maximum number of regions threshold to pass the quality check.
+    :param min_region_width: Minimum region width threshold to pass the quality check.
+    :param pm: Pypiper object for managing pipeline operations.
+    :return: True if the file passes the quality check.
     """
     _LOGGER.info("Running bedqc...")
     _LOGGER.warning(f"Unused arguments: {kwargs}")
@@ -39,6 +40,7 @@ def bedqc(
 
     file_exists = os.path.isfile(bedfile)
 
+    # to execute bedqc from inside Python (without using cli) Pypiper is set to default:
     if not pm:
         pm = pypiper.PipelineManager(
             name="bedQC-pipeline", outfolder=outfolder, recover=True, multi=True
@@ -66,7 +68,7 @@ def bedqc(
 
     cmd = f"bash {script_path} {file} "
 
-    if int(pm.checkprint(cmd)) > max_region_size:
+    if int(pm.checkprint(cmd)) > max_region_number:
         detail.append("File contains more than 5 million regions.")
 
     # check file size

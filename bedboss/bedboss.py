@@ -104,11 +104,8 @@ def run_all(
     genome = standardize_genome_name(genome)
 
     # find/download open signal matrix
-    if not open_signal_matrix:
+    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
         open_signal_matrix = get_osm_path(genome)
-    else:
-        if not os.path.exists(open_signal_matrix):
-            open_signal_matrix = get_osm_path(genome)
 
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"

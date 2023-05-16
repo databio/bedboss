@@ -1,3 +1,5 @@
+# R Script that generates statistics for a bedfile
+
 library(GenomicDistributions)
 library(GenomicDistributionsData)
 library(GenomeInfoDb)

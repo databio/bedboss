@@ -176,11 +176,7 @@ class BedMaker:
         self.make_bed()
 
         if self.check_qc:
-            bedqc(
-                self.output_bed,
-                outfolder=self.logs_dir,
-                pm=self.pm,
-            )
+            bedqc(self.output_bed, outfolder=self.logs_dir, pm=self.pm)
 
         self.make_bigbed()
 

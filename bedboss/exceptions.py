@@ -24,7 +24,7 @@ class QualityException(Exception):
 
 
 class RequirementsException(Exception):
-    """Exception, when quality of the bed file didn't pass."""
+    """Exception, when requirement packages are not installed."""
 
     def __init__(self, reason: str = ""):
         """
