@@ -10,9 +10,14 @@ BIGBED_FOLDER_NAME = "bigbed_files"
 
 # bedmaker
 
-# BED_TO_BIGBED_PROGRAM = "bedToBigBed"
-BED_TO_BIGBED_PROGRAM = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/bedToBigBed"
+# if using PyCharm for development (debugging), you must add these to PATH in the .profile
+# export PATH="/home/drc/r_dependencies:$PATH"
+BED_TO_BIGBED_PROGRAM = "bedToBigBed"
+#BED_TO_BIGBED_PROGRAM = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/bedToBigBed"
+#BED_TO_BIGBED_PROGRAM  = "/home/drc/r_dependencies/bedToBigBed"
 BIGBED_TO_BED_PROGRAM = "bigBedToBed"
+#BIGBED_TO_BED_PROGRAM = "/home/drc/r_dependencies/bigBedToBed"
+
 
 
 # COMMANDS TEMPLATES
