@@ -93,15 +93,24 @@ def bedstat(
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
-    outfolder_stats = os.path.join(outfolder, "output", "bedstat_output")
-    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
+    # TODO why are we no longer using bbconf to get the output path?
     # outfolder_stats = bbc.get_bedstat_output_path()
+    outfolder_stats = os.path.join(outfolder, "output", "bedstat_output")
+    try:
+        os.makedirs(outfolder_stats)
+    except FileExistsError:
+        pass
+    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
 
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
     bedfile_name = os.path.split(bedfile)[1]
 
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     outfolder = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
+    try:
+        os.makedirs(outfolder)
+    except FileExistsError:
+        pass
     json_file_path = os.path.abspath(os.path.join(outfolder, fileid + ".json"))
     json_plots_file_path = os.path.abspath(
         os.path.join(outfolder, fileid + "_plots.json")

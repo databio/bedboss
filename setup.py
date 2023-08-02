@@ -5,6 +5,7 @@ from setuptools import setup
 import sys
 from bedboss import __package_name__, __version__, __author__
 
+# TODO setup not working
 PACKAGE = __package_name__
 REQDIR = "requirements"
 
