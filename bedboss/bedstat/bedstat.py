@@ -200,7 +200,7 @@ def bedstat(
 
             if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
                 digest = requests.get(
-                    f"https://refgenomes.databio.org/genomes/genome_digest/{genome}"
+                    f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
                 ).text.strip('""')
 
                 data.update(
@@ -226,7 +226,7 @@ def bedstat(
             del plot["name"]
             data.update({plot_id: plot})
         bbc.bed.report(
-            record_identifier=bed_digest,
+            sample_name=bed_digest,
             values=data,
             force_overwrite=force_overwrite,
         )
