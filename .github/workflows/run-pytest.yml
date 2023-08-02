@@ -1,4 +1,5 @@
-#name: Run pytests
+## This code is commented, because tests need a lot of dependencies and they can be run only localy!
+# name: Run pytests
 #
 #on:
 #  push:

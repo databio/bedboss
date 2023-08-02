@@ -16,7 +16,7 @@ DEPENDENCIES_TEST_SCRIPT = f"{FILE_DIR}/bash_requirements_test.sh"
 
 def test_dependencies():
     # Make sure bedToBigBed etc is in your PATH.
-    key = 'PATH'
+    key = "PATH"
     value = os.getenv(key)
     test_dep_return_code = subprocess.run([DEPENDENCIES_TEST_SCRIPT], shell=True)
     assert 1 > test_dep_return_code.returncode
