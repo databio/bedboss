@@ -5,7 +5,6 @@ from setuptools import setup
 import sys
 from bedboss import __package_name__, __version__, __author__
 
-# TODO setup not working
 PACKAGE = __package_name__
 REQDIR = "requirements"
 
@@ -47,6 +46,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     keywords="project, bioinformatics, sequencing, ngs, workflow",

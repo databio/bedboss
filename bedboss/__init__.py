@@ -5,14 +5,14 @@ from bedboss.bedmaker import bedmaker
 from bedboss.bedstat import bedstat
 import logmuse
 
-__version__ = "0.1.0-dev2"
+__version__ = "0.1.0a1"
 __package_name__ = "bedboss"
 __author__ = [
+    "Oleksandr Khoroshevskyi",
     "Michal Stolarczyk",
     "Ognen Duzlevski",
     "Jose Verdezoto",
     "Bingjie Xue",
-    "Oleksandr Khoroshevskyi",
 ]
 __email__ = "khorosh@virginia.edu"
 
