@@ -1,7 +1,7 @@
 # bedboss
 
 ---
-![Run pytests](https://github.com/bedbase/bedboss/workflows/Run%20pytests/badge.svg)
+![Run pytests](https://github.com/bedbase/bedboss/workflows/Run%20instalation%20test/badge.svg)
 [![docs-badge](https://readthedocs.org/projects/bedboss/badge/?version=latest)](https://bedboss.databio.org/en/latest/)
 [![pypi-badge](https://img.shields.io/pypi/v/bedboss)](https://pypi.org/project/bedboss)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
