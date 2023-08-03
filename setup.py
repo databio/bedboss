@@ -3,15 +3,15 @@
 import os
 from setuptools import setup
 import sys
-from bedboss import __package_name__, __version__, __author__
 
-PACKAGE = __package_name__
+PACKAGE_NAME = "bedboss"
 REQDIR = "requirements"
 
 # Additional keyword arguments for setup().
 extra = {}
 
-# Ordinary dependencies
+with open(f"{PACKAGE_NAME}/_version.py", "r") as versionfile:
+    __version__ = versionfile.readline().split()[-1].strip("\"'\n")
 
 
 def read_reqs(reqs_name):
@@ -33,8 +33,8 @@ with open("README.md") as f:
     long_description = f.read()
 
 setup(
-    name=PACKAGE,
-    packages=[PACKAGE],
+    name=PACKAGE_NAME,
+    packages=[PACKAGE_NAME],
     version=__version__,
     description="Pipelines for genomic region file to produce bed files, "
     "and it's statistics",
@@ -50,15 +50,21 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     keywords="project, bioinformatics, sequencing, ngs, workflow",
-    url=f"https://github.com/databio/{PACKAGE}/",
-    author=__author__,
+    url=f"https://github.com/databio/{PACKAGE_NAME}/",
+    authors=[
+        "Oleksandr Khoroshevskyi",
+        "Michal Stolarczyk",
+        "Ognen Duzlevski",
+        "Jose Verdezoto",
+        "Bingjie Xue",
+    ],
     license="BSD2",
     entry_points={
         "console_scripts": [
             "bedboss = bedboss.__main__:main",
         ],
     },
-    package_data={PACKAGE: ["templates/*"]},
+    package_data={PACKAGE_NAME: ["templates/*"]},
     scripts=scripts,
     include_package_data=True,
     test_suite="tests",

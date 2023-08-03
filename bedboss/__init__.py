@@ -3,9 +3,9 @@ from bedboss import *
 from bedboss.bedqc import bedqc
 from bedboss.bedmaker import bedmaker
 from bedboss.bedstat import bedstat
+from __version__ import __version__
 import logmuse
 
-__version__ = "0.1.0a1"
 __package_name__ = "bedboss"
 __author__ = [
     "Oleksandr Khoroshevskyi",
