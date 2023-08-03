@@ -13,6 +13,7 @@ extra = {}
 with open(f"{PACKAGE_NAME}/_version.py", "r") as versionfile:
     __version__ = versionfile.readline().split()[-1].strip("\"'\n")
 
+
 def read_reqs(reqs_name):
     deps = []
     with open(os.path.join(REQDIR, f"requirements-{reqs_name}.txt"), "r") as f:
