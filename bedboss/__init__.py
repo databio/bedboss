@@ -3,7 +3,7 @@ from bedboss import *
 from bedboss.bedqc import bedqc
 from bedboss.bedmaker import bedmaker
 from bedboss.bedstat import bedstat
-from bedboss.__version__ import __version__
+from bedboss._version import __version__
 import logmuse
 
 __package_name__ = "bedboss"
