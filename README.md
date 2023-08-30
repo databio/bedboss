@@ -24,8 +24,15 @@ These thresholds can be changed with pipeline arguments.
 
 ## bedstat
 
-Calcualtes statistics about BED files.
+Calculates statistics about BED files.
 
 # Documentation
 
 Detailed information about each pipeline can be found in the [bedboss Readme](./docs/README.md).
+
+
+Set up environment variables like this:
+
+```
+source environment/production.env
+```
