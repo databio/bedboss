@@ -7,7 +7,11 @@ import requests
 import gzip
 import pypiper
 import bbconf
+import logging
+from geniml.region2vec import Region2VecExModel
+from geniml.io import RegionSet
 
+_LOGGER = logging.getLogger("bedboss")
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
@@ -36,6 +40,31 @@ def digest_bedfile(filepath: str) -> str:
         ).hexdigest()
 
         return bed_digest
+
+
+def add_bed_to_qdrant(
+    bed_file_path: str, bbconf: bbconf.BedBaseConf, sample_id: str, labels: dict = None
+) -> None:
+    """
+    Convert bed file to vector and add it to qdrant database
+
+    :param bed_file_path: path to the bed file
+    :param bbconf: bbconf object
+    :param sample_id: bed file id
+    :param labels: additional bed file lables
+    :return: None
+    """
+    _LOGGER.info(f"adding bed file to qdrant. Sample_id: {sample_id}")
+    # Convert bedfile to vector
+    bed_region_set = RegionSet(bed_file_path)
+    reg_2_vec_obj = Region2VecExModel("databio/r2v-ChIP-atlas-hg38")
+    bed_embedding = reg_2_vec_obj.encode(bed_region_set)
+
+    # Upload bed file vector to the database
+    bbconf.qdrant_client.load(
+        embeddings=bed_embedding, labels=[{"id": sample_id, **labels}]
+    )
+    return None
 
 
 def convert_unit(size_in_bytes: int) -> str:
@@ -239,3 +268,10 @@ def bedstat(
             values=data,
             force_overwrite=force_overwrite,
         )
+
+    add_bed_to_qdrant(
+        bed_file_path=bedfile,
+        bbconf=bbc,
+        sample_id=fileid,
+        labels={"info": "some_info"},
+    )
