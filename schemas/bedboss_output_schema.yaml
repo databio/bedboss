@@ -1,0 +1,45 @@
+description: Pipestat output schema describing outputs of bedboss pipeline.
+properties:
+  samples:
+    bed_file:
+      title: "bedfile"
+      description: "Original bed file"
+      path: "outputs/bed_files/{name}.bed.gz"
+      type: file
+    bigbed_file:
+      title: "bigbedfile"
+      description: "BigBed file"
+      path: "outputs/bedbed_files/{name}.bigBed"
+      type: file
+    tss_distance:
+      description: "Tss distance plot"
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_abs_tssdist.png"
+      type: image
+    chrom_reg_distr:
+      description: "Chromosomes region distribution"
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_chrombins.png"
+      type: plot
+    partitions:
+      description: "Regions distribution over genomic partitions."
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_paritions.png"
+      type: plot
+    expected_partitions:
+      description: "Expected distribution over genomic partitions."
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_expected_partitions.png"
+      type: plot
+    cumulative_partitions:
+      description: "Cumulative distribution over genomic partitions"
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_cumulative_partitions.png"
+      type: plot
+    widths_histogram:
+      description: "Quantile-trimmed histogram of widths."
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_widths_histogram.png"
+      type: plot
+    open_chromatin:
+      description: "Cell specific enrichment for open chromatin."
+      path: "outputs/output/bedstat_output/{md5sum}/{name}_open_chromatin.png"
+      type: plot
+    info:
+      description: "Information and statistics about the sample"
+      path: "outputs/output/bedstat_output/{md5sum}/{name}.json"
+      type: file
