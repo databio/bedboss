@@ -7,7 +7,9 @@ import requests
 import gzip
 import pypiper
 import bbconf
+import logging
 
+_LOGGER = logging.getLogger("bedboss")
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
@@ -239,3 +241,9 @@ def bedstat(
             values=data,
             force_overwrite=force_overwrite,
         )
+
+    bbc.add_bed_to_qdrant(
+        bed_file_path=bedfile,
+        sample_id=fileid,
+        labels={"id": "some_info"},
+    )
