@@ -10,8 +10,7 @@ from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.cli import build_argparser
-
-from .const import (
+from bedboss.const import (
     OS_HG19,
     OS_HG38,
     OS_MM10,
@@ -20,8 +19,8 @@ from .const import (
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
 )
-from .utils import extract_file_name, standardize_genome_name, download_file
-from .exceptions import OpenSignalMatrixException
+from bedboss.utils import extract_file_name, standardize_genome_name, download_file
+from bedboss.exceptions import OpenSignalMatrixException
 from bedboss import __version__
 
 _LOGGER = logging.getLogger("bedboss")
