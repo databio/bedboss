@@ -30,32 +30,4 @@ Calculates statistics about BED files.
 
 Detailed information about each pipeline can be found in the [bedboss Readme](./docs/README.md).
 
-
-Set up environment variables like this:
-
-```
-source environment/production.env
-```
-
-
-## Uploading files to S3
-
-To upload files to S3, we need some credentials. You can put them into the proper environment variables like this:
-
-```
-cd bedboss
-source environment/production.env
-```
-
-Now you can see the files like this: 
-
-```
-aws s3 ls s3://bedbase
-```
-
-And you can add new ones like this:
-
-```
-aws s3 cp <local_files> s3://bedbase
-```
-
+For the specific bedbase.org instance, see instructions in the bedbase.org repo.
