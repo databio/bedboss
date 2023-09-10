@@ -104,6 +104,11 @@ def bedstat(
         pass
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
 
+    if not os.path.exists(bbc.config["path"]["vec2vec"]):
+        raise FileNotFoundError(
+            f"vec2vec path {bbc.config['path']['vec2vec']} not found"
+        )
+
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
     bedfile_name = os.path.split(bedfile)[1]
 
@@ -245,5 +250,5 @@ def bedstat(
     bbc.add_bed_to_qdrant(
         bed_file_path=bedfile,
         sample_id=fileid,
-        labels={"id": "some_info"},
+        labels={"id": bed_digest},
     )
