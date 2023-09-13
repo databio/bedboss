@@ -248,7 +248,7 @@ def bedstat(
         )
 
     bbc.add_bed_to_qdrant(
+        bed_id=bed_digest,
         bed_file_path=bedfile,
-        sample_id=fileid,
-        labels={"id": bed_digest},
+        payload={"fileid": fileid},
     )

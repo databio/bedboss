@@ -1,0 +1,8 @@
+genome_folder: /home/nsheff/code/bedboss
+config_version: 0.4
+genome_servers: 
+ - http://refgenomes.databio.org
+genomes:
+  baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c:
+    aliases: 
+     - hg19
