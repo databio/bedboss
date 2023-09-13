@@ -175,6 +175,9 @@ def main(test_args: dict = None) -> NoReturn:
         version=__version__,
     )
 
+    # Confirm everything is set up correctly
+    # TODO: add more checks to make sure everything we need is installed
+
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
     elif args_dict["command"] == "make":
