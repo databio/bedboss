@@ -42,7 +42,7 @@ is_executable() {
         echo $(success "$1 is installed correctly")
         return 0
     else
-        echo $(warn "WARNING: '$1' is not installed. To install '$1' check bedboss documentation: https://bedboss.databio.org/")
+        echo $(warn "WARNING: '$1' is not installed. To install '$1' check bedboss documentation: https://docs.bedbase.org/")
         return 1
     fi
 }
