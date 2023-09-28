@@ -5,7 +5,7 @@ import pytest
 from bbconf import BedBaseConf
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-HG19_CORRECT_DIR = os.path.join(FILE_DIR, "data", "bed", "hg19", "correct")
+HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
 FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 BIGBED_PATH = os.path.join(
     FILE_DIR, "data", "bigbed", "hg19", "correct", "sample1.bigBed"
