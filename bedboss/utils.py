@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 import urllib
+from bbconf import BedBaseConf
 from typing import NoReturn
 
 
@@ -11,6 +12,7 @@ _LOGGER = logging.getLogger("bedboss")
 def extract_file_name(file_path: str) -> str:
     """
     Extraction file name from file path
+
     :param file_path: full file path
     :return: file name without extension
     """
@@ -22,6 +24,7 @@ def extract_file_name(file_path: str) -> str:
 def standardize_genome_name(input_genome: str) -> str:
     """
     Standardizing user provided genome
+
     :param input_genome: standardize user provided genome, so bedboss know what genome
     we should use
     :return: genome name string
@@ -43,6 +46,7 @@ def standardize_genome_name(input_genome: str) -> str:
 def download_file(url: str, path: str) -> NoReturn:
     """
     Download file from the url to specific location
+
     :param url: URL of the file
     :param path: Local path with filename
     :return: NoReturn
@@ -55,3 +59,24 @@ def download_file(url: str, path: str) -> NoReturn:
     except Exception as e:
         _LOGGER.error(f"File download failed.")
         raise e
+
+
+def check_db_connection(bedbase_config: str) -> bool:
+    """
+    Check if the database connection is working
+
+    :param bedbase_config: path to the bedbase config file
+    :return: True if connection is successful, False otherwise
+    """
+    _LOGGER.info(f"Checking database connection...")
+    if not os.path.exists(bedbase_config):
+        raise FileNotFoundError(f"Bedbase config file {bedbase_config} was not found.")
+    else:
+        _LOGGER.info(f"Bedbase config file {bedbase_config} was found.")
+    try:
+        BedBaseConf(bedbase_config)
+        _LOGGER.info(f"Database connection is successful.")
+        return True
+    except Exception as e:
+        _LOGGER.error(f"Database connection failed. Error: {e}")
+        return False

@@ -8,7 +8,8 @@ database:
   port: 5432
   password: docker
   user: postgres
-  name: pep-db
+  name: bedbase
+  #name: pep-db
   dialect: postgresql
   driver: psycopg2
 server:
@@ -21,20 +22,3 @@ remotes:
   s3:
     prefix: s3://data.bedbase.org/
     description: S3 compatible path
-
-#database:
-#  name: pipestat-test
-#  user: postgres
-#  password: pipestat-password
-#  host: localhost
-#  dialect: postgresql
-#  driver: psycopg2
-#  port: 5432
-##path:
-##  pipeline_output_path: $BEDBASE_DATA_PATH/outputs
-##  bedstat_dir: bedstat_output
-##  bedbuncher_dir: bedbuncher_output
-##  remote_url_base: null
-#server:
-#  host: 0.0.0.0
-#  port: 8000
