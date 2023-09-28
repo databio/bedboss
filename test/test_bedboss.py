@@ -29,6 +29,8 @@ def db_setup():
     try:
         BedBaseConf(BEDBASE_CONFIG)
     except Exception as err:
+        print(f"Error: {err}")
+        BedBaseConf(BEDBASE_CONFIG)
         return False
     return True
 
@@ -107,6 +109,7 @@ class TestStat:
                 "genome": genome,
                 "bigbed": bigbed_file,
                 "no_db_commit": True,
+                "skip_qdrant": True,
             }
         )
         assert True
@@ -176,6 +179,7 @@ class TestAll:
                 "bedbase_config": BEDBASE_CONFIG,
                 "no_db_commit": True,
                 "outfolder": output_temp_dir,
+                "skip_qdrant": True,
             }
         )
         assert True

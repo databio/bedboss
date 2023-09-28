@@ -76,6 +76,7 @@ def run_all(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    skip_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
@@ -101,6 +102,7 @@ def run_all(
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
     :param force_overwrite: force overwrite analysis
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param skip_qdrant: whether to skip qdrant indexing
     :param pm: pypiper object
     :return: NoReturn
     """
@@ -156,6 +158,7 @@ def run_all(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
         force_overwrite=force_overwrite,
+        skip_qdrant=skip_qdrant,
         pm=pm,
     )
 

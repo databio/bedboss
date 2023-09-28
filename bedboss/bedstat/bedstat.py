@@ -68,6 +68,7 @@ def bedstat(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    skip_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
@@ -92,6 +93,7 @@ def bedstat(
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be
         skipped
+    :param skip_qdrant: whether to skip qdrant indexing
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
@@ -103,11 +105,6 @@ def bedstat(
     except FileExistsError:
         pass
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
-
-    if not os.path.exists(bbc.config["path"]["vec2vec"]):
-        raise FileNotFoundError(
-            f"vec2vec path {bbc.config['path']['vec2vec']} not found"
-        )
 
     bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
     bedfile_name = os.path.split(bedfile)[1]
@@ -247,8 +244,9 @@ def bedstat(
             force_overwrite=force_overwrite,
         )
 
-    bbc.add_bed_to_qdrant(
-        bed_id=bed_digest,
-        bed_file_path=bedfile,
-        payload={"fileid": fileid},
-    )
+    if not skip_qdrant:
+        bbc.add_bed_to_qdrant(
+            bed_id=bed_digest,
+            bed_file_path=bedfile,
+            payload={"fileid": fileid},
+        )
