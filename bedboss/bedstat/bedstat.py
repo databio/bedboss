@@ -7,7 +7,9 @@ import requests
 import gzip
 import pypiper
 import bbconf
+import logging
 
+_LOGGER = logging.getLogger("bedboss")
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
@@ -66,6 +68,7 @@ def bedstat(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    skip_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
@@ -90,6 +93,7 @@ def bedstat(
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be
         skipped
+    :param skip_qdrant: whether to skip qdrant indexing
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
@@ -238,4 +242,11 @@ def bedstat(
             sample_name=bed_digest,
             values=data,
             force_overwrite=force_overwrite,
+        )
+
+    if not skip_qdrant:
+        bbc.add_bed_to_qdrant(
+            bed_id=bed_digest,
+            bed_file_path=bedfile,
+            payload={"fileid": fileid},
         )

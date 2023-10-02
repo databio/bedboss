@@ -2,9 +2,10 @@ from bedboss.bedboss import main
 import os
 import subprocess
 import pytest
+from bbconf import BedBaseConf
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
-HG19_CORRECT_DIR = os.path.join(FILE_DIR, "data", "bed", "hg19", "correct")
+HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
 FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 BIGBED_PATH = os.path.join(
     FILE_DIR, "data", "bigbed", "hg19", "correct", "sample1.bigBed"
@@ -16,10 +17,25 @@ DEPENDENCIES_TEST_SCRIPT = f"{FILE_DIR}/bash_requirements_test.sh"
 
 def test_dependencies():
     # Make sure bedToBigBed etc is in your PATH.
+    print("Testing dependencies...")
     key = "PATH"
     value = os.getenv(key)
     test_dep_return_code = subprocess.run([DEPENDENCIES_TEST_SCRIPT], shell=True)
     assert 1 > test_dep_return_code.returncode
+
+
+def db_setup():
+    # Check if the database is setup
+    try:
+        BedBaseConf(BEDBASE_CONFIG)
+    except Exception as err:
+        print(f"Error: {err}")
+        BedBaseConf(BEDBASE_CONFIG)
+        return False
+    return True
+
+
+pytest_db_skip_reason = "Database is not set up... To run this test, set up the database. Go to test/README.md for more information."
 
 
 @pytest.mark.parametrize(
@@ -63,6 +79,10 @@ def test_make(bedfile, tmpdir):
     assert os.path.isfile(os.path.join(tmpdir, "bigbed", "sample1.bigBed"))
 
 
+@pytest.mark.skipif(
+    not db_setup(),
+    reason=pytest_db_skip_reason,
+)
 class TestStat:
     @pytest.fixture(scope="session")
     def output_temp_dir(self, tmp_path_factory):
@@ -89,6 +109,7 @@ class TestStat:
                 "genome": genome,
                 "bigbed": bigbed_file,
                 "no_db_commit": True,
+                "skip_qdrant": True,
             }
         )
         assert True
@@ -127,6 +148,10 @@ class TestStat:
         )
 
 
+@pytest.mark.skipif(
+    not db_setup(),
+    reason=pytest_db_skip_reason,
+)
 class TestAll:
     @pytest.fixture(scope="session")
     def output_temp_dir(self, tmp_path_factory):
@@ -154,6 +179,7 @@ class TestAll:
                 "bedbase_config": BEDBASE_CONFIG,
                 "no_db_commit": True,
                 "outfolder": output_temp_dir,
+                "skip_qdrant": True,
             }
         )
         assert True

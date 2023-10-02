@@ -42,7 +42,7 @@ is_executable() {
         echo $(success "$1 is installed correctly")
         return 0
     else
-        echo $(warn "WARNING: '$1' is not installed. To install '$1' check bedboss documentation: https://bedboss.databio.org/")
+        echo $(warn "WARNING: '$1' is not installed. To install '$1' check bedboss documentation: https://docs.bedbase.org/")
         return 1
     fi
 }
@@ -116,16 +116,18 @@ if ! is_executable "wigToBigWig"; then
     INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
 
-echo -e "-----------------------------------------------------------"
-echo -e "Checking required R packages for bedstat...                            "
-echo -e "-----------------------------------------------------------"
 
-declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA")
-for package in "${requiredRPackages[@]}"; do
-  if ! r_check_req $package; then
-    INSTALL_ERROR=$((INSTALL_ERROR+1))
-  fi
+if is_executable "R"; then
+    echo -e "-----------------------------------------------------------"
+    echo -e "Checking required R packages for bedstat...                            "
+    echo -e "-----------------------------------------------------------"
+    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA")
+    for package in "${requiredRPackages[@]}"; do
+      if ! r_check_req $package; then
+        INSTALL_ERROR=$((INSTALL_ERROR+1))
+      fi
 done
+fi
 
 echo "Number of WARNINGS: $INSTALL_WARNINGS"
 

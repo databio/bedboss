@@ -1,6 +1,5 @@
 import logging
 import os
-import urllib.request
 from typing import NoReturn, Union, Dict
 import pypiper
 from argparse import Namespace
@@ -10,8 +9,7 @@ from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.cli import build_argparser
-
-from .const import (
+from bedboss.const import (
     OS_HG19,
     OS_HG38,
     OS_MM10,
@@ -20,8 +18,13 @@ from .const import (
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
 )
-from .utils import extract_file_name, standardize_genome_name, download_file
-from .exceptions import OpenSignalMatrixException
+from bedboss.utils import (
+    extract_file_name,
+    standardize_genome_name,
+    download_file,
+    check_db_connection,
+)
+from bedboss.exceptions import OpenSignalMatrixException
 from bedboss import __version__
 
 _LOGGER = logging.getLogger("bedboss")
@@ -30,16 +33,17 @@ _LOGGER = logging.getLogger("bedboss")
 def get_osm_path(genome: str) -> Union[str, None]:
     """
     By providing genome name download Open Signal Matrix
+
     :param genome: genome assembly
     :return: path to the Open Signal Matrix
     """
     # TODO: add more osm
     _LOGGER.info(f"Getting Open Signal Matrix file path...")
-    if genome == "hg19":
+    if genome == "hg19" or genome == "GRCh37":
         osm_name = OS_HG19
-    elif genome == "hg38":
+    elif genome == "hg38" or genome == "GRCh38":
         osm_name = OS_HG38
-    elif genome == "mm10":
+    elif genome == "mm10" or genome == "GRCm38":
         osm_name = OS_MM10
     else:
         raise OpenSignalMatrixException(
@@ -72,11 +76,13 @@ def run_all(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    skip_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
     """
     Run bedboss: bedmaker, bedqc and bedstat.
+
     :param sample_name: Sample name [required]
     :param input_file: Input file [required]
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
@@ -96,10 +102,15 @@ def run_all(
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
     :param force_overwrite: force overwrite analysis
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param skip_qdrant: whether to skip qdrant indexing
     :param pm: pypiper object
     :return: NoReturn
     """
     _LOGGER.warning(f"Unused arguments: {kwargs}")
+
+    if not check_db_connection(bedbase_config=bedbase_config):
+        raise Exception("Database connection failed. Exiting...")
+
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
 
@@ -147,6 +158,7 @@ def run_all(
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
         force_overwrite=force_overwrite,
+        skip_qdrant=skip_qdrant,
         pm=pm,
     )
 
@@ -154,6 +166,7 @@ def run_all(
 def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
+
     :param str test_args: one of the bedboss pipelines
     """
     parser = build_argparser()
@@ -175,7 +188,6 @@ def main(test_args: dict = None) -> NoReturn:
         multi=True,
         version=__version__,
     )
-
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
     elif args_dict["command"] == "make":

@@ -13,6 +13,8 @@ path:
   bedstat_dir: bedstat_output
   remote_url_base: null
   bedbuncher_dir: bedbucher_output
+  #  region2vec: "add/path/here"
+  #  vec2vec: "add/path/here"
 database:
   host: $DB_HOST_URL
   port: $POSTGRES_PORT
@@ -24,6 +26,11 @@ database:
 server:
   host: 0.0.0.0
   port: 8000
+qdrant:
+  host: localhost
+  port: 6333
+  api_key: None
+  collection: bedbase
 remotes:
   http:
     prefix: https://data.bedbase.org/
