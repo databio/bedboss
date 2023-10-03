@@ -22,6 +22,10 @@ def build_argparser() -> ArgumentParser:
     sub_all = subparser.add_parser(
         "all", help="Run all bedboss pipelines and insert data into bedbase"
     )
+    sub_all_pep = subparser.add_parser(
+        "all-pep",
+        help="Run all bedboss pipelines using one PEP and insert data into bedbase",
+    )
     sub_make = subparser.add_parser(
         "make",
         help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
@@ -134,6 +138,21 @@ def build_argparser() -> ArgumentParser:
         "--just-db-commit",
         action="store_true",
         help="just commit the JSON to the database",
+    )
+
+    # all-pep
+    sub_all_pep.add_argument(
+        "--pep_config",
+        dest="pep_config",
+        required=True,
+        help="Path to the pep configuration file [Required]\n "
+        "Required fields in PEP are: "
+        "sample_name, input_file, input_type,outfolder, genome, bedbase_config.\n "
+        "Optional fields in PEP are: "
+        "rfg_config, narrowpeak, check_qc, standard_chrom, chrom_sizes, "
+        "open_signal_matrix, ensdb, sample_yaml, no_db_commit, just_db_commit, "
+        "no_db_commit, force_overwrite, skip_qdrant",
+        type=str,
     )
 
     # bed_qc

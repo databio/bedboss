@@ -84,14 +84,14 @@ class BedMaker:
                                 If true, filter the input file to contain only
                                 the standard chromosomes, remove regions on
                                 ChrUn chromosomes
-        :param check_qc: run quality control during badmaking
+        :param check_qc: run quality control during bedmaking
         :param pm: pypiper object
         :return: noReturn
         """
 
         # Define file paths
         self.input_file = input_file
-        self.input_type = input_type
+        self.input_type = input_type.lower()
         self.output_bed = output_bed
         self.output_bigbed = output_bigbed
         self.file_name = os.path.basename(input_file)
@@ -186,7 +186,7 @@ class BedMaker:
         on input file type and execute the command.
         """
 
-        _LOGGER.info(f"Converting {self.input_file} to BED format.")
+        _LOGGER.info(f"Converting {os.path.abspath(self.input_file)} to BED format.")
         temp_bed_path = os.path.splitext(self.output_bed)[0]
 
         # creat cmd to run that convert non bed file to bed file
@@ -195,14 +195,14 @@ class BedMaker:
 
             # Use the gzip and shutil modules to produce temporary unzipped files
             if self.input_extension == ".gz":
-                input_file = os.path.join(
+                temp_input_file = os.path.join(
                     os.path.dirname(self.output_bed),
                     os.path.splitext(self.file_name)[0],
                 )
                 with gzip.open(self.input_file, "rb") as f_in:
-                    with open(input_file, "wb") as f_out:
+                    with open(temp_input_file, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
-                self.pm.clean_add(input_file)
+                self.pm.clean_add(temp_input_file)
 
             # creating cmd for bedGraph files
             if self.input_type == "bedGraph":
@@ -309,6 +309,7 @@ class BedMaker:
                     ),
                 ]
         self.pm.run(cmd, target=self.output_bed)
+        self.pm._cleanup()
 
     def make_bigbed(self) -> NoReturn:
         """
@@ -337,7 +338,7 @@ class BedMaker:
                     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
                 )
             if bedtype is not None:
-                cmd = "zcat " + self.output_bed + "  | sort -k1,1 -k2,2n > " + temp
+                cmd = f"zcat {self.output_bed} | sort -k1,1 -k2,2n > {temp}"
                 self.pm.run(cmd, temp)
 
                 cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bedtype} {temp} {self.chrom_sizes} {big_narrow_peak}"
@@ -371,6 +372,7 @@ class BedMaker:
                         f"unable to validate genome assembly with Refgenie. "
                         f"Error: {err}"
                     )
+            self.pm._cleanup()
 
     def get_rgc(self) -> str:
         """

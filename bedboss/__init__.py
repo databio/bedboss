@@ -1,12 +1,16 @@
 """ Package-level data """
+import logmuse
+import coloredlogs
+
 from bedboss import *
 from bedboss.bedqc import bedqc
 from bedboss.bedmaker import bedmaker
 from bedboss.bedstat import bedstat
 from bedboss._version import __version__
-import logmuse
+
 
 __package_name__ = "bedboss"
+
 __author__ = [
     "Oleksandr Khoroshevskyi",
     "Michal Stolarczyk",
@@ -25,4 +29,9 @@ __all__ = [
     "bedstat",
 ]
 
-logmuse.init_logger(__version__)
+_LOGGER = logmuse.init_logger("bedboss")
+coloredlogs.install(
+    logger=_LOGGER,
+    datefmt="%H:%M:%S",
+    fmt="[%(levelname)s] [%(asctime)s] %(message)s",
+)
