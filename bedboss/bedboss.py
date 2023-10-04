@@ -28,7 +28,7 @@ from bedboss.utils import (
     check_db_connection,
 )
 from bedboss.exceptions import OpenSignalMatrixException
-from bedboss import __version__
+from bedboss._version import __version__
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -57,7 +57,11 @@ def get_osm_path(genome: str) -> Union[str, None]:
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
             os.makedirs(OPEN_SIGNAL_FOLDER)
-        download_file(url=f"{OPEN_SIGNAL_URL}{osm_name}", path=osm_path, no_fail=True,)
+        download_file(
+            url=f"{OPEN_SIGNAL_URL}{osm_name}",
+            path=osm_path,
+            no_fail=True,
+        )
     return osm_path
 
 

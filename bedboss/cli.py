@@ -2,7 +2,7 @@ from ubiquerg import VersionInHelpParser
 from argparse import ArgumentParser
 import logmuse
 
-from bedboss import __version__, __package_name__
+from bedboss._version import __version__
 
 
 def build_argparser() -> ArgumentParser:
@@ -11,7 +11,7 @@ def build_argparser() -> ArgumentParser:
     :retrun: Tuple[pipeline, arguments]
     """
     parser = VersionInHelpParser(
-        prog=__package_name__,
+        prog="bedboss",
         description="Warehouse of pipelines for BED-like files: "
         "bedmaker, bedstat, and bedqc.",
         epilog="",
