@@ -239,7 +239,7 @@ def bedstat(
             del plot["name"]
             data.update({plot_id: plot})
         bbc.bed.report(
-            sample_name=bed_digest,
+            record_identifier=bed_digest,
             values=data,
             force_overwrite=force_overwrite,
         )

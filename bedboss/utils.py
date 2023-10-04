@@ -1,6 +1,5 @@
 import os
 import logging
-import requests
 import urllib
 from bbconf import BedBaseConf
 from typing import NoReturn
@@ -43,22 +42,25 @@ def standardize_genome_name(input_genome: str) -> str:
         return input_genome
 
 
-def download_file(url: str, path: str) -> NoReturn:
+def download_file(url: str, path: str, no_fail: bool = False) -> NoReturn:
     """
     Download file from the url to specific location
 
     :param url: URL of the file
     :param path: Local path with filename
+    :param no_fail: If True, do not raise exception if download fails
     :return: NoReturn
     """
     _LOGGER.info(f"Downloading remote file: {url}")
-    _LOGGER.info(f"Local path: {path}")
+    _LOGGER.info(f"Local path: {os.path.abspath(path)}")
     try:
         urllib.request.urlretrieve(url, path)
         _LOGGER.info(f"File downloaded successfully!")
     except Exception as e:
         _LOGGER.error(f"File download failed.")
-        raise e
+        if not no_fail:
+            raise e
+        _LOGGER.error(f"File download failed. Continuing anyway...")
 
 
 def check_db_connection(bedbase_config: str) -> bool:

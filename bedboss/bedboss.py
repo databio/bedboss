@@ -1,9 +1,12 @@
 import logging
 import os
 from typing import NoReturn, Union, Dict
+
+import peppy
 import pypiper
 from argparse import Namespace
 import logmuse
+import peppy
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
@@ -25,7 +28,7 @@ from bedboss.utils import (
     check_db_connection,
 )
 from bedboss.exceptions import OpenSignalMatrixException
-from bedboss import __version__
+from bedboss._version import __version__
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -54,7 +57,11 @@ def get_osm_path(genome: str) -> Union[str, None]:
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
             os.makedirs(OPEN_SIGNAL_FOLDER)
-        download_file(url=f"{OPEN_SIGNAL_URL}{osm_name}", path=osm_path)
+        download_file(
+            url=f"{OPEN_SIGNAL_URL}{osm_name}",
+            path=osm_path,
+            no_fail=True,
+        )
     return osm_path
 
 
@@ -163,6 +170,43 @@ def run_all(
     )
 
 
+def run_all_by_pep(pep: Union[str, peppy.Project]) -> NoReturn:
+    """
+    Run bedboss pipeline by providing pep config file.
+
+    :param pep: path to the pep config file or peppy.Project object
+    """
+    if isinstance(pep, str):
+        pep = peppy.Project(pep)
+    elif isinstance(pep, peppy.Project):
+        pass
+    else:
+        raise Exception("Incorrect pep type. Exiting...")
+
+    for pep_sample in pep.samples:
+        _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
+        run_all(
+            sample_name=pep_sample.sample_name,
+            input_file=pep_sample.input_file,
+            input_type=pep_sample.input_type,
+            outfolder=pep_sample.outfolder,
+            genome=pep_sample.genome,
+            bedbase_config=pep_sample.bedbase_config,
+            rfg_config=pep_sample.get("rfg_config"),
+            narrowpeak=pep_sample.get("narrowpeak"),
+            check_qc=pep_sample.get("check_qc"),
+            standard_chrom=pep_sample.get("standard_chrom"),
+            chrom_sizes=pep_sample.get("chrom_sizes"),
+            open_signal_matrix=pep_sample.get("open_signal_matrix"),
+            ensdb=pep_sample.get("ensdb"),
+            sample_yaml=pep_sample.get("sample_yaml"),
+            just_db_commit=pep_sample.get("just_db_commit"),
+            no_db_commit=pep_sample.get("no_db_commit"),
+            force_overwrite=pep_sample.get("force_overwrite"),
+            skip_qdrant=pep_sample.get("skip_qdrant"),
+        )
+
+
 def main(test_args: dict = None) -> NoReturn:
     """
     Run pipeline that was specified in as positional argument.
@@ -196,6 +240,8 @@ def main(test_args: dict = None) -> NoReturn:
         bedqc(pm=pm, **args_dict)
     elif args_dict["command"] == "stat":
         bedstat(pm=pm, **args_dict)
+    elif args_dict["command"] == "all-pep":
+        run_all_by_pep(args_dict["pep_config"])
     else:
         parser.print_help()
         # raise Exception("Incorrect pipeline name.")
