@@ -234,13 +234,13 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         } else {
           if (genome %in% c("hg19", "hg38", "mm10")) {
             gp = calcPartitionsRef(query, genome)
-            plotBoth("paritions", plotPartitions(gp))
+            plotBoth("partitions", plotPartitions(gp))
           } else {
             partitionList = myPartitionList(gtffile)
             gp = calcPartitions(query, partitionList)
-            plotBoth("paritions", plotPartitions(gp))
+            plotBoth("partitions", plotPartitions(gp))
           }
-          plots = rbind(plots, getPlotReportDF("paritions", "Regions distribution over genomic partitions"))
+          plots = rbind(plots, getPlotReportDF("partitions", "Regions distribution over genomic partitions"))
           # flatten the result returned by the function above
           partiotionNames = as.vector(gp[,"partition"])
           partitionsList = list()

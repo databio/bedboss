@@ -238,6 +238,9 @@ def bedstat(
             plot_id = plot["name"]
             del plot["name"]
             data.update({plot_id: plot})
+
+        # deleting md5sum, because it is record_identifier
+        del data["md5sum"]
         bbc.bed.report(
             record_identifier=bed_digest,
             values=data,

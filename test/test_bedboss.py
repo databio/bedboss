@@ -121,8 +121,8 @@ class TestStat:
         [
             f"{case_name}_cumulative_partitions.png",
             f"{case_name}_expected_partitions.pdf",
-            f"{case_name}_paritions.png",
-            f"{case_name}_paritions.pdf",
+            f"{case_name}_partitions.png",
+            f"{case_name}_partitions.pdf",
             f"{case_name}_cumulative_partitions.pdf",
             f"{case_name}_chrombins.pdf",
             f"{case_name}_widths_histogram.pdf",
@@ -191,8 +191,8 @@ class TestAll:
         [
             f"{case_name}_cumulative_partitions.png",
             f"{case_name}_expected_partitions.pdf",
-            f"{case_name}_paritions.png",
-            f"{case_name}_paritions.pdf",
+            f"{case_name}_partitions.png",
+            f"{case_name}_partitions.pdf",
             f"{case_name}_cumulative_partitions.pdf",
             f"{case_name}_chrombins.pdf",
             f"{case_name}_widths_histogram.pdf",
