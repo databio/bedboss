@@ -83,7 +83,7 @@ def run_all(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
-    skip_qdrant: bool = False,
+    skip_qdrant: bool = True,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:

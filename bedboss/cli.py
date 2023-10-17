@@ -139,6 +139,11 @@ def build_argparser() -> ArgumentParser:
         action="store_true",
         help="just commit the JSON to the database",
     )
+    sub_all.add_argument(
+        "--skip-qdrant",
+        action="store_true",
+        help="whether to skip qdrant indexing",
+    )
 
     # all-pep
     sub_all_pep.add_argument(

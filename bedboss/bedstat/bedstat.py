@@ -68,7 +68,7 @@ def bedstat(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
-    skip_qdrant: bool = False,
+    skip_qdrant: bool = True,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> NoReturn:
@@ -93,7 +93,7 @@ def bedstat(
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be
         skipped
-    :param skip_qdrant: whether to skip qdrant indexing
+    :param skip_qdrant: whether to skip qdrant indexing [Default: True]
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
     """
@@ -106,7 +106,7 @@ def bedstat(
         pass
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
 
-    bed_digest = md5(open(bedfile, "rb").read()).hexdigest()
+    bed_digest = digest_bedfile(bedfile)
     bedfile_name = os.path.split(bedfile)[1]
 
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
@@ -192,7 +192,7 @@ def bedstat(
             {
                 "bedfile": {
                     "path": bed_relpath,
-                    "size": os.path.getsize(bedfile),
+                    "size": convert_unit(os.path.getsize(bedfile)),
                     "title": "Path to the BED file",
                 }
             }
@@ -203,8 +203,8 @@ def bedstat(
                 {
                     "bigbedfile": {
                         "path": bigbed_relpath,
-                        "size": os.path.getsize(
-                            os.path.join(bigbed, fileid + ".bigBed")
+                        "size": convert_unit(
+                            os.path.getsize(os.path.join(bigbed, fileid + ".bigBed"))
                         ),
                         "title": "Path to the big BED file",
                     }
@@ -241,6 +241,10 @@ def bedstat(
 
         # deleting md5sum, because it is record_identifier
         del data["md5sum"]
+
+        # add added_to_qdrant to the data
+        data.update({"added_to_qdrant": False})
+
         bbc.bed.report(
             record_identifier=bed_digest,
             values=data,
@@ -252,4 +256,9 @@ def bedstat(
             bed_id=bed_digest,
             bed_file_path=bedfile,
             payload={"fileid": fileid},
+        )
+        bbc.bed.report(
+            record_identifier=bed_digest,
+            values={"added_to_qdrant": True},
+            force_overwrite=True,
         )
