@@ -3,11 +3,13 @@ from argparse import ArgumentParser
 import logmuse
 
 from bedboss._version import __version__
+from bedboss.const import DEFAULT_BEDBASE_API_URL
 
 
 def build_argparser() -> ArgumentParser:
     """
     BEDboss parser
+
     :retrun: Tuple[pipeline, arguments]
     """
     parser = VersionInHelpParser(
@@ -38,6 +40,11 @@ def build_argparser() -> ArgumentParser:
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
     )
+
+    sub_index = subparser.add_parser(
+        "index", help="Index not indexed bed files and add them to the qdrant database "
+    )
+
     sub_all.add_argument(
         "--outfolder",
         required=True,
@@ -316,6 +323,23 @@ def build_argparser() -> ArgumentParser:
         "--just-db-commit",
         action="store_true",
         help="whether just to commit the JSON to the database",
+    )
+
+    sub_index.add_argument(
+        "--bedbase-config",
+        dest="bedbase_config",
+        type=str,
+        required=True,
+        help="a path to the bedbase configuration file [Required]",
+    )
+
+    sub_index.add_argument(
+        "--bedbase-api",
+        dest="bedbase_api",
+        type=str,
+        required=False,
+        default=DEFAULT_BEDBASE_API_URL,
+        help=f"URL of the Bedbase API [Default: {DEFAULT_BEDBASE_API_URL}]",
     )
 
     return logmuse.add_logging_options(parser)

@@ -11,6 +11,7 @@ import peppy
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
+from bedboss.qdrant_index import add_to_qdrant
 from bedboss.cli import build_argparser
 from bedboss.const import (
     OS_HG19,
@@ -234,14 +235,16 @@ def main(test_args: dict = None) -> NoReturn:
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
+    elif args_dict["command"] == "all-pep":
+        run_all_by_pep(args_dict["pep_config"])
     elif args_dict["command"] == "make":
         BedMaker(pm=pm, **args_dict)
     elif args_dict["command"] == "qc":
         bedqc(pm=pm, **args_dict)
     elif args_dict["command"] == "stat":
         bedstat(pm=pm, **args_dict)
-    elif args_dict["command"] == "all-pep":
-        run_all_by_pep(args_dict["pep_config"])
+    elif args_dict["command"] == "index":
+        add_to_qdrant(pm=pm, **args_dict)
     else:
         parser.print_help()
         # raise Exception("Incorrect pipeline name.")

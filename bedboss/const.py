@@ -1,3 +1,5 @@
+DEFAULT_BEDBASE_API_URL = "https://bedbase.org/api"
+
 OPEN_SIGNAL_FOLDER = "./openSignalMatrix"
 OPEN_SIGNAL_URL = "http://big.databio.org/open_chromatin_matrix/"
 

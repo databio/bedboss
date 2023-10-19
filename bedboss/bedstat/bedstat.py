@@ -254,7 +254,7 @@ def bedstat(
     if not skip_qdrant:
         bbc.add_bed_to_qdrant(
             bed_id=bed_digest,
-            bed_file_path=bedfile,
+            bed_file=bedfile,
             payload={"fileid": fileid},
         )
         bbc.bed.report(
