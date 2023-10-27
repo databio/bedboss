@@ -134,3 +134,5 @@ bedqc/*
 test/bedqc/*
 
 openSignalMatrix
+
+out2023/*
