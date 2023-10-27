@@ -21,9 +21,12 @@ are in the config file are:
   name: bedbase
 ```
 
-### To create a new database and user with the credentials that are in the `bedbase_config_test.yaml` file, run the following commands:
+### To create a test database:
 
-1) Go to `db_setup` directory and then run the following lines
-2) Build the docker: `docker build -t bedbase ./`
-3) Run the docker: `docker run --name bedbase -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=docker -p 5432:5432 -d bedbase`
-4) Start it: `docker start bedbase`
+```
+docker run --rm -it --name bedbase \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=docker \
+  -e POSTGRES_DB=bedbase \
+  -p 5432:5432 postgres
+```
