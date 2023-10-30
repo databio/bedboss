@@ -1,43 +1,19 @@
-from hashlib import md5
 from typing import NoReturn
 import json
 import yaml
 import os
 import requests
-import gzip
 import pypiper
 import bbconf
 import logging
+from geniml.io import RegionSet
+
 
 _LOGGER = logging.getLogger("bedboss")
 
 SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
 )
-
-
-def digest_bedfile(filepath: str) -> str:
-    """
-    Generate digest for bedfile
-
-    :param str filepath: path to the bed file
-    :return str: digest of the files
-    """
-    with gzip.open(filepath, "rb") as f:
-        # concate column values
-        chrs = ",".join([row.split()[0].decode("utf-8") for row in f])
-        starts = ",".join([row.split()[1].decode("utf-8") for row in f])
-        ends = ",".join([row.split()[2].decode("utf-8") for row in f])
-        # hash column values
-        chr_digest = md5(chrs.encode("utf-8")).hexdigest()
-        start_digest = md5(starts.encode("utf-8")).hexdigest()
-        end_digest = md5(ends.encode("utf-8")).hexdigest()
-        # hash column digests
-        bed_digest = md5(
-            ",".join([chr_digest, start_digest, end_digest]).encode("utf-8")
-        ).hexdigest()
-
-        return bed_digest
 
 
 def convert_unit(size_in_bytes: int) -> str:
@@ -106,7 +82,7 @@ def bedstat(
         pass
     bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
 
-    bed_digest = digest_bedfile(bedfile)
+    bed_digest = RegionSet(bedfile).identifier
     bedfile_name = os.path.split(bedfile)[1]
 
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
