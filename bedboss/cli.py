@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 import logmuse
 
 from bedboss._version import __version__
-from bedboss.const import DEFAULT_BEDBASE_API_URL
+from bedboss.const import DEFAULT_BEDBASE_API_URL, DEFAULT_BEDBASE_CACHE_PATH
 
 
 def build_argparser() -> ArgumentParser:
@@ -39,6 +39,11 @@ def build_argparser() -> ArgumentParser:
         "stat",
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
+    )
+
+    sub_bunch = subparser.add_parser(
+        "bunch",
+        help="A pipeline to create bedsets (sets of BED files) that will be retrieved from bedbase.",
     )
 
     sub_index = subparser.add_parser(
@@ -323,6 +328,52 @@ def build_argparser() -> ArgumentParser:
         "--just-db-commit",
         action="store_true",
         help="whether just to commit the JSON to the database",
+    )
+
+    sub_bunch.add_argument(
+        "--bedbase-config",
+        dest="bedbase_config",
+        type=str,
+        required=True,
+        help="a path to the bedbase configuration file [Required]",
+    )
+    sub_bunch.add_argument(
+        "--bedset-name",
+        dest="bedset_name",
+        type=str,
+        required=True,
+        help="a name of the bedset [Required]",
+    )
+
+    sub_bunch.add_argument(
+        "--bedset-pep",
+        dest="bedset_pep",
+        type=str,
+        required=True,
+        help="bedset pep path or pephub registry path containing bedset pep [Required]",
+    )
+    sub_bunch.add_argument(
+        "--base-api",
+        dest="bedbase_api",
+        type=str,
+        default=f"{DEFAULT_BEDBASE_API_URL}",
+        required=False,
+        help=f"Bedbase API to use. Default is {DEFAULT_BEDBASE_API_URL}",
+    )
+
+    sub_bunch.add_argument(
+        "--cache-path",
+        dest="cache_path",
+        type=str,
+        default=f"{DEFAULT_BEDBASE_CACHE_PATH}",
+        required=False,
+        help=f"Path to the cache folder. Default is {DEFAULT_BEDBASE_CACHE_PATH}",
+    )
+    sub_bunch.add_argument(
+        "--heavy",
+        dest="heavy",
+        action="store_true",
+        help="whether to use heavy processing (Calculate and crate plots using R script). ",
     )
 
     sub_index.add_argument(

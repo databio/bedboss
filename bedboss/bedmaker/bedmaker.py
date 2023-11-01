@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
 import pypiper
 import os
 
@@ -381,7 +380,7 @@ class BedMaker:
         :return str: rfg_config file path
         """
         if not self.rfg_config:
-            _LOGGER.info(f"Creating refgenie genome config file...")
+            _LOGGER.info("Creating refgenie genome config file...")
             cwd = os.getcwd()
             self.rfg_config = os.path.join(cwd, "genome_config.yaml")
 

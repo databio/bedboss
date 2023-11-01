@@ -21,8 +21,8 @@ pytest_db_skip_reason = "Database is not set up... To run this test, set up the 
 def check_dependencies_installed() -> bool:
     # Make sure bedToBigBed etc is in your PATH.
     print("Testing dependencies...")
-    key = "PATH"
-    value = os.getenv(key)
+    # key = "PATH"
+    # value = os.getenv(key)
     test_dep_return_code = subprocess.run([DEPENDENCIES_TEST_SCRIPT], shell=True)
     if not (1 > test_dep_return_code.returncode):
         warnings.warn(UserWarning(f"{pytest_db_skip_reason}"))
@@ -38,7 +38,7 @@ def db_setup():
     # Check if the database is setup
     try:
         BedBaseConf(BEDBASE_CONFIG)
-    except Exception as err:
+    except Exception:
         warnings.warn(UserWarning(f"{pytest_db_skip_reason}"))
         return False
     return True
@@ -234,3 +234,9 @@ class TestAll:
                 file,
             )
         )
+
+
+@pytest.mark.skipif(True, reason="Not implemented")
+class TestBedbuncher:
+    def test_bedbuncher_run(self):
+        pass

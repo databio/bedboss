@@ -55,12 +55,12 @@ def download_file(url: str, path: str, no_fail: bool = False) -> NoReturn:
     _LOGGER.info(f"Local path: {os.path.abspath(path)}")
     try:
         urllib.request.urlretrieve(url, path)
-        _LOGGER.info(f"File downloaded successfully!")
+        _LOGGER.info("File downloaded successfully!")
     except Exception as e:
-        _LOGGER.error(f"File download failed.")
+        _LOGGER.error("File download failed.")
         if not no_fail:
             raise e
-        _LOGGER.error(f"File download failed. Continuing anyway...")
+        _LOGGER.error("File download failed. Continuing anyway...")
 
 
 def check_db_connection(bedbase_config: str) -> bool:
@@ -70,14 +70,14 @@ def check_db_connection(bedbase_config: str) -> bool:
     :param bedbase_config: path to the bedbase config file
     :return: True if connection is successful, False otherwise
     """
-    _LOGGER.info(f"Checking database connection...")
+    _LOGGER.info("Checking database connection...")
     if not os.path.exists(bedbase_config):
         raise FileNotFoundError(f"Bedbase config file {bedbase_config} was not found.")
     else:
         _LOGGER.info(f"Bedbase config file {bedbase_config} was found.")
     try:
         BedBaseConf(bedbase_config)
-        _LOGGER.info(f"Database connection is successful.")
+        _LOGGER.info("Database connection is successful.")
         return True
     except Exception as e:
         _LOGGER.error(f"Database connection failed. Error: {e}")

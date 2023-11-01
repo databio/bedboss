@@ -104,9 +104,6 @@ def bedstat(
         os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     if not just_db_commit:
-        if force_overwrite:
-            new_start = True
-
         if not pm:
             pm = pypiper.PipelineManager(
                 name="bedstat-pipeline",

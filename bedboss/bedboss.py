@@ -1,8 +1,7 @@
 import logging
 import os
-from typing import NoReturn, Union, Dict
+from typing import NoReturn, Union
 
-import peppy
 import pypiper
 from argparse import Namespace
 import logmuse
@@ -11,6 +10,7 @@ import peppy
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
 from bedboss.bedqc.bedqc import bedqc
+from bedboss.bedbuncher import run_bedbuncher
 from bedboss.qdrant_index import add_to_qdrant
 from bedboss.cli import build_argparser
 from bedboss.const import (
@@ -42,7 +42,7 @@ def get_osm_path(genome: str) -> Union[str, None]:
     :return: path to the Open Signal Matrix
     """
     # TODO: add more osm
-    _LOGGER.info(f"Getting Open Signal Matrix file path...")
+    _LOGGER.info("Getting Open Signal Matrix file path...")
     if genome == "hg19" or genome == "GRCh37":
         osm_name = OS_HG19
     elif genome == "hg38" or genome == "GRCh38":
@@ -243,6 +243,8 @@ def main(test_args: dict = None) -> NoReturn:
         bedqc(pm=pm, **args_dict)
     elif args_dict["command"] == "stat":
         bedstat(pm=pm, **args_dict)
+    elif args_dict["command"] == "bunch":
+        run_bedbuncher(pm=pm, **args_dict)
     elif args_dict["command"] == "index":
         add_to_qdrant(pm=pm, **args_dict)
     else:

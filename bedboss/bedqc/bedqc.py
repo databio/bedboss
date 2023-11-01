@@ -38,7 +38,7 @@ def bedqc(
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
-    file_exists = os.path.isfile(bedfile)
+    # file_exists = os.path.isfile(bedfile)
 
     # to execute bedqc from inside Python (without using cli) Pypiper is set to default:
     if not pm:
@@ -98,7 +98,7 @@ def bedqc(
                 f.write(f"{bedfile_name}\t{detail} \n")
         else:
             with open(output_file, "w") as f:
-                f.write(f"file_name\tdetail \n")
+                f.write("file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
 
         raise QualityException(f"{str(detail)}")

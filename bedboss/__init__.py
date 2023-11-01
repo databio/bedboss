@@ -2,13 +2,20 @@
 import logmuse
 import coloredlogs
 
-from bedboss import *
+# from bedboss import *
 
 # from bedboss.bedqc.bedqc import bedqc
 # from bedboss.bedmaker.bedmaker import BedMaker
 # from bedboss.bedstat.bedstat import bedstat
 from bedboss._version import __version__
-from bedboss.bedboss import run_all, run_all_by_pep, bedqc, BedMaker, bedstat
+from bedboss.bedboss import (
+    run_all,
+    run_all_by_pep,
+    bedqc,
+    BedMaker,
+    bedstat,
+    run_bedbuncher,
+)
 
 
 __package_name__ = "bedboss"
@@ -33,6 +40,7 @@ __all__ = [
     "bedstat",
     "run_all",
     "run_all_by_pep",
+    "run_bedbuncher",
 ]
 
 _LOGGER = logmuse.init_logger("bedboss")

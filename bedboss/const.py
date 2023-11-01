@@ -1,4 +1,5 @@
-DEFAULT_BEDBASE_API_URL = "https://bedbase.org/api"
+# DEFAULT_BEDBASE_API_URL = "https://bedbase.org/api"
+DEFAULT_BEDBASE_API_URL = "http://localhost:8000/api"
 
 OPEN_SIGNAL_FOLDER = "./openSignalMatrix"
 OPEN_SIGNAL_URL = "http://big.databio.org/open_chromatin_matrix/"
@@ -45,3 +46,6 @@ MAX_REGION_NUMBER = 5000000
 MIN_REGION_WIDTH = 10
 
 # bedstat
+
+# bedbuncher
+DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
