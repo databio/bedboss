@@ -9,3 +9,4 @@ refgenconf>=0.12.2
 pandas>=1.5.3
 ubiquerg>=0.6.2
 geniml
+pephubclient>=0.2.1

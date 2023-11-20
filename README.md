@@ -22,12 +22,17 @@ Assess QC of BED files and flag potential problems for further evaluation so you
 Currently, it flags BED files that are larger than 2 GB, have over 5 milliom regions, or have mean region width less than 10 bp.
 These thresholds can be changed with pipeline arguments.
 
-## bedstat
+## 3) bedstat
 
 Calculates statistics about BED files.
 
 # Documentation
 
-Detailed information about each pipeline can be found in the [bedboss Readme](./docs/README.md).
+## How to install R dependencies
 
-For the specific bedbase.org instance, see instructions in the bedbase.org repo.
+1. Install R: https://cran.r-project.org/bin/linux/ubuntu/fullREADME.html
+2. Install dev tools on linux: ```sudo apt install r-cran-devtools```
+3. Download script `installRdeps.R` from this repository.
+4. Install dependencies by running this command in your terminal: ```Rscript installRdeps.R```
+5. Run `bash_requirements_test.sh` to check if everything was installed correctly (located in test folder: 
+[Bash requirement tests](https://github.com/bedbase/bedboss/blob/68910f5142a95d92c27ef53eafb9c35599af2fbd/test/bash_requirements_test.sh)

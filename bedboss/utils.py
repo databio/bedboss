@@ -1,6 +1,7 @@
 import os
 import logging
 import urllib
+import re
 from bbconf import BedBaseConf
 from typing import NoReturn
 
@@ -16,7 +17,12 @@ def extract_file_name(file_path: str) -> str:
     :return: file name without extension
     """
     file_name = os.path.basename(file_path)
-    file_name = file_name.split(".")[0]
+    if file_name.split(".")[-1] == "gz":
+        file_name = file_name.split(".")[0:-2]
+
+    else:
+        file_name = file_name.split(".")[0:-1]
+    file_name = re.sub("[^A-Za-z0-9]+", "_", "_".join(file_name))
     return file_name
 
 

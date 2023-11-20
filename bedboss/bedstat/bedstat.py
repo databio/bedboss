@@ -235,3 +235,5 @@ def bedstat(
             values={"added_to_qdrant": True},
             force_overwrite=True,
         )
+
+    pm.stop_pipeline()

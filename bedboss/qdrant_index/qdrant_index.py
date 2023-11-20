@@ -1,6 +1,8 @@
 import logging
 from typing import List
 from bbconf import BedBaseConf
+from pipestat.const import RECORD_IDENTIFIER
+
 from geniml.bbclient import BBClient
 from geniml.region2vec import Region2VecExModel
 
@@ -9,16 +11,23 @@ from bedboss.const import DEFAULT_BEDBASE_API_URL
 _LOGGER = logging.getLogger("bedboss")
 
 
+REGION2VEC_MODEL = "databio/r2v-ChIP-atlas-hg38-v2"
+
+
 def get_unindexed_bed_files(bbc: BedBaseConf) -> List[str]:
     """
     Get list of unindexed bed files from the bedbase
+
     :return: list of record_identifiers of unindexed bed files
     """
-    result_list = bbc.bed.backend.select_txt(
-        columns=["record_identifier"],
-        filter_templ="""added_to_qdrant = false and (genome->>'alias') = 'hg38'""",
+    result_list = bbc.bed.select_records(
+        columns=[RECORD_IDENTIFIER],
+        filter_conditions=[
+            {"key": ["added_to_qdrant"], "operator": "eq", "value": False},
+            {"key": ["genome", "alias"], "operator": "eq", "value": "hg38"},
+        ],
     )
-    return [result[0] for result in result_list]
+    return [result.get(RECORD_IDENTIFIER) for result in result_list["records"]]
 
 
 def add_to_qdrant(
@@ -41,11 +50,11 @@ def add_to_qdrant(
         _LOGGER.info("No unindexed bed files found")
         return None
 
-    region_to_vec_obj = Region2VecExModel("databio/r2v-ChIP-atlas-hg38")
+    region_to_vec_obj = Region2VecExModel(REGION2VEC_MODEL)
 
     for record_id in list_of_record_ids:
         bedfile_object = BBClient(
-            cache_folder="~/bedbase_cache", bedbase_api=bedbase_api
+            cache_folder="./bed_cache", bedbase_api=bedbase_api
         ).load_bed(record_id)
 
         bbc.add_bed_to_qdrant(

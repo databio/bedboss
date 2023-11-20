@@ -51,9 +51,9 @@ def get_osm_path(genome: str) -> Union[str, None]:
         osm_name = OS_MM10
     else:
         raise OpenSignalMatrixException(
-            "For this genome open Signal Matrix was not found. Exiting..."
+            "For this genome open Signal Matrix was not found."
         )
-        # return None
+
     osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
     if not os.path.exists(osm_path):
         if not os.path.exists(OPEN_SIGNAL_FOLDER):
@@ -124,7 +124,13 @@ def run_all(
 
     # find/download open signal matrix
     if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-        open_signal_matrix = get_osm_path(genome)
+        try:
+            open_signal_matrix = get_osm_path(genome)
+        except OpenSignalMatrixException:
+            _LOGGER.warning(
+                f"Open Signal Matrix was not found for {genome}. Skipping..."
+            )
+            open_signal_matrix = None
 
     if not sample_yaml:
         sample_yaml = f"{sample_name}.yaml"

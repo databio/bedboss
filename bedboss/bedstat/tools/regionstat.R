@@ -421,21 +421,23 @@ gtffile = opt$ensdb
 
 
 # build BSgenome package ID to check whether it's installed
-if (genome == "T2T"){
+if ( startsWith(genome, "T2T"){
   BSg = "BSgenome.Hsapiens.NCBI.T2T.CHM13v2.0"
 } else {
   if (startsWith(genome, "hg") | startsWith(genome, "grch")) {
-  orgName = "Hsapiens"
+    orgName = "Hsapiens"
   } else if (startsWith(genome, "mm") | startsWith(genome, "grcm")){
-  orgName = "Mmusculus"
+    orgName = "Mmusculus"
   } else if (startsWith(genome, "dm")){
-  orgName = "Dmelanogaster"
+    orgName = "Dmelanogaster"
   } else if (startsWith(genome, "ce")){
-  orgName = "Celegans"
+    orgName = "Celegans"
   } else if (startsWith(genome, "danRer")){
-  orgName = "Drerio"
+    orgName = "Drerio"
   }  else if (startsWith(genome, "TAIR")){
     orgName = "Athaliana"
+  } else {
+    orgName = "Undefined"
   }
   BSg = paste0("BSgenome.", orgName , ".UCSC.", genome)
 }

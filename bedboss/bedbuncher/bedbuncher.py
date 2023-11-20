@@ -108,17 +108,15 @@ def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
 def create_plots(
     bbc: BedBaseConf,
     bedset: BedSet,
-    bedset_name: str,
 ) -> dict:
     """
     Create plots for a bedset (commonality region plot)
 
     :param bbc: BedBaseConf object
     :param bedset: Bedset object
-    :param bedset_name: bed_set name
     :return: dict with information about crated plots
     """
-    bedset_md5sum = bedset.bedset_identifier
+    bedset_md5sum = bedset.identifier
 
     output_folder = os.path.abspath(
         bbc.config[CFG_PATH_KEY][CFG_PATH_BEDBUNCHER_DIR_KEY]
@@ -185,7 +183,7 @@ def add_bedset_to_database(
     bed_set_stats = calculate_bedset_statistics(bbc, bed_set)
     result_dict = {
         "name": bedset_name,
-        "md5sum": bed_set.bedset_identifier,
+        "md5sum": bed_set.identifier,
         "description": description,
         "genome": genome,
         "bedset_standard_deviation": bed_set_stats["sd"],
@@ -194,7 +192,10 @@ def add_bedset_to_database(
     }
 
     if heavy:
-        plot_value = create_plots(bbc, bedset=bed_set, bedset_name=record_id)
+        plot_value = create_plots(
+            bbc,
+            bedset=bed_set,
+        )
         result_dict["region_commonality"] = plot_value
     else:
         _LOGGER.warning("Heavy processing is False. Plots won't be calculated")
@@ -234,10 +235,8 @@ def run_bedbuncher(
     bbc = BedBaseConf(bedbase_config)
     if is_registry_path(bedset_pep):
         pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
-        bedset_record_id = bedset_pep
     else:
         pep_of_bed = peppy.Project(bedset_pep)
-        bedset_record_id = os.path.basename(bedset_pep)
 
     bedset = create_bedset_from_pep(
         pep=pep_of_bed, bedbase_api=bedbase_api, cache_folder=cache_path
@@ -254,14 +253,14 @@ def run_bedbuncher(
 
     add_bedset_to_database(
         bbc,
-        record_id=bedset_record_id,
+        record_id=bedset_name or pep_of_bed.name,
         bed_set=bedset,
-        bedset_name=bedset_name or pep_of_bed.get("name"),
+        bedset_name=bedset_name or pep_of_bed.name,
         genome=dict(pep_of_bed.config.get("genome", {})),
         description=pep_of_bed.description or "",
         heavy=heavy,
     )
     _LOGGER.info(
-        f"bedset {bedset_name or pep_of_bed.get('name')} was added successfully to the database"
+        f"bedset {bedset_name or pep_of_bed.name} was added successfully to the database"
     )
     return None

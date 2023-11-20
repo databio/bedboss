@@ -15,6 +15,7 @@ from refgenconf import (
     CFG_ENV_VARS,
     CFG_FOLDER_KEY,
 )
+from refgenconf.exceptions import MissingGenomeError
 from typing import NoReturn
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
@@ -321,7 +322,11 @@ class BedMaker:
         # Produce bigBed (big_narrow_peak) file from peak file
         big_narrow_peak = os.path.join(self.output_bigbed, fileid + ".bigBed")
         if not self.chrom_sizes:
-            self.chrom_sizes = self.get_chrom_sizes()
+            try:
+                self.chrom_sizes = self.get_chrom_sizes()
+            except MissingGenomeError:
+                _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
+                self.chrom_sizes = ""
 
         temp = os.path.join(self.output_bigbed, next(tempfile._get_candidate_names()))
 
