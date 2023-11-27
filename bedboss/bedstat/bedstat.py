@@ -111,9 +111,17 @@ def bedstat(
     )
     if not just_db_commit:
         if not pm:
+            pm_out_path = os.path.abspath(
+                os.path.join(outfolder_stats, "pypiper", bed_digest)
+            )
+            try:
+                os.makedirs(pm_out_path)
+            except FileExistsError:
+                pass
             pm = pypiper.PipelineManager(
                 name="bedstat-pipeline",
-                outfolder=outfolder,
+                outfolder=pm_out_path,
+                pipestat_sample_name=bed_digest,
             )
 
         rscript_path = os.path.join(
@@ -148,11 +156,13 @@ def bedstat(
 
         if not other_metadata:
             other_metadata = {}
-        other_metadata.update({"description": description,
-                               "treatment": treatment,
-                               "cell_type": cell_type,
-                               })
-
+        other_metadata.update(
+            {
+                "description": description,
+                "treatment": treatment,
+                "cell_type": cell_type,
+            }
+        )
 
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the

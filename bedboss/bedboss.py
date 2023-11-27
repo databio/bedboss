@@ -201,9 +201,12 @@ def insert_pep(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    *args,
+    **kwargs,
 ) -> NoReturn:
     """
     Run all bedboss pipelines for all samples in the pep file.
+    bedmaker -> bedqc -> bedstat -> qdrant_indexing -> bedbuncher
 
     :param bedbase_config: bedbase configuration file path
     :param output_folder: output statistics folder
@@ -256,13 +259,17 @@ def insert_pep(
             just_db_commit=just_db_commit,
             no_db_commit=no_db_commit,
             force_overwrite=force_overwrite,
-            skip_qdrant=skip_qdrant
+            skip_qdrant=skip_qdrant,
         )
         pep.samples[i].record_identifier = bed_id
 
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
-        run_bedbuncher(bedbase_config=bedbase_config, bedset_pep=pep, pephub_registry_path=pephub_registry_path)
+        run_bedbuncher(
+            bedbase_config=bedbase_config,
+            bedset_pep=pep,
+            pephub_registry_path=pephub_registry_path,
+        )
     else:
         _LOGGER.info(
             f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
@@ -297,7 +304,7 @@ def main(test_args: dict = None) -> NoReturn:
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
     elif args_dict["command"] == "insert":
-        insert_pep(args_dict["pep_config"])
+        insert_pep(**args_dict)
     elif args_dict["command"] == "make":
         BedMaker(pm=pm, **args_dict)
     elif args_dict["command"] == "qc":

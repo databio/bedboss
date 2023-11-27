@@ -203,6 +203,8 @@ def add_bedset_to_database(
         "pephub_path": pephub_registry_path or "",
     }
 
+    print(pephub_registry_path)
+
     if heavy:
         _LOGGER.info("Heavy processing is True. Calculating plots...")
         plot_value = create_plots(
