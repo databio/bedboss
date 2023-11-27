@@ -1,3 +1,4 @@
+import bbconf
 from geniml.io import BedSet
 from bbconf import BedBaseConf
 from bbconf.const import CFG_PATH_KEY, CFG_PATH_BEDBUNCHER_DIR_KEY
@@ -230,7 +231,7 @@ def add_bedset_to_database(
 
 
 def run_bedbuncher(
-    bedbase_config: str,
+    bedbase_config: Union[str, bbconf.BedBaseConf],
     bedset_pep: Union[str, peppy.Project],
     bedset_name: str = None,
     pephub_registry_path: str = None,
@@ -253,7 +254,8 @@ def run_bedbuncher(
     :return: None
     """
 
-    bbc = BedBaseConf(bedbase_config)
+    if isinstance(bedbase_config, str):
+        bbc = BedBaseConf(bedbase_config)
     if isinstance(bedset_pep, peppy.Project):
         pep_of_bed = bedset_pep
     elif isinstance(bedset_pep, str):

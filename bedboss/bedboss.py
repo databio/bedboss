@@ -9,6 +9,7 @@ import peppy
 from eido import validate_project
 import pephubclient
 from pephubclient.helpers import is_registry_path
+import bbconf
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
@@ -76,7 +77,7 @@ def run_all(
     input_type: str,
     outfolder: str,
     genome: str,
-    bedbase_config: str,
+    bedbase_config: Union[str, bbconf.BedBaseConf],
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -103,7 +104,7 @@ def run_all(
     :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
     :param outfolder: Folder, where output should be saved  [required]
     :param genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
-    :param bedbase_config: a path to the bedbase configuration file. [required] #TODO: add example
+    :param bedbase_config: The path to the bedbase configuration file, or bbconf object.
     :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param rfg_config: file path to the genome config file [optional]
     :param narrowpeak: whether the regions are narrow
@@ -126,8 +127,9 @@ def run_all(
     """
     _LOGGER.warning(f"Unused arguments: {kwargs}")
 
-    if not check_db_connection(bedbase_config=bedbase_config):
-        raise Exception("Database connection failed. Exiting...")
+    if isinstance(bedbase_config, str):
+        if not check_db_connection(bedbase_config=bedbase_config):
+            raise Exception("Database connection failed. Exiting...")
 
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
@@ -235,6 +237,8 @@ def insert_pep(
     else:
         raise BedBossException("Incorrect pep type. Exiting...")
 
+    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
+
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
     for i, pep_sample in enumerate(pep.samples):
@@ -251,7 +255,7 @@ def insert_pep(
             cell_type=pep_sample.get("cell_type"),
             treatment=pep_sample.get("treatment"),
             outfolder=output_folder,
-            bedbase_config=bedbase_config,
+            bedbase_config=bbc,
             rfg_config=rfg_config,
             check_qc=check_qc,
             standard_chrom=standard_chrom,
@@ -266,7 +270,7 @@ def insert_pep(
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
         run_bedbuncher(
-            bedbase_config=bedbase_config,
+            bedbase_config=bbc,
             bedset_pep=pep,
             pephub_registry_path=pephub_registry_path,
         )

@@ -1,4 +1,4 @@
-from typing import NoReturn
+from typing import Union
 import json
 import yaml
 import os
@@ -34,7 +34,7 @@ def convert_unit(size_in_bytes: int) -> str:
 
 def bedstat(
     bedfile: str,
-    bedbase_config: str,
+    bedbase_config: Union[str, bbconf.BedBaseConf],
     genome: str,
     outfolder: str,
     ensdb: str = None,
@@ -59,7 +59,7 @@ def bedstat(
     :param str bigbed: the full path to the bigbed file. Defaults to None.
         (bigbed won't be created and some producing of some statistics will
         be skipped.)
-    :param str bedbase_config: The path to the bedbase configuration file.
+    :param str bedbase_config: The path to the bedbase configuration file, or bbconf object
     :param str open_signal_matrix: a full path to the openSignalMatrix
         required for the tissue specificity plots
     :param str outfolder: The folder for storing the pipeline results.
@@ -86,7 +86,12 @@ def bedstat(
         os.makedirs(outfolder_stats)
     except FileExistsError:
         pass
-    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
+
+    # if bbconf is a string, create a bbconf object
+    if isinstance(bedbase_config, str):
+        bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
+    else:
+        bbc = bedbase_config
 
     bed_digest = RegionSet(bedfile).identifier
     bedfile_name = os.path.split(bedfile)[1]
