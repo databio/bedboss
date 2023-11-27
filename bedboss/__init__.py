@@ -10,7 +10,7 @@ import coloredlogs
 from bedboss._version import __version__
 from bedboss.bedboss import (
     run_all,
-    run_all_by_pep,
+    insert_pep,
     bedqc,
     BedMaker,
     bedstat,
@@ -39,7 +39,7 @@ __all__ = [
     "BedMaker",
     "bedstat",
     "run_all",
-    "run_all_by_pep",
+    "insert_pep",
     "run_bedbuncher",
 ]
 

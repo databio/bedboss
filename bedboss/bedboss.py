@@ -6,6 +6,9 @@ import pypiper
 from argparse import Namespace
 import logmuse
 import peppy
+from eido import validate_project
+import pephubclient
+from pephubclient.helpers import is_registry_path
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import BedMaker
@@ -21,6 +24,7 @@ from bedboss.const import (
     OPEN_SIGNAL_URL,
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
+    BEDBOSS_PEP_SCHEMA_PATH,
 )
 from bedboss.utils import (
     extract_file_name,
@@ -28,7 +32,7 @@ from bedboss.utils import (
     download_file,
     check_db_connection,
 )
-from bedboss.exceptions import OpenSignalMatrixException
+from bedboss.exceptions import OpenSignalMatrixException, BedBossException
 from bedboss._version import __version__
 
 _LOGGER = logging.getLogger("bedboss")
@@ -80,16 +84,19 @@ def run_all(
     chrom_sizes: str = None,
     open_signal_matrix: str = None,
     ensdb: str = None,
-    sample_yaml: str = None,
+    treatment: str = None,
+    description: str = None,
+    cell_type: str = None,
+    other_metadata: dict = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
     pm: pypiper.PipelineManager = None,
     **kwargs,
-) -> NoReturn:
+) -> str:
     """
-    Run bedboss: bedmaker, bedqc and bedstat.
+    Run bedboss: bedmaker, bedqc, bedstat, and bedbuncher pipelines from PEP.
 
     :param sample_name: Sample name [required]
     :param input_file: Input file [required]
@@ -104,7 +111,10 @@ def run_all(
     :param check_qc: set True to run quality control during badmaking [optional] (default: True)
     :param standard_chrom: Standardize chromosome names. [optional] (Default: False)
     :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
-    :param sample_yaml: a yaml config file with sample attributes to pass on MORE METADATA into the database [optional]
+        :param str description: a description of the bed file
+    :param str treatment: a treatment of the bed file
+    :param str cell_type: a cell type of the bed file
+    :param dict other_metadata: a dictionary of other metadata to pass
     :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
     :param just_db_commit: whether just to commit the JSON to the database (default: False)
@@ -112,7 +122,7 @@ def run_all(
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :param skip_qdrant: whether to skip qdrant indexing
     :param pm: pypiper object
-    :return: NoReturn
+    :return: bed digest
     """
     _LOGGER.warning(f"Unused arguments: {kwargs}")
 
@@ -131,9 +141,6 @@ def run_all(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
             )
             open_signal_matrix = None
-
-    if not sample_yaml:
-        sample_yaml = f"{sample_name}.yaml"
 
     output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
     output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
@@ -160,7 +167,7 @@ def run_all(
         pm=pm,
     )
 
-    bedstat(
+    bed_digest = bedstat(
         bedfile=output_bed,
         outfolder=outfolder,
         bedbase_config=bedbase_config,
@@ -168,49 +175,97 @@ def run_all(
         ensdb=ensdb,
         open_signal_matrix=open_signal_matrix,
         bigbed=output_bigbed,
-        sample_yaml=sample_yaml,
+        description=description,
+        treatment=treatment,
+        cell_type=cell_type,
+        other_metadata=other_metadata,
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
         force_overwrite=force_overwrite,
         skip_qdrant=skip_qdrant,
         pm=pm,
     )
+    return bed_digest
 
 
-def run_all_by_pep(pep: Union[str, peppy.Project]) -> NoReturn:
+def insert_pep(
+    bedbase_config: str,
+    output_folder: str,
+    pep: Union[str, peppy.Project],
+    rfg_config: str = None,
+    create_bedset: bool = True,
+    skip_qdrant: bool = True,
+    check_qc: bool = True,
+    standard_chrom: bool = False,
+    ensdb: str = None,
+    just_db_commit: bool = False,
+    no_db_commit: bool = False,
+    force_overwrite: bool = False,
+) -> NoReturn:
     """
-    Run bedboss pipeline by providing pep config file.
+    Run all bedboss pipelines for all samples in the pep file.
 
-    :param pep: path to the pep config file or peppy.Project object
+    :param bedbase_config: bedbase configuration file path
+    :param output_folder: output statistics folder
+    :param pep: path to the pep file or pephub registry path
+    :param rfg_config: path to the genome config file (refgenie)
+    :param create_bedset: whether to create bedset
+    :param skip_qdrant: whether to skip qdrant indexing
+    :param check_qc: whether to run quality control during badmaking
+    :param standard_chrom: whether to standardize chromosome names
+    :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
+    :param just_db_commit: whether just to commit the JSON to the database
+    :param no_db_commit: whether the JSON commit to the database should be skipped
+    :param force_overwrite: whether to overwrite the existing record
+    :return: None
     """
-    if isinstance(pep, str):
-        pep = peppy.Project(pep)
-    elif isinstance(pep, peppy.Project):
+
+    pephub_registry_path = None
+    if isinstance(pep, peppy.Project):
         pass
+    elif isinstance(pep, str):
+        if is_registry_path(pep):
+            pephub_registry_path = pep
+            pep = pephubclient.PEPHubClient().load_project(pep)
+        else:
+            pep = peppy.Project(pep)
     else:
-        raise Exception("Incorrect pep type. Exiting...")
+        raise BedBossException("Incorrect pep type. Exiting...")
 
-    for pep_sample in pep.samples:
+    validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
+
+    for i, pep_sample in enumerate(pep.samples):
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
-        run_all(
+        bed_id = run_all(
             sample_name=pep_sample.sample_name,
             input_file=pep_sample.input_file,
             input_type=pep_sample.input_type,
-            outfolder=pep_sample.outfolder,
             genome=pep_sample.genome,
-            bedbase_config=pep_sample.bedbase_config,
-            rfg_config=pep_sample.get("rfg_config"),
-            narrowpeak=pep_sample.get("narrowpeak"),
-            check_qc=pep_sample.get("check_qc"),
-            standard_chrom=pep_sample.get("standard_chrom"),
+            narrowpeak=pep_sample.get("narrowpeak", False),
             chrom_sizes=pep_sample.get("chrom_sizes"),
             open_signal_matrix=pep_sample.get("open_signal_matrix"),
-            ensdb=pep_sample.get("ensdb"),
-            sample_yaml=pep_sample.get("sample_yaml"),
-            just_db_commit=pep_sample.get("just_db_commit"),
-            no_db_commit=pep_sample.get("no_db_commit"),
-            force_overwrite=pep_sample.get("force_overwrite"),
-            skip_qdrant=pep_sample.get("skip_qdrant"),
+            description=pep_sample.get("description"),
+            cell_type=pep_sample.get("cell_type"),
+            treatment=pep_sample.get("treatment"),
+            outfolder=output_folder,
+            bedbase_config=bedbase_config,
+            rfg_config=rfg_config,
+            check_qc=check_qc,
+            standard_chrom=standard_chrom,
+            ensdb=ensdb,
+            just_db_commit=just_db_commit,
+            no_db_commit=no_db_commit,
+            force_overwrite=force_overwrite,
+            skip_qdrant=skip_qdrant
+        )
+        pep.samples[i].record_identifier = bed_id
+
+    if create_bedset:
+        _LOGGER.info(f"Creating bedset from {pep.name}")
+        run_bedbuncher(bedbase_config=bedbase_config, bedset_pep=pep, pephub_registry_path=pephub_registry_path)
+    else:
+        _LOGGER.info(
+            f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
         )
 
 
@@ -241,8 +296,8 @@ def main(test_args: dict = None) -> NoReturn:
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
-    elif args_dict["command"] == "all-pep":
-        run_all_by_pep(args_dict["pep_config"])
+    elif args_dict["command"] == "insert":
+        insert_pep(args_dict["pep_config"])
     elif args_dict["command"] == "make":
         BedMaker(pm=pm, **args_dict)
     elif args_dict["command"] == "qc":

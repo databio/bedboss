@@ -6,6 +6,7 @@ from sqlmodel import select, func, Numeric, Float
 import os
 import json
 import subprocess
+from typing import Union
 import peppy
 import pephubclient
 from pephubclient.helpers import is_registry_path
@@ -28,13 +29,15 @@ def create_bedset_from_pep(
     :param cache_folder:
     :return:
     """
+    _LOGGER.info("Creating bedset from pep.")
     new_bedset = BedSet()
     for bedfile_id in pep.samples:
         bedfile_object = BBClient(
             cache_folder=cache_folder,
             bedbase_api=bedbase_api,
-        ).load_bed(bedfile_id.sample_name)
+        ).load_bed(bedfile_id.get("record_identifier") or bedfile_id.sample_name)
         new_bedset.add(bedfile_object)
+    _LOGGER.info("Bedset was created successfully")
     return new_bedset
 
 
@@ -48,6 +51,8 @@ def calculate_bedset_statistics(bbc: BedBaseConf, bedset: BedSet) -> dict:
         {"sd": {"column_name": sd_value},
          "mean": {"column_name": mean_value}}
     """
+
+    _LOGGER.info("Calculating bedset statistics...")
 
     numeric_columns = [
         column
@@ -74,6 +79,7 @@ def calculate_bedset_statistics(bbc: BedBaseConf, bedset: BedSet) -> dict:
             results_dict["mean"][column_name] = s.exec(mean_bedset_statement).one()
             results_dict["sd"][column_name] = s.exec(sd_bedset_statement).one()
 
+    _LOGGER.info("Bedset statistics were calculated successfully")
     return results_dict
 
     # # Another way to do it, but it's slower:
@@ -150,6 +156,8 @@ def create_plots(
 
     os.remove(bedset_list_path)
     os.remove(json_file_path)
+
+    _LOGGER.info("Plots were created successfully and mediated files were removed")
     return bedset_summary_info["plots"][0]
 
 
@@ -160,6 +168,7 @@ def add_bedset_to_database(
     bedset_name: str,
     genome: dict = None,
     description: str = None,
+    pephub_registry_path: str = None,
     heavy: bool = False,
 ) -> None:
     """
@@ -175,6 +184,8 @@ def add_bedset_to_database(
         if False -> R-script won't be executed, only basic statistics will be calculated
     :return:
     """
+    _LOGGER.info(f"Adding bedset {bedset_name} to the database")
+
     if not bedset_name:
         raise ValueError(
             "bedset_name was not provided correctly. Please provide it in pep name or as argument"
@@ -189,16 +200,18 @@ def add_bedset_to_database(
         "bedset_standard_deviation": bed_set_stats["sd"],
         "bedset_means": bed_set_stats["mean"],
         "processed": heavy,
+        "pephub_path": pephub_registry_path or "",
     }
 
     if heavy:
+        _LOGGER.info("Heavy processing is True. Calculating plots...")
         plot_value = create_plots(
             bbc,
             bedset=bed_set,
         )
         result_dict["region_commonality"] = plot_value
     else:
-        _LOGGER.warning("Heavy processing is False. Plots won't be calculated")
+        _LOGGER.info("Heavy processing is False. Plots won't be calculated")
 
     bbc.bedset.report(
         record_identifier=record_id,
@@ -208,11 +221,17 @@ def add_bedset_to_database(
     for sample in bed_set:
         bbc.report_relationship(record_id, sample.identifier)
 
+    _LOGGER.info(
+        f"Bedset {bedset_name} was added successfully to the database. "
+        f"With following files: {', '.join([sample.identifier for sample in bed_set])}"
+    )
+
 
 def run_bedbuncher(
     bedbase_config: str,
-    bedset_pep: str,
+    bedset_pep: Union[str, peppy.Project],
     bedset_name: str = None,
+    pephub_registry_path: str = None,
     bedbase_api: str = DEFAULT_BEDBASE_API_URL,
     cache_path: str = DEFAULT_BEDBASE_CACHE_PATH,
     heavy: bool = False,
@@ -233,10 +252,20 @@ def run_bedbuncher(
     """
 
     bbc = BedBaseConf(bedbase_config)
-    if is_registry_path(bedset_pep):
-        pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
+    if isinstance(bedset_pep, peppy.Project):
+        pep_of_bed = bedset_pep
+    elif isinstance(bedset_pep, str):
+        if is_registry_path(bedset_pep):
+            pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
+            pephub_registry_path = bedset_pep
+        else:
+            pep_of_bed = peppy.Project(bedset_pep)
     else:
-        pep_of_bed = peppy.Project(bedset_pep)
+        raise ValueError(
+            "bedset_pep should be either path to the pep file or pephub registry path"
+        )
+
+    _LOGGER.info(f"Initializing bedbuncher. Bedset name {pep_of_bed.name}")
 
     bedset = create_bedset_from_pep(
         pep=pep_of_bed, bedbase_api=bedbase_api, cache_folder=cache_path
@@ -258,9 +287,14 @@ def run_bedbuncher(
         bedset_name=bedset_name or pep_of_bed.name,
         genome=dict(pep_of_bed.config.get("genome", {})),
         description=pep_of_bed.description or "",
+        pephub_registry_path=pephub_registry_path,
         heavy=heavy,
     )
-    _LOGGER.info(
-        f"bedset {bedset_name or pep_of_bed.name} was added successfully to the database"
-    )
     return None
+
+
+if __name__ == "__main__":
+    run_bedbuncher(
+        "/media/alex/Extreme SSD/databio/repos/bedbase_all/bedhost/bedbase_configuration_compose.yaml",
+        "databio/excluderanges:id3",
+    )

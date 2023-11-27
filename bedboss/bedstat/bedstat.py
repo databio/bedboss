@@ -40,14 +40,17 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     bigbed: str = None,
-    sample_yaml: str = None,
+    treatment: str = None,
+    description: str = None,
+    cell_type: str = None,
+    other_metadata: dict = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
     pm: pypiper.PipelineManager = None,
     **kwargs,
-) -> NoReturn:
+) -> str:
     """
     Run bedstat pipeline - pipeline for obtaining statistics about bed files
         and inserting them into the database
@@ -63,15 +66,18 @@ def bedstat(
     :param str genome: genome assembly of the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
-    :param str sample_yaml: a yaml config file with sample attributes to pass
-        on more metadata
-        into the database
+    :param str description: a description of the bed file
+    :param str treatment: a treatment of the bed file
+    :param str cell_type: a cell type of the bed file
+    :param dict other_metadata: a dictionary of other metadata to pass
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be
         skipped
     :param skip_qdrant: whether to skip qdrant indexing [Default: True]
     :param bool force_overwrite: whether to overwrite the existing record
     :param pm: pypiper object
+
+    :return: bed_digest: the digest of the bed file
     """
     # TODO why are we no longer using bbconf to get the output path?
     # outfolder_stats = bbc.get_bedstat_output_path()
@@ -139,24 +145,15 @@ def bedstat(
                 plots = json.loads(f_plots.read())
         else:
             plots = []
-        if sample_yaml and os.path.exists(sample_yaml):
-            # get the sample-specific metadata from the sample yaml representation
-            y = yaml.safe_load(open(sample_yaml, "r"))
-            # if schema and os.path.exists(schema):
-            schema = yaml.safe_load(open(SCHEMA_PATH_BEDSTAT, "r"))
-            schema = schema["properties"]["samples"]["items"]["properties"]
 
-            for key in list(y):
-                if key in schema:
-                    if not schema[key]["db_commit"]:
-                        y.pop(key, None)
-                elif key in [
-                    "bedbase_config",
-                    "pipeline_interfaces",
-                    "yaml_file",
-                ]:
-                    y.pop(key, None)
-            data.update({"other": y})
+        if not other_metadata:
+            other_metadata = {}
+        other_metadata.update({"description": description,
+                               "treatment": treatment,
+                               "cell_type": cell_type,
+                               })
+
+
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
         # postgres column identifiers
@@ -216,7 +213,8 @@ def bedstat(
         del data["md5sum"]
 
         # add added_to_qdrant to the data
-        data.update({"added_to_qdrant": False})
+        data["other"] = other_metadata
+        data["added_to_qdrant"] = False
 
         bbc.bed.report(
             record_identifier=bed_digest,
@@ -237,3 +235,4 @@ def bedstat(
         )
 
     pm.stop_pipeline()
+    return bed_digest

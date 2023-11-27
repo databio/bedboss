@@ -49,3 +49,5 @@ MIN_REGION_WIDTH = 10
 
 # bedbuncher
 DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
+
+BEDBOSS_PEP_SCHEMA_PATH = "https://schema.databio.org/pipelines/bedboss.yaml"

@@ -141,10 +141,10 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot TSS distance.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: TSS distance plot!')
         print(e)
       }
-    ) 
+    )
   }
   
   
@@ -165,7 +165,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot chromosomes region distribution.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Chromosomes region distribution plot!')
         print(e)
       }
     ) 
@@ -207,7 +207,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Successfully calculated and plot GC content.")
         },
         error = function(e){
-          message('Caught an error!')
+          message('Caught an error in creating: GC content plot!')
           print(e, gcvec)
         }
       ) 
@@ -257,7 +257,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Partition plot!')
         print(e)
       }
     ) 
@@ -284,7 +284,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Expected partition plot!')
         print(e)
       }
     ) 
@@ -308,7 +308,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Cumulative partition plot!')
         print(e)
       }
     ) 
@@ -338,7 +338,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot quantile-trimmed histogram of widths.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Quantile-trimmed histogram of widths plot!')
         print(e, widths)
       }
     ) 
@@ -353,7 +353,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot distance between neighbor regions.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Distance between neighbor regions plot!')
         print(e)
       }
     ) 
@@ -372,7 +372,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Successfully calculated and plot cell specific enrichment for open chromatin.")
         },
         error = function(e){
-          message('Caught an error!')
+          message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
           print(e)
         }
       ) 
@@ -421,7 +421,7 @@ gtffile = opt$ensdb
 
 
 # build BSgenome package ID to check whether it's installed
-if ( startsWith(genome, "T2T"){
+if ( startsWith(genome, "T2T")){
   BSg = "BSgenome.Hsapiens.NCBI.T2T.CHM13v2.0"
 } else {
   if (startsWith(genome, "hg") | startsWith(genome, "grch")) {

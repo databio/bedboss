@@ -25,7 +25,7 @@ def build_argparser() -> ArgumentParser:
         "all", help="Run all bedboss pipelines and insert data into bedbase"
     )
     sub_all_pep = subparser.add_parser(
-        "all-pep",
+        "insert",
         help="Run all bedboss pipelines using one PEP and insert data into bedbase",
     )
     sub_make = subparser.add_parser(
@@ -133,13 +133,22 @@ def build_argparser() -> ArgumentParser:
         required=True,
     )
     sub_all.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
+        "--treatment",
         required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
+        help="A treatment of the bed file",
+        type=str,
+    )
+    sub_all.add_argument(
+        "--cell-type",
+        required=False,
+        help="A cell type of the bed file",
+        type=str,
+    )
+    sub_all.add_argument(
+        "--description",
+        required=False,
+        help="A description of the bed file",
+        type=str,
     )
     sub_all.add_argument(
         "--no-db-commit",
@@ -159,17 +168,74 @@ def build_argparser() -> ArgumentParser:
 
     # all-pep
     sub_all_pep.add_argument(
-        "--pep_config",
-        dest="pep_config",
-        required=True,
-        help="Path to the pep configuration file [Required]\n "
-        "Required fields in PEP are: "
-        "sample_name, input_file, input_type,outfolder, genome, bedbase_config.\n "
-        "Optional fields in PEP are: "
-        "rfg_config, narrowpeak, check_qc, standard_chrom, chrom_sizes, "
-        "open_signal_matrix, ensdb, sample_yaml, no_db_commit, just_db_commit, "
-        "no_db_commit, force_overwrite, skip_qdrant",
+        "--bedbase-config",
+        dest="bedbase_config",
         type=str,
+        help="a path to the bedbase configuration file [Required]",
+        required=True,
+    )
+    sub_all_pep.add_argument(
+        "--pep",
+        dest="pep",
+        required=True,
+        help="path to the pep file or pephub registry path containing pep [Required]",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "--output-folder",
+        dest="output_folder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "-r",
+        "--rfg-config",
+        required=False,
+        help="file path to the genome config file(refgenie)",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "--check-qc",
+        help="Check quality control before processing data. Default: True",
+        action="store_false",
+    )
+    sub_all_pep.add_argument(
+        "--standard-chrom",
+        help="Standardize chromosome names. Default: False",
+        action="store_true",
+    )
+    sub_all_pep.add_argument(
+        "--create-bedset",
+        help="Create bedset using pep samples. Name of the bedset will be based on  pep name.Default: False",
+        action="store_true",
+    )
+    sub_all_pep.add_argument(
+        "--skip-qdrant",
+        action="store_true",
+        help="whether to skip qdrant indexing",
+    )
+    sub_all_pep.add_argument(
+        "--ensdb",
+        type=str,
+        required=False,
+        default=None,
+        help="A full path to the ensdb gtf file required for genomes not in GDdata ",
+    )
+    sub_all_pep.add_argument(
+        "--no-db-commit",
+        action="store_true",
+        help="skip the JSON commit to the database",
+    )
+    sub_all_pep.add_argument(
+        "--just-db-commit",
+        action="store_true",
+        help="just commit the JSON to the database",
+    )
+    sub_all_pep.add_argument(
+        "--force_overwrite",
+        action="store_true",
+        help="Weather to overwrite existing records. Default: False",
     )
 
     # bed_qc

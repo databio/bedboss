@@ -1,0 +1,42 @@
+description: bedboss run-all pep schema
+
+properties:
+  samples:
+    type: array
+    items:
+      type: object
+      properties:
+        sample_name: 
+          type: string
+          description: "Name of the sample"
+        input_file:
+          type: string
+          description: "Absolute path to the input file"
+        input_type:
+          type: string
+          description: "file format"
+          enum: [ "bigWig", "bigBed", "bed", "wig", "bedGraph" ]
+        genome:
+          type: string
+          description: "organism genome code"
+        narrowpeak:
+          type: boolean
+          description: "whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks)"
+        description:
+          type: string
+          description: "freeform description of the sample"
+        chrom_sizes:
+          type: string
+          description: "a full path to the chrom.sizes required for the bedtobigbed conversion"
+        treatment:
+          type: string
+          description: "freeform description of the sample treatment"
+        cell_type:
+          type: string
+          description: "cell type code"
+      required:
+        - sample_name
+        - input_file
+        - genome
+required:
+  - samples

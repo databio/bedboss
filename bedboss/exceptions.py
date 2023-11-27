@@ -1,4 +1,17 @@
-class OpenSignalMatrixException(Exception):
+class BedBossException(BaseException):
+    """Exception, when bedboss fails."""
+
+    def __init__(self, reason: str = ""):
+        """
+        Optionally provide explanation for exceptional condition.
+
+        :param str reason: some context why error occurred while
+        using BedBoss
+        """
+        super(BedBossException, self).__init__(reason)
+
+
+class OpenSignalMatrixException(BedBossException):
     """Exception when Open Signal Matrix does not exist."""
 
     def __init__(self, reason: str = ""):
@@ -11,7 +24,7 @@ class OpenSignalMatrixException(Exception):
         super(OpenSignalMatrixException, self).__init__(reason)
 
 
-class QualityException(Exception):
+class QualityException(BedBossException):
     """Exception, when quality test of the bed file didn't pass."""
 
     def __init__(self, reason: str = ""):
@@ -23,7 +36,7 @@ class QualityException(Exception):
         super(QualityException, self).__init__(reason)
 
 
-class RequirementsException(Exception):
+class RequirementsException(BedBossException):
     """Exception, when requirement packages are not installed."""
 
     def __init__(self, reason: str = ""):
