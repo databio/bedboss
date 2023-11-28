@@ -1,12 +1,12 @@
 logmuse>=0.2.7
 coloredlogs>=15.0.1
-peppy>=0.40.0a4
+peppy>=0.40.0a5
 yacman>=0.8.4
 requests>=2.28.2
-piper>=0.13.3a1
-bbconf>=0.4.0a5
+piper>=v0.14.0a1
+bbconf>=0.4.0a6
 refgenconf>=0.12.2
 pandas>=1.5.3
 ubiquerg>=0.6.2
-geniml
 pephubclient>=0.2.1
+# geniml>=0.0.1-dev2
