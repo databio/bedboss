@@ -34,11 +34,13 @@ def bedqc(
     _LOGGER.info("Running bedqc...")
     _LOGGER.warning(f"Unused arguments: {kwargs}")
 
-    output_file = os.path.join(outfolder, "flagged_bed.csv")
+    output_file = os.path.join(outfolder, "failed_qc.csv")
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
     # file_exists = os.path.isfile(bedfile)
+    if not os.path.exists(outfolder):
+        os.makedirs(outfolder)
 
     # to execute bedqc from inside Python (without using cli) Pypiper is set to default:
     if not pm:

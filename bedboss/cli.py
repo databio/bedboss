@@ -1,6 +1,7 @@
 from ubiquerg import VersionInHelpParser
 from argparse import ArgumentParser
 import logmuse
+import pypiper
 
 from bedboss._version import __version__
 from bedboss.const import DEFAULT_BEDBASE_API_URL, DEFAULT_BEDBASE_CACHE_PATH
@@ -458,5 +459,9 @@ def build_argparser() -> ArgumentParser:
         default=DEFAULT_BEDBASE_API_URL,
         help=f"URL of the Bedbase API [Default: {DEFAULT_BEDBASE_API_URL}]",
     )
+
+    for sub in [sub_all_pep, sub_all, sub_make, sub_stat, sub_qc]:
+        sub_all_pep = pypiper.add_pypiper_args(sub)
+
 
     return logmuse.add_logging_options(parser)

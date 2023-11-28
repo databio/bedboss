@@ -147,15 +147,12 @@ class BedMaker:
             )
             os.makedirs(self.output_bigbed)
 
-        # Set pipeline log directory
-        # create one if it doesn't exist
-        self.logs_name = "bedmaker_logs"
-        self.logs_dir = os.path.join(self.bed_parent, self.logs_name, self.sample_name)
-        if not os.path.exists(self.logs_dir):
-            _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
-            os.makedirs(self.logs_dir)
-
         if not pm:
+            self.logs_name = "bedmaker_logs"
+            self.logs_dir = os.path.join(self.bed_parent, self.logs_name, self.sample_name)
+            if not os.path.exists(self.logs_dir):
+                _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
+                os.makedirs(self.logs_dir)
             self.pm = pypiper.PipelineManager(
                 name="bedmaker",
                 outfolder=self.logs_dir,
@@ -176,7 +173,7 @@ class BedMaker:
         self.make_bed()
 
         if self.check_qc:
-            bedqc(self.output_bed, outfolder=self.logs_dir, pm=self.pm)
+            bedqc(self.output_bed, outfolder=os.path.join(self.bed_parent, "bed_qc"), pm=self.pm)
 
         self.make_bigbed()
 

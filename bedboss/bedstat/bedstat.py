@@ -128,6 +128,9 @@ def bedstat(
                 outfolder=pm_out_path,
                 pipestat_sample_name=bed_digest,
             )
+            stop_pipeline = True
+        else:
+            stop_pipeline = False
 
         rscript_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -249,5 +252,6 @@ def bedstat(
             force_overwrite=True,
         )
 
-    pm.stop_pipeline()
+    if stop_pipeline:
+        pm.stop_pipeline()
     return bed_digest

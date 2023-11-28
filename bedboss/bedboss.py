@@ -203,6 +203,7 @@ def insert_pep(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
 ) -> NoReturn:
@@ -222,6 +223,7 @@ def insert_pep(
     :param just_db_commit: whether just to commit the JSON to the database
     :param no_db_commit: whether the JSON commit to the database should be skipped
     :param force_overwrite: whether to overwrite the existing record
+    :param pm: pypiper object
     :return: None
     """
 
@@ -264,6 +266,7 @@ def insert_pep(
             no_db_commit=no_db_commit,
             force_overwrite=force_overwrite,
             skip_qdrant=skip_qdrant,
+            pm=pm,
         )
         pep.samples[i].record_identifier = bed_id
 
@@ -296,19 +299,19 @@ def main(test_args: dict = None) -> NoReturn:
 
     args_dict = vars(args)
 
+    pm_out_folder = args_dict.get("outfolder") or args_dict.get('output_folder') or "test_outfolder",
+    pm_out_folder = os.path.join(os.path.abspath(pm_out_folder[0]), "pipeline_manager")
+
     pm = pypiper.PipelineManager(
         name="bedboss-pipeline",
-        outfolder=args_dict.get("outfolder")
-        if args_dict.get("outfolder")
-        else "test_outfolder",
-        recover=True,
-        multi=True,
+        outfolder=pm_out_folder,
         version=__version__,
+        args=args,
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
     elif args_dict["command"] == "insert":
-        insert_pep(**args_dict)
+        insert_pep(pm=pm, **args_dict)
     elif args_dict["command"] == "make":
         BedMaker(pm=pm, **args_dict)
     elif args_dict["command"] == "qc":
