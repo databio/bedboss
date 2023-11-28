@@ -260,6 +260,8 @@ def run_bedbuncher(
 
     if isinstance(bedbase_config, str):
         bbc = BedBaseConf(bedbase_config)
+    else:
+        bbc = bedbase_config
     if isinstance(bedset_pep, peppy.Project):
         pep_of_bed = bedset_pep
     elif isinstance(bedset_pep, str):
