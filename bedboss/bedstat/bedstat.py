@@ -1,12 +1,13 @@
 from typing import Union
 import json
-import yaml
 import os
 import requests
 import pypiper
 import bbconf
 import logging
 from geniml.io import RegionSet
+
+from bedboss.const import OUTPUT_FOLDER_NAME
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -81,7 +82,7 @@ def bedstat(
     """
     # TODO why are we no longer using bbconf to get the output path?
     # outfolder_stats = bbc.get_bedstat_output_path()
-    outfolder_stats = os.path.join(outfolder, "output", "bedstat_output")
+    outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, "bedstat_output")
     try:
         os.makedirs(outfolder_stats)
     except FileExistsError:

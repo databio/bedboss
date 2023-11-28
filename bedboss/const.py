@@ -10,6 +10,8 @@ OS_MM10 = "openSignalMatrix_mm10_percentile99_01_quantNormalized_round4d.txt.gz"
 
 BED_FOLDER_NAME = "bed_files"
 BIGBED_FOLDER_NAME = "bigbed_files"
+OUTPUT_FOLDER_NAME = "output"
+QC_FOLDER_NAME = "bed_qc"
 
 # bedmaker
 

@@ -236,7 +236,14 @@ def build_argparser() -> ArgumentParser:
     sub_all_pep.add_argument(
         "--force_overwrite",
         action="store_true",
-        help="Weather to overwrite existing records. Default: False",
+        help="Weather to overwrite existing records. [Default: False]",
+    )
+    sub_all_pep.add_argument(
+        "--upload-s3",
+        action="store_true",
+        help="Weather to upload bed, bigbed, and statistics to s3. "
+        "Before uploading you have to set up all necessury env vars: "
+        "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_ENDPOINT_URL. [Default: False]",
     )
 
     # bed_qc
@@ -462,6 +469,5 @@ def build_argparser() -> ArgumentParser:
 
     for sub in [sub_all_pep, sub_all, sub_make, sub_stat, sub_qc]:
         sub_all_pep = pypiper.add_pypiper_args(sub)
-
 
     return logmuse.add_logging_options(parser)

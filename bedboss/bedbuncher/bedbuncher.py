@@ -13,7 +13,11 @@ import pephubclient
 from pephubclient.helpers import is_registry_path
 import logging
 
-from bedboss.const import DEFAULT_BEDBASE_API_URL, DEFAULT_BEDBASE_CACHE_PATH
+from bedboss.const import (
+    DEFAULT_BEDBASE_API_URL,
+    DEFAULT_BEDBASE_CACHE_PATH,
+    OUTPUT_FOLDER_NAME,
+)
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -25,9 +29,9 @@ def create_bedset_from_pep(
     """
     Create bedset from pep file, where sample_name is bed identifier
 
-    :param pep:
-    :param bedbase_api:
-    :param cache_folder:
+    :param pep: peppy object with bedfiles. where pep contains sample attribute with bedfile identifier, or sample_name is bedfile identifier
+    :param bedbase_api: bedbase api url
+    :param cache_folder: cache folder path
     :return:
     """
     _LOGGER.info("Creating bedset from pep.")

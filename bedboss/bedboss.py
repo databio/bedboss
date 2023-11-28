@@ -26,6 +26,7 @@ from bedboss.const import (
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
     BEDBOSS_PEP_SCHEMA_PATH,
+    OUTPUT_FOLDER_NAME,
 )
 from bedboss.utils import (
     extract_file_name,
@@ -203,6 +204,7 @@ def insert_pep(
     just_db_commit: bool = False,
     no_db_commit: bool = False,
     force_overwrite: bool = False,
+    upload_s3: bool = False,
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
@@ -223,6 +225,7 @@ def insert_pep(
     :param just_db_commit: whether just to commit the JSON to the database
     :param no_db_commit: whether the JSON commit to the database should be skipped
     :param force_overwrite: whether to overwrite the existing record
+    :param upload_s3: whether to upload to s3
     :param pm: pypiper object
     :return: None
     """
@@ -270,6 +273,22 @@ def insert_pep(
         )
         pep.samples[i].record_identifier = bed_id
 
+    if upload_s3:
+        command = f"aws s3 sync {os.path.join(output_folder, BED_FOLDER_NAME)} s3://bedbase/{BED_FOLDER_NAME} --size-only --exclude 'bed_qc/*'"
+        _LOGGER.info("Uploading to s3 bed files")
+        pm.run(cmd=command, lock_name="s3_sync_big")
+
+        command = f"aws s3 sync {os.path.join(output_folder, BIGBED_FOLDER_NAME)} s3://bedbase/{BIGBED_FOLDER_NAME} --size-only"
+        _LOGGER.info("Uploading to s3 bigbed files")
+        pm.run(cmd=command, lock_name="s3_sync_bigbed")
+
+        command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME)} s3://bedbase/{OUTPUT_FOLDER_NAME} --size-only"
+        _LOGGER.info("Uploading to s3 bed statistics files")
+        pm.run(cmd=command, lock_name="s3_sync_bedstat")
+
+    else:
+        _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
+
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
         run_bedbuncher(
@@ -299,7 +318,11 @@ def main(test_args: dict = None) -> NoReturn:
 
     args_dict = vars(args)
 
-    pm_out_folder = args_dict.get("outfolder") or args_dict.get('output_folder') or "test_outfolder",
+    pm_out_folder = (
+        args_dict.get("outfolder")
+        or args_dict.get("output_folder")
+        or "test_outfolder",
+    )
     pm_out_folder = os.path.join(os.path.abspath(pm_out_folder[0]), "pipeline_manager")
 
     pm = pypiper.PipelineManager(

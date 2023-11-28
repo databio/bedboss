@@ -33,6 +33,7 @@ from bedboss.const import (
     STANDARD_CHROM_LIST,
     BED_TO_BIGBED_PROGRAM,
     BIGBED_TO_BED_PROGRAM,
+    QC_FOLDER_NAME,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -149,7 +150,9 @@ class BedMaker:
 
         if not pm:
             self.logs_name = "bedmaker_logs"
-            self.logs_dir = os.path.join(self.bed_parent, self.logs_name, self.sample_name)
+            self.logs_dir = os.path.join(
+                self.bed_parent, self.logs_name, self.sample_name
+            )
             if not os.path.exists(self.logs_dir):
                 _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
                 os.makedirs(self.logs_dir)
@@ -173,7 +176,11 @@ class BedMaker:
         self.make_bed()
 
         if self.check_qc:
-            bedqc(self.output_bed, outfolder=os.path.join(self.bed_parent, "bed_qc"), pm=self.pm)
+            bedqc(
+                self.output_bed,
+                outfolder=os.path.join(self.bed_parent, QC_FOLDER_NAME),
+                pm=self.pm,
+            )
 
         self.make_bigbed()
 
