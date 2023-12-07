@@ -257,12 +257,18 @@ def insert_pep(
 
     for i, pep_sample in enumerate(pep.samples):
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
+
+        if pep_sample.get("file_type").lower() == "narrowpeak":
+            is_narrow_peak = True
+        else:
+            is_narrow_peak = False
+
         bed_id = run_all(
             sample_name=pep_sample.sample_name,
             input_file=pep_sample.input_file,
             input_type=pep_sample.input_type,
             genome=pep_sample.genome,
-            narrowpeak=pep_sample.get("narrowpeak", False),
+            narrowpeak=is_narrow_peak,
             chrom_sizes=pep_sample.get("chrom_sizes"),
             open_signal_matrix=pep_sample.get("open_signal_matrix"),
             description=pep_sample.get("description"),
