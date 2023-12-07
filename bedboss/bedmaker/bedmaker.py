@@ -34,6 +34,7 @@ from bedboss.const import (
     BED_TO_BIGBED_PROGRAM,
     BIGBED_TO_BED_PROGRAM,
     QC_FOLDER_NAME,
+    REFGENIE_ENV_VAR,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -390,7 +391,7 @@ class BedMaker:
         """
         if not self.rfg_config:
             _LOGGER.info("Creating refgenie genome config file...")
-            cwd = os.getcwd()
+            cwd = os.getenv(REFGENIE_ENV_VAR, os.getcwd())
             self.rfg_config = os.path.join(cwd, "genome_config.yaml")
 
         # get path to the genome config; from arg or env var if arg not provided
