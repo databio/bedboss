@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, NoReturn
 import json
 import os
 import requests
@@ -7,7 +7,12 @@ import bbconf
 import logging
 from geniml.io import RegionSet
 
-from bedboss.const import OUTPUT_FOLDER_NAME
+from bedboss.const import (
+    OUTPUT_FOLDER_NAME,
+    BED_FOLDER_NAME,
+    BIGBED_FOLDER_NAME,
+    BEDSTAT_OUTPUT,
+)
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -33,6 +38,35 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
 
 
+def load_to_s3(
+    output_folder: str,
+    pm: pypiper.PipelineManager,
+    bed_file: str,
+    digest: str,
+    bigbed_file: str = None,
+) -> None:
+    """
+    Load bedfiles and statistics to s3
+
+    :param output_folder: base output folder
+    :param pm: pipelineManager object
+    :param bed_file: bedfile name
+    :param digest: bedfile digest
+    :param bigbed_file: bigbed file name
+    :return: NoReturn
+    """
+    command = f"aws s3 cp {os.path.join(output_folder, bed_file)} s3://bedbase/{BED_FOLDER_NAME}"
+    _LOGGER.info("Uploading to s3 bed files")
+    pm.run(cmd=command, lock_name="s3_sync_bed")
+    if bigbed_file:
+        command = f"aws s3 cp {os.path.join(output_folder, bigbed_file)} s3://bedbase/{BIGBED_FOLDER_NAME}"
+        _LOGGER.info("Uploading to s3 bigbed files")
+        pm.run(cmd=command, lock_name="s3_sync_bigbed")
+    command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME,BEDSTAT_OUTPUT, digest)} s3://bedbase/{OUTPUT_FOLDER_NAME}/{BEDSTAT_OUTPUT}/{digest} --size-only"
+    _LOGGER.info("Uploading to s3 bed statistics files")
+    pm.run(cmd=command, lock_name="s3_sync_bedstat")
+
+
 def bedstat(
     bedfile: str,
     bedbase_config: Union[str, bbconf.BedBaseConf],
@@ -49,6 +83,7 @@ def bedstat(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
+    upload_s3: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> str:
@@ -76,13 +111,14 @@ def bedstat(
         skipped
     :param skip_qdrant: whether to skip qdrant indexing [Default: True]
     :param bool force_overwrite: whether to overwrite the existing record
+    :param upload_s3: whether to upload the bed file to s3
     :param pm: pypiper object
 
     :return: bed_digest: the digest of the bed file
     """
     # TODO why are we no longer using bbconf to get the output path?
     # outfolder_stats = bbc.get_bedstat_output_path()
-    outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, "bedstat_output")
+    outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
     try:
         os.makedirs(outfolder_stats)
     except FileExistsError:
@@ -98,14 +134,16 @@ def bedstat(
     bedfile_name = os.path.split(bedfile)[1]
 
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
-    outfolder = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
+    outfolder_stats_results = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
     try:
-        os.makedirs(outfolder)
+        os.makedirs(outfolder_stats_results)
     except FileExistsError:
         pass
-    json_file_path = os.path.abspath(os.path.join(outfolder, fileid + ".json"))
+    json_file_path = os.path.abspath(
+        os.path.join(outfolder_stats_results, fileid + ".json")
+    )
     json_plots_file_path = os.path.abspath(
-        os.path.join(outfolder, fileid + "_plots.json")
+        os.path.join(outfolder_stats_results, fileid + "_plots.json")
     )
     bed_relpath = os.path.relpath(
         bedfile,
@@ -145,7 +183,7 @@ def bedstat(
         command = (
             f"Rscript {rscript_path} --bedfilePath={bedfile} "
             f"--fileId={fileid} --openSignalMatrix={open_signal_matrix} "
-            f"--outputFolder={outfolder} --genome={genome} "
+            f"--outputFolder={outfolder_stats_results} --genome={genome} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
 
@@ -239,6 +277,10 @@ def bedstat(
             record_identifier=bed_digest,
             values=data,
             force_overwrite=force_overwrite,
+        )
+    if upload_s3:
+        load_to_s3(
+            os.path.abspath(outfolder), pm, bed_relpath, bed_digest, bigbed_relpath
         )
 
     if not skip_qdrant:

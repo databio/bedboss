@@ -94,6 +94,7 @@ def run_all(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
+    upload_s3: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> str:
@@ -123,6 +124,7 @@ def run_all(
     :param force_overwrite: force overwrite analysis
     :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :param skip_qdrant: whether to skip qdrant indexing
+    :param upload_s3: whether to upload to s3
     :param pm: pypiper object
     :return: bed digest
     """
@@ -195,6 +197,7 @@ def run_all(
         no_db_commit=no_db_commit,
         force_overwrite=force_overwrite,
         skip_qdrant=skip_qdrant,
+        upload_s3=upload_s3,
         pm=pm,
     )
     return bed_digest
@@ -284,12 +287,11 @@ def insert_pep(
             no_db_commit=no_db_commit,
             force_overwrite=force_overwrite,
             skip_qdrant=skip_qdrant,
+            upload_s3=upload_s3,
             pm=pm,
         )
         pep.samples[i].record_identifier = bed_id
 
-    if upload_s3:
-        load_to_s3(output_folder, pm)
     else:
         _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
 
@@ -304,25 +306,6 @@ def insert_pep(
         _LOGGER.info(
             f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
         )
-
-
-def load_to_s3(output_folder: str, pm: pypiper.PipelineManager) -> NoReturn:
-    """
-    Load bedfiles and statistics to s3
-
-    :param output_folder: base output folder
-    :param pm: pipelineManager object
-    :return: NoReturn
-    """
-    command = f"aws s3 sync {os.path.join(output_folder, BED_FOLDER_NAME)} s3://bedbase/{BED_FOLDER_NAME} --size-only --exclude 'bed_qc/*'"
-    _LOGGER.info("Uploading to s3 bed files")
-    pm.run(cmd=command, lock_name="s3_sync_big")
-    command = f"aws s3 sync {os.path.join(output_folder, BIGBED_FOLDER_NAME)} s3://bedbase/{BIGBED_FOLDER_NAME} --size-only"
-    _LOGGER.info("Uploading to s3 bigbed files")
-    pm.run(cmd=command, lock_name="s3_sync_bigbed")
-    command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME)} s3://bedbase/{OUTPUT_FOLDER_NAME} --size-only"
-    _LOGGER.info("Uploading to s3 bed statistics files")
-    pm.run(cmd=command, lock_name="s3_sync_bedstat")
 
 
 def main(test_args: dict = None) -> NoReturn:
