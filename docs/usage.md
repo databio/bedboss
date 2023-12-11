@@ -6,32 +6,42 @@ BEDboss include: bedmaker, bedqc, bedstat. This pipelines can be run using next 
 
 - `bedbase all`:  Runs all pipelines one in order: bedmaker -> bedqc -> bedstat
 
+- `bedbase insert`:  Runs all pipelines one in order by using PEP file and creates bedset: bedmaker -> bedqc -> bedstat -> bedbuncher
+
 - `bedbase make`:  Creates Bed and BigBed files from  other type of genomic interval files [bigwig|bedgraph|bed|bigbed|wig]
 
 - `bedbase qc`: Runs Quality control for bed file (Works only with bed files)
 
 - `bedbase stat`: Runs statistics for bed and bigbed files.
 
+- `bedbase bunch`: Creates bedset from PEP file
+
+- `bedbase index`: Creates bed file vectors and inserts to qdrant database
+
 Here you can see the command-line usage instructions for the main bedboss command and for each subcommand:
 
 ## `bedboss --help`
 ```console
-version: 0.1.0a3
+version: 0.1.0a5
 usage: bedboss [-h] [--version] [--silent] [--verbosity V] [--logdev]
-               {all,all-pep,make,qc,stat} ...
+               {all,insert,make,qc,stat,bunch,index} ...
 
 Warehouse of pipelines for BED-like files: bedmaker, bedstat, and bedqc.
 
 positional arguments:
-  {all,all-pep,make,qc,stat}
+  {all,insert,make,qc,stat,bunch,index}
     all                 Run all bedboss pipelines and insert data into bedbase
-    all-pep             Run all bedboss pipelines using one PEP and insert
+    insert              Run all bedboss pipelines using one PEP and insert
                         data into bedbase
     make                A pipeline to convert bed, bigbed, bigwig or bedgraph
                         files into bed and bigbed formats
     qc                  Run quality control on bed file (bedqc)
     stat                A pipeline to read a file in BED format and produce
                         metadata in JSON format.
+    bunch               A pipeline to create bedsets (sets of BED files) that
+                        will be retrieved from bedbase.
+    index               Index not indexed bed files and add them to the qdrant
+                        database
 
 options:
   -h, --help            show this help message and exit
@@ -48,7 +58,10 @@ usage: bedboss all [-h] --outfolder OUTFOLDER -s SAMPLE_NAME -f INPUT_FILE -t
                    [--chrom-sizes CHROM_SIZES] [-n] [--standard-chrom]
                    [--check-qc] [--open-signal-matrix OPEN_SIGNAL_MATRIX]
                    [--ensdb ENSDB] --bedbase-config BEDBASE_CONFIG
-                   [-y SAMPLE_YAML] [--no-db-commit] [--just-db-commit]
+                   [--treatment TREATMENT] [--cell-type CELL_TYPE]
+                   [--description DESCRIPTION] [--no-db-commit]
+                   [--just-db-commit] [--skip-qdrant] [-R] [-N] [-D] [-F] [-T]
+                   [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
@@ -80,27 +93,69 @@ options:
                         not in GDdata
   --bedbase-config BEDBASE_CONFIG
                         a path to the bedbase configuration file [Required]
-  -y SAMPLE_YAML, --sample-yaml SAMPLE_YAML
-                        a yaml config file with sample attributes to pass on
-                        more metadata into the database
+  --treatment TREATMENT
+                        A treatment of the bed file
+  --cell-type CELL_TYPE
+                        A cell type of the bed file
+  --description DESCRIPTION
+                        A description of the bed file
   --no-db-commit        skip the JSON commit to the database
   --just-db-commit      just commit the JSON to the database
+  --skip-qdrant         whether to skip qdrant indexing
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
-## `bedboss all-pep --help`
+## `bedboss insert --help`
 ```console
-usage: bedboss all-pep [-h] --pep_config PEP_CONFIG
+usage: bedboss insert [-h] --bedbase-config BEDBASE_CONFIG --pep PEP
+                      --output-folder OUTPUT_FOLDER [-r RFG_CONFIG]
+                      [--check-qc] [--standard-chrom] [--create-bedset]
+                      [--skip-qdrant] [--ensdb ENSDB] [--no-db-commit]
+                      [--just-db-commit] [--force_overwrite] [--upload-s3]
+                      [-R] [-N] [-D] [-F] [-T] [--silent] [--verbosity V]
+                      [--logdev]
 
 options:
   -h, --help            show this help message and exit
-  --pep_config PEP_CONFIG
-                        Path to the pep configuration file [Required] Required
-                        fields in PEP are: sample_name, input_file,
-                        input_type,outfolder, genome, bedbase_config. Optional
-                        fields in PEP are: rfg_config, narrowpeak, check_qc,
-                        standard_chrom, chrom_sizes, open_signal_matrix,
-                        ensdb, sample_yaml, no_db_commit, just_db_commit,
-                        no_db_commit, force_overwrite, skip_qdrant
+  --bedbase-config BEDBASE_CONFIG
+                        a path to the bedbase configuration file [Required]
+  --pep PEP             path to the pep file or pephub registry path
+                        containing pep [Required]
+  --output-folder OUTPUT_FOLDER
+                        Pipeline output folder [Required]
+  -r RFG_CONFIG, --rfg-config RFG_CONFIG
+                        file path to the genome config file(refgenie)
+  --check-qc            Check quality control before processing data. Default:
+                        True
+  --standard-chrom      Standardize chromosome names. Default: False
+  --create-bedset       Create bedset using pep samples. Name of the bedset
+                        will be based on pep name.Default: False
+  --skip-qdrant         whether to skip qdrant indexing
+  --ensdb ENSDB         A full path to the ensdb gtf file required for genomes
+                        not in GDdata
+  --no-db-commit        skip the JSON commit to the database
+  --just-db-commit      just commit the JSON to the database
+  --force_overwrite     Weather to overwrite existing records. [Default:
+                        False]
+  --upload-s3           Weather to upload bed, bigbed, and statistics to s3.
+                        Before uploading you have to set up all necessury env
+                        vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and
+                        AWS_ENDPOINT_URL. [Default: False]
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss make --help`
@@ -108,7 +163,8 @@ options:
 usage: bedboss make [-h] -f INPUT_FILE --outfolder OUTFOLDER [-n] -t
                     INPUT_TYPE -g GENOME [-r RFG_CONFIG] -o OUTPUT_BED
                     --output-bigbed OUTPUT_BIGBED -s SAMPLE_NAME
-                    [--chrom-sizes CHROM_SIZES] [--standard-chrom]
+                    [--chrom-sizes CHROM_SIZES] [--standard-chrom] [-R] [-N]
+                    [-D] [-F] [-T] [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
@@ -136,17 +192,34 @@ options:
                         bedmaker will remove the regions on ChrUn chromosomes,
                         such as chrN_random and chrUn_random. [Default: False]
   --standard-chrom      Standardize chromosome names. Default: False
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss qc --help`
 ```console
-usage: bedboss qc [-h] --bedfile BEDFILE --outfolder OUTFOLDER
+usage: bedboss qc [-h] --bedfile BEDFILE --outfolder OUTFOLDER [-R] [-N] [-D]
+                  [-F] [-T] [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
   --bedfile BEDFILE     a full path to bed file to process [Required]
   --outfolder OUTFOLDER
                         a full path to output log folder. [Required]
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss stat --help`
@@ -155,7 +228,8 @@ usage: bedboss stat [-h] --bedfile BEDFILE --outfolder OUTFOLDER
                     [--open-signal-matrix OPEN_SIGNAL_MATRIX] [--ensdb ENSDB]
                     [--bigbed BIGBED] --bedbase-config BEDBASE_CONFIG
                     [-y SAMPLE_YAML] --genome GENOME [--no-db-commit]
-                    [--just-db-commit]
+                    [--just-db-commit] [-R] [-N] [-D] [-F] [-T] [--silent]
+                    [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
@@ -177,4 +251,51 @@ options:
   --no-db-commit        whether the JSON commit to the database should be
                         skipped
   --just-db-commit      whether just to commit the JSON to the database
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
+
+## `bedboss bunch --help`
+```console
+usage: bedboss bunch [-h] --bedbase-config BEDBASE_CONFIG --bedset-name
+                     BEDSET_NAME --bedset-pep BEDSET_PEP
+                     [--base-api BEDBASE_API] [--cache-path CACHE_PATH]
+                     [--heavy]
+
+options:
+  -h, --help            show this help message and exit
+  --bedbase-config BEDBASE_CONFIG
+                        a path to the bedbase configuration file [Required]
+  --bedset-name BEDSET_NAME
+                        a name of the bedset [Required]
+  --bedset-pep BEDSET_PEP
+                        bedset pep path or pephub registry path containing
+                        bedset pep [Required]
+  --base-api BEDBASE_API
+                        Bedbase API to use. Default is https://api.bedbase.org
+  --cache-path CACHE_PATH
+                        Path to the cache folder. Default is ./bedabse_cache
+  --heavy               whether to use heavy processing (Calculate and crate
+                        plots using R script).
+```
+
+## `bedboss index --help`
+```console
+usage: bedboss index [-h] --bedbase-config BEDBASE_CONFIG
+                     [--bedbase-api BEDBASE_API]
+
+options:
+  -h, --help            show this help message and exit
+  --bedbase-config BEDBASE_CONFIG
+                        a path to the bedbase configuration file [Required]
+  --bedbase-api BEDBASE_API
+                        URL of the Bedbase API [Default:
+                        https://api.bedbase.org]
+```
+

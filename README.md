@@ -26,7 +26,22 @@ These thresholds can be changed with pipeline arguments.
 
 Calculates statistics about BED files.
 
+## 4) bedbuncher
+
+Creates **bedsets** (sets of BED files) and calculates statistics about them (currently means and standard deviations).
+
+## Additional bedboss components:
+### Indexing
+bedboss can automatically create vector embeddings for BED files using geniml. And later this embeddings can 
+be automatically inserted into the qdrant database.
+
+### Uploading to s3
+bedboss can automatically upload files to s3 bucket. This can be done using `--upload-to-s3` flag.
+
+---
+
 # Documentation
+Full documentation is available at [bedboss.databio.org](https://docs.bedbase.org/).
 
 ## How to install R dependencies
 
