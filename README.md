@@ -19,7 +19,7 @@ Converts supported file types into BED and bigBed format. Currently supported fo
 ## 2) bedqc
 
 Assess QC of BED files and flag potential problems for further evaluation so you can determine whether they should be included in downstream analysis. 
-Currently, it flags BED files that are larger than 2 GB, have over 5 milliom regions, or have mean region width less than 10 bp.
+Currently, it flags BED files that are larger than 2 GB, have over 5 million regions, or have a mean region width less than 10 bp.
 These thresholds can be changed with pipeline arguments.
 
 ## 3) bedstat
@@ -32,11 +32,11 @@ Creates **bedsets** (sets of BED files) and calculates statistics about them (cu
 
 ## Additional bedboss components:
 ### Indexing
-bedboss can automatically create vector embeddings for BED files using geniml. And later this embeddings can 
+bedboss can automatically create vector embeddings for BED files using geniml. And later these embeddings can 
 be automatically inserted into the qdrant database.
 
 ### Uploading to s3
-bedboss can automatically upload files to s3 bucket. This can be done using `--upload-to-s3` flag.
+bedboss can automatically upload files to an s3 bucket. This can be done using `--upload-to-s3` flag.
 
 ---
 
