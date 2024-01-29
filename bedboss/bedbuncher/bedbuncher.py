@@ -87,17 +87,6 @@ def calculate_bedset_statistics(bbc: BedBaseConf, bedset: BedSet) -> dict:
     _LOGGER.info("Bedset statistics were calculated successfully")
     return results_dict
 
-    # # Another way to do it, but it's slower:
-    # results_dict = {}
-    # results = bbc.bed.retrieve(record_identifier=list_of_samples, result_identifier=int_col)["records"]
-    # for sample in results:
-    #     for stat_value_dict in sample.values():
-    #         for key, value in stat_value_dict.items():
-    #             if key in results_dict:
-    #                 results_dict[key].append(value)
-    #             else:
-    #                 results_dict[key] = [value]
-
 
 def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
     """
