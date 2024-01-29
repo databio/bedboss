@@ -2,7 +2,6 @@
 import logmuse
 import coloredlogs
 
-# from bedboss import *
 
 # from bedboss.bedqc.bedqc import bedqc
 # from bedboss.bedmaker.bedmaker import BedMaker
