@@ -16,8 +16,8 @@ with open(f"{PACKAGE_NAME}/_version.py", "r") as versionfile:
 
 def read_reqs(reqs_name):
     deps = []
-    with open(os.path.join(REQDIR, f"requirements-{reqs_name}.txt"), "r") as f:
-        for line in f:
+    with open(os.path.join(REQDIR, f"requirements-{reqs_name}.txt"), "r") as file:
+        for line in file:
             if not line.strip():
                 continue
             deps.append(line)
