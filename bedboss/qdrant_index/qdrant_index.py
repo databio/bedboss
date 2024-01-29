@@ -18,6 +18,7 @@ def get_unindexed_bed_files(bbc: BedBaseConf) -> List[str]:
     """
     Get list of unindexed bed files from the bedbase
 
+    :param BedBaseConf bbc: bedbase configuration
     :return: list of record_identifiers of unindexed bed files
     """
     result_list = bbc.bed.select_records(
@@ -38,8 +39,8 @@ def add_to_qdrant(
     """
     Add unindexed bed files to qdrant
 
-    :param bedbase_config: path to the bedbase configuration file
-    :param bedbase_api: URL of the Bedbase API
+    :param str bedbase_config: path to the bedbase configuration file
+    :param str bedbase_api: URL of the Bedbase API
     :return: None
     """
     # get list of bed files
