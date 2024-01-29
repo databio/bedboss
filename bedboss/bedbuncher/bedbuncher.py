@@ -185,14 +185,14 @@ def add_bedset_to_database(
             "bedset_name was not provided correctly. Please provide it in pep name or as argument"
         )
 
-    bed_set_stats = calculate_bedset_statistics(bbc, bed_set)
+    bedset_stats = calculate_bedset_statistics(bbc, bed_set)
     result_dict = {
         "name": bedset_name,
         "md5sum": bed_set.identifier,
         "description": description,
         "genome": genome,
-        "bedset_standard_deviation": bed_set_stats["sd"],
-        "bedset_means": bed_set_stats["mean"],
+        "bedset_standard_deviation": bedset_stats["sd"],
+        "bedset_means": bedset_stats["mean"],
         "processed": heavy,
         "pephub_path": pephub_registry_path or "",
     }
