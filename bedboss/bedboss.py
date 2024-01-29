@@ -101,32 +101,32 @@ def run_all(
     """
     Run bedboss: bedmaker, bedqc, bedstat, and bedbuncher pipelines from PEP.
 
-    :param sample_name: Sample name [required]
-    :param input_file: Input file [required]
-    :param input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
-    :param outfolder: Folder, where output should be saved  [required]
-    :param genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
-    :param bedbase_config: The path to the bedbase configuration file, or bbconf object.
-    :param open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
-    :param rfg_config: file path to the genome config file [optional]
-    :param narrowpeak: whether the regions are narrow
+    :param str sample_name: Sample name [required]
+    :param str input_file: Input file [required]
+    :param str input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
+    :param str outfolder: Folder, where output should be saved  [required]
+    :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
+    :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
+    :param str rfg_config: file path to the genome config file [optional]
+    :param bool narrowpeak: whether the regions are narrow
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
-    :param check_qc: set True to run quality control during badmaking [optional] (default: True)
-    :param standard_chrom: Standardize chromosome names. [optional] (Default: False)
-    :param chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
+    :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
+    :param bool standard_chrom: Standardize chromosome names. [optional] (Default: False)
+    :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
         :param str description: a description of the bed file
+    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param str treatment: a treatment of the bed file
     :param str cell_type: a cell type of the bed file
     :param dict other_metadata: a dictionary of other metadata to pass
-    :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
+    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
-    :param just_db_commit: whether just to commit the JSON to the database (default: False)
-    :param force_overwrite: force overwrite analysis
-    :param no_db_commit: whether the JSON commit to the database should be skipped (default: False)
-    :param skip_qdrant: whether to skip qdrant indexing
-    :param upload_s3: whether to upload to s3
-    :param pm: pypiper object
-    :return: bed digest
+    :param bool just_db_commit: whether just to commit the JSON to the database (default: False)
+    :param bool force_overwrite: force overwrite analysis
+    :param bool no_db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param bool skip_qdrant: whether to skip qdrant indexing
+    :param bool upload_s3: whether to upload to s3
+    :param pypiper.PipelineManager pm: pypiper object
+    :return str bed_digest: bed digest
     """
     _LOGGER.warning(f"Unused arguments: {kwargs}")
 
@@ -220,25 +220,25 @@ def insert_pep(
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
-) -> NoReturn:
+) -> None:
     """
     Run all bedboss pipelines for all samples in the pep file.
     bedmaker -> bedqc -> bedstat -> qdrant_indexing -> bedbuncher
 
-    :param bedbase_config: bedbase configuration file path
-    :param output_folder: output statistics folder
-    :param pep: path to the pep file or pephub registry path
-    :param rfg_config: path to the genome config file (refgenie)
-    :param create_bedset: whether to create bedset
-    :param skip_qdrant: whether to skip qdrant indexing
-    :param check_qc: whether to run quality control during badmaking
-    :param standard_chrom: whether to standardize chromosome names
-    :param ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param just_db_commit: whether just to commit the JSON to the database
-    :param no_db_commit: whether the JSON commit to the database should be skipped
-    :param force_overwrite: whether to overwrite the existing record
-    :param upload_s3: whether to upload to s3
-    :param pm: pypiper object
+    :param str bedbase_config: bedbase configuration file path
+    :param str output_folder: output statistics folder
+    :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
+    :param str rfg_config: path to the genome config file (refgenie)
+    :param bool create_bedset: whether to create bedset
+    :param bool skip_qdrant: whether to skip qdrant indexing
+    :param bool check_qc: whether to run quality control during badmaking
+    :param bool standard_chrom: whether to standardize chromosome names
+    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
+    :param bool just_db_commit: whether just to commit the JSON to the database
+    :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool force_overwrite: whether to overwrite the existing record
+    :param bool upload_s3: whether to upload to s3
+    :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
 
