@@ -5,7 +5,9 @@ import requests
 import pypiper
 import bbconf
 import logging
+import pephubclient as phc
 from geniml.io import RegionSet
+from pephubclient.helpers import is_registry_path
 
 from bedboss.const import (
     OUTPUT_FOLDER_NAME,
@@ -20,6 +22,8 @@ _LOGGER = logging.getLogger("bedboss")
 SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
 )
+
+BED_PEP_REGISTRY = "databio/allbeds:bedbase"
 
 
 def convert_unit(size_in_bytes: int) -> str:
@@ -36,6 +40,37 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024))) + "MB"
     elif size_in_bytes >= 1024 * 1024 * 1024:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
+
+
+def load_to_pephub(
+    pep_registry_path: str, bed_digest: str, genome: str, metadata: dict
+) -> None:
+    """
+    Load bedfile and metadata to PEPHUB
+
+    :param str pep_registry_path: registry path to pep on pephub
+    :param str bed_digest: unique bedfile identifier
+    :param str genome: genome associated with bedfile
+    :param dict metadata: Any other metadata that has been collected
+
+    :return None
+    """
+
+    if is_registry_path(pep_registry_path):
+        # Combine data into a dict for sending to pephub
+        sample_data = {}
+        sample_data.update({"sample_name": bed_digest, "genome": genome})
+
+        for key, value in metadata.items():
+            # TODO Confirm this key is in the schema
+            # Then update sample_data
+            sample_data.update({key: value})
+        try:
+            phc.sample.add(sample_data)
+        except Exception as e:  # Need more specific exception
+            _LOGGER.warning(f"Failed to upload BEDFILE to Bedbase: See {e}")
+    else:
+        _LOGGER.warning(f"{pep_registry_path} is not a valid registry path")
 
 
 def load_to_s3(
@@ -84,6 +119,7 @@ def bedstat(
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
     upload_s3: bool = False,
+    upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> str:
@@ -112,6 +148,7 @@ def bedstat(
     :param skip_qdrant: whether to skip qdrant indexing [Default: True]
     :param bool force_overwrite: whether to overwrite the existing record
     :param upload_s3: whether to upload the bed file to s3
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pm: pypiper object
 
     :return: bed_digest: the digest of the bed file
@@ -293,6 +330,14 @@ def bedstat(
             record_identifier=bed_digest,
             values={"added_to_qdrant": True},
             force_overwrite=True,
+        )
+
+    if upload_pephub:
+        load_to_pephub(
+            pep_registry_path=BED_PEP_REGISTRY,
+            bed_digest=bed_digest,
+            genome=genome,
+            metadata=other_metadata,
         )
 
     if stop_pipeline:

@@ -95,6 +95,7 @@ def run_all(
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
     upload_s3: bool = False,
+    upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> str:
@@ -125,6 +126,7 @@ def run_all(
     :param bool no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :param bool skip_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
@@ -198,6 +200,7 @@ def run_all(
         force_overwrite=force_overwrite,
         skip_qdrant=skip_qdrant,
         upload_s3=upload_s3,
+        upload_pephub=upload_pephub,
         pm=pm,
     )
     return bed_digest
