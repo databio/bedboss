@@ -87,6 +87,7 @@ def run_all(
     open_signal_matrix: str = None,
     ensdb: str = None,
     treatment: str = None,
+    pep_sample_dict: dict = None,
     description: str = None,
     cell_type: str = None,
     other_metadata: dict = None,
@@ -117,6 +118,7 @@ def run_all(
         :param str description: a description of the bed file
     :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param str treatment: a treatment of the bed file
+    :param dict pep_sample_dict: a dict containing all attributes from the sample
     :param str cell_type: a cell type of the bed file
     :param dict other_metadata: a dictionary of other metadata to pass
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
@@ -193,6 +195,7 @@ def run_all(
         bigbed=output_bigbed,
         description=description,
         treatment=treatment,
+        pep_sample_dict=pep_sample_dict,
         cell_type=cell_type,
         other_metadata=other_metadata,
         just_db_commit=just_db_commit,
@@ -280,6 +283,7 @@ def insert_pep(
             description=pep_sample.get("description"),
             cell_type=pep_sample.get("cell_type"),
             treatment=pep_sample.get("treatment"),
+            pep_sample_dict=pep_sample.to_dict(),
             outfolder=output_folder,
             bedbase_config=bbc,
             rfg_config=rfg_config,

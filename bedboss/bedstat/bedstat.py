@@ -124,6 +124,7 @@ def bedstat(
     open_signal_matrix: str = None,
     bigbed: str = None,
     treatment: str = None,
+    pep_sample_dict: dict = None,
     description: str = None,
     cell_type: str = None,
     other_metadata: dict = None,
@@ -153,6 +154,7 @@ def bedstat(
         not in GDdata
     :param str description: a description of the bed file
     :param str treatment: a treatment of the bed file
+    :param dict pep_sample_dict: a dict containing all attributes from the sample
     :param str cell_type: a cell type of the bed file
     :param dict other_metadata: a dictionary of other metadata to pass
     :param bool just_db_commit: whether just to commit the JSON to the database
@@ -260,6 +262,11 @@ def bedstat(
                 "cell_type": cell_type,
             }
         )
+
+        # For now, add all the *other* attributes to other_metadata
+        for key, value in pep_sample_dict.items():
+            if key not in list(other_metadata.keys()):
+                other_metadata.update({key: value})
 
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
