@@ -7,7 +7,9 @@ import bbconf
 import logging
 import pephubclient as phc
 from geniml.io import RegionSet
+from pephubclient import PEPHubClient
 from pephubclient.helpers import is_registry_path
+from ubiquerg import parse_registry_path
 
 from bedboss.const import (
     OUTPUT_FOLDER_NAME,
@@ -57,6 +59,9 @@ def load_to_pephub(
     """
 
     if is_registry_path(pep_registry_path):
+
+        parsed_pep_list = parse_registry_path(pep_registry_path)
+
         # Combine data into a dict for sending to pephub
         sample_data = {}
         sample_data.update({"sample_name": bed_digest, "genome": genome})
@@ -66,7 +71,15 @@ def load_to_pephub(
             # Then update sample_data
             sample_data.update({key: value})
         try:
-            phc.sample.add(sample_data)
+            PEPHubClient().sample.create(
+                namespace=parsed_pep_list[1],
+                name=parsed_pep_list[2],
+                tag=parsed_pep_list[4],
+                sample_name=bed_digest,
+                overwrite=True,
+                sample_dict=sample_data,
+            )
+
         except Exception as e:  # Need more specific exception
             _LOGGER.warning(f"Failed to upload BEDFILE to Bedbase: See {e}")
     else:
