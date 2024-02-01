@@ -223,6 +223,7 @@ def insert_pep(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     upload_s3: bool = False,
+    upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
@@ -244,6 +245,7 @@ def insert_pep(
     :param bool no_db_commit: whether the JSON commit to the database should be skipped
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool upload_s3: whether to upload to s3
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -295,6 +297,7 @@ def insert_pep(
             force_overwrite=force_overwrite,
             skip_qdrant=skip_qdrant,
             upload_s3=upload_s3,
+            upload_pephub=upload_pephub,
             pm=pm,
         )
         pep.samples[i].record_identifier = bed_id

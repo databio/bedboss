@@ -59,7 +59,6 @@ def load_to_pephub(
     """
 
     if is_registry_path(pep_registry_path):
-
         parsed_pep_list = parse_registry_path(pep_registry_path)
 
         # Combine data into a dict for sending to pephub

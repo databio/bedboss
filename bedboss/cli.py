@@ -166,6 +166,11 @@ def build_argparser() -> ArgumentParser:
         action="store_true",
         help="whether to skip qdrant indexing",
     )
+    sub_all.add_argument(
+        "--upload-pephub",
+        action="store_true",
+        help="upload to pephub",
+    )
 
     # all-pep
     sub_all_pep.add_argument(
@@ -244,6 +249,11 @@ def build_argparser() -> ArgumentParser:
         help="Weather to upload bed, bigbed, and statistics to s3. "
         "Before uploading you have to set up all necessury env vars: "
         "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_ENDPOINT_URL. [Default: False]",
+    )
+    sub_all_pep.add_argument(
+        "--upload-pephub",
+        action="store_true",
+        help="upload to pephub",
     )
 
     # bed_qc
