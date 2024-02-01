@@ -59,7 +59,7 @@ def load_to_pephub(
     """
 
     if is_registry_path(pep_registry_path):
-        parsed_pep_list = parse_registry_path(pep_registry_path)
+        parsed_pep_dict = parse_registry_path(pep_registry_path)
 
         # Combine data into a dict for sending to pephub
         sample_data = {}
@@ -69,11 +69,12 @@ def load_to_pephub(
             # TODO Confirm this key is in the schema
             # Then update sample_data
             sample_data.update({key: value})
+
         try:
             PEPHubClient().sample.create(
-                namespace=parsed_pep_list[1],
-                name=parsed_pep_list[2],
-                tag=parsed_pep_list[4],
+                namespace=parsed_pep_dict["namespace"],
+                name=parsed_pep_dict["item"],
+                tag=parsed_pep_dict["item"],
                 sample_name=bed_digest,
                 overwrite=True,
                 sample_dict=sample_data,
@@ -169,6 +170,7 @@ def bedstat(
     """
     # TODO why are we no longer using bbconf to get the output path?
     # outfolder_stats = bbc.get_bedstat_output_path()
+
     outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
     try:
         os.makedirs(outfolder_stats)
@@ -352,6 +354,7 @@ def bedstat(
         )
 
     if upload_pephub:
+        _LOGGER.info("UPLOADING TO PEPHUB...")
         load_to_pephub(
             pep_registry_path=BED_PEP_REGISTRY,
             bed_digest=bed_digest,
