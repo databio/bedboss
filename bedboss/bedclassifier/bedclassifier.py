@@ -2,7 +2,7 @@ import gzip
 import logging
 import os
 import shutil
-from typing import Optional
+from typing import Optional, Union
 
 import pypiper
 import pandas as pd
@@ -49,11 +49,17 @@ class BedClassifier:
         # Want to use Pipeline Manager to log work AND cleanup unzipped gz files.
         if pm is not None:
             self.pm = pm
+            self.pm_created = False
         else:
             self.logs_dir = os.path.join(self.output_dir, "logs")
             self.pm = pypiper.PipelineManager(
-                name="bedclassifier", outfolder=self.logs_dir, recover=True
+                name="bedclassifier",
+                outfolder=self.logs_dir,
+                recover=True,
+                pipestat_sample_name=bed_digest,
             )
+            self.pm.start_pipeline()
+            self.pm_created = True
 
         if self.file_extension == ".gz":
             if ".bed" not in self.file_name:
@@ -64,24 +70,29 @@ class BedClassifier:
                 unzipped_input_file = os.path.join(self.output_dir, self.file_name)
 
             with gzip.open(self.input_file, "rb") as f_in:
+                _LOGGER.info(
+                    f"Unzipping file:{self.input_file} and Creating Unzipped file: {unzipped_input_file}"
+                )
                 with open(unzipped_input_file, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             self.input_file = unzipped_input_file
             self.pm.clean_add(unzipped_input_file)
 
-        bed_type = get_bed_type(self.input_file)
+        self.bed_type = get_bed_type(self.input_file)
 
         if self.input_type is not None:
-            if bed_type != self.input_type:
+            if self.bed_type != self.input_type:
                 _LOGGER.warning(
-                    f"BED file classified as different type than given input: {bed_type} vs {self.input_type}"
+                    f"BED file classified as different type than given input: {self.bed_type} vs {self.input_type}"
                 )
 
-        else:
-            self.input_file = bed_type
+        self.pm.report_result(key="bedtype", value=self.bed_type)
+
+        if self.pm_created is True:
+            self.pm.stop_pipeline()
 
 
-def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> str:
+def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> Union[str, None]:
     """
     get the bed file type (ex. bed3, bed3+n )
     standardize chromosomes if necessary:
@@ -106,8 +117,9 @@ def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> str:
     #    int[blockCount] blockSizes; "Comma separated list of block sizes"
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
-    # Use chunksize to read only a few lines of the BED file (We don't need all of it)
-    df = pd.read_csv(bed, sep="\t", header=None, chunksize=4)
+    # Use nrows to read only a few lines of the BED file (We don't need all of it)
+    df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
+    print(df)
     df = df.dropna(axis=1)
 
     # standardizing chromosome
