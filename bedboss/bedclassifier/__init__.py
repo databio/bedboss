@@ -1,0 +1,1 @@
+from bedboss.bedclassifier.bedclassifier import BedClassifier

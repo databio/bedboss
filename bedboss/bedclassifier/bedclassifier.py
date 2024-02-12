@@ -38,25 +38,31 @@ class BedClassifier:
         self.input_type = input_type
 
         self.abs_bed_path = os.path.abspath(self.input_file)
-        self.file_name = os.path.basename(self.abs_bed_path)
-        self.file_extension = os.path.splitext(self.abs_bed_path)[0]
+        self.file_name = os.path.splitext(os.path.basename(self.abs_bed_path))[0]
+        self.file_extension = os.path.splitext(self.abs_bed_path)[-1]
 
         # we need this only if unzipping a file
         self.output_dir = output_dir or os.path.join(
-            os.path.dirname(self.abs_bed_path) + "temp_processing"
+            os.path.dirname(self.abs_bed_path), "temp_processing"
         )
         # Use existing Pipeline Manager or Construct New one
         # Want to use Pipeline Manager to log work AND cleanup unzipped gz files.
         if pm is not None:
             self.pm = pm
         else:
-            self.logs_dir = os.path.join(os.path.dirname(self.abs_bed_path) + "logs")
+            self.logs_dir = os.path.join(self.output_dir, "logs")
             self.pm = pypiper.PipelineManager(
                 name="bedclassifier", outfolder=self.logs_dir, recover=True
             )
 
         if self.file_extension == ".gz":
-            unzipped_input_file = os.path.join(self.output_dir, self.file_name)
+            if ".bed" not in self.file_name:
+                unzipped_input_file = os.path.join(
+                    self.output_dir, self.file_name + ".bed"
+                )
+            else:
+                unzipped_input_file = os.path.join(self.output_dir, self.file_name)
+
             with gzip.open(self.input_file, "rb") as f_in:
                 with open(unzipped_input_file, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
