@@ -87,6 +87,7 @@ def run_all(
     open_signal_matrix: str = None,
     ensdb: str = None,
     treatment: str = None,
+    pep_sample_dict: dict = None,
     description: str = None,
     cell_type: str = None,
     other_metadata: dict = None,
@@ -95,6 +96,7 @@ def run_all(
     force_overwrite: bool = False,
     skip_qdrant: bool = True,
     upload_s3: bool = False,
+    upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
     **kwargs,
 ) -> str:
@@ -116,6 +118,7 @@ def run_all(
         :param str description: a description of the bed file
     :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param str treatment: a treatment of the bed file
+    :param dict pep_sample_dict: a dict containing all attributes from the sample
     :param str cell_type: a cell type of the bed file
     :param dict other_metadata: a dictionary of other metadata to pass
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
@@ -125,6 +128,7 @@ def run_all(
     :param bool no_db_commit: whether the JSON commit to the database should be skipped (default: False)
     :param bool skip_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
@@ -191,6 +195,7 @@ def run_all(
         bigbed=output_bigbed,
         description=description,
         treatment=treatment,
+        pep_sample_dict=pep_sample_dict,
         cell_type=cell_type,
         other_metadata=other_metadata,
         just_db_commit=just_db_commit,
@@ -198,6 +203,7 @@ def run_all(
         force_overwrite=force_overwrite,
         skip_qdrant=skip_qdrant,
         upload_s3=upload_s3,
+        upload_pephub=upload_pephub,
         pm=pm,
     )
     return bed_digest
@@ -217,6 +223,7 @@ def insert_pep(
     no_db_commit: bool = False,
     force_overwrite: bool = False,
     upload_s3: bool = False,
+    upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
@@ -238,6 +245,7 @@ def insert_pep(
     :param bool no_db_commit: whether the JSON commit to the database should be skipped
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool upload_s3: whether to upload to s3
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -277,6 +285,7 @@ def insert_pep(
             description=pep_sample.get("description"),
             cell_type=pep_sample.get("cell_type"),
             treatment=pep_sample.get("treatment"),
+            pep_sample_dict=pep_sample.to_dict(),
             outfolder=output_folder,
             bedbase_config=bbc,
             rfg_config=rfg_config,
@@ -288,6 +297,7 @@ def insert_pep(
             force_overwrite=force_overwrite,
             skip_qdrant=skip_qdrant,
             upload_s3=upload_s3,
+            upload_pephub=upload_pephub,
             pm=pm,
         )
         pep.samples[i].record_identifier = bed_id
