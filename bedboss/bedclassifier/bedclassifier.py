@@ -130,7 +130,7 @@ def get_bed_type(
     except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
         if no_fail:
             _LOGGER.warning(
-                f"Unable to parse bed file {bed}, setting bed_type = Unknown"
+                f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = Unknown"
             )
             return "unknown_bedtype"
         else:
@@ -163,7 +163,7 @@ def get_bed_type(
                     else:
                         if no_fail:
                             _LOGGER.warning(
-                                f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
+                                f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
                             )
                             return "unknown_bedtype"
                         else:
