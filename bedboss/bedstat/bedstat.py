@@ -123,10 +123,6 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     bigbed: str = None,
-    treatment: str = None,
-    pep_sample_dict: dict = None,
-    description: str = None,
-    cell_type: str = None,
     other_metadata: dict = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
@@ -152,10 +148,6 @@ def bedstat(
     :param str genome: genome assembly of the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
-    :param str description: a description of the bed file
-    :param str treatment: a treatment of the bed file
-    :param dict pep_sample_dict: a dict containing all attributes from the sample
-    :param str cell_type: a cell type of the bed file
     :param dict other_metadata: a dictionary of other metadata to pass
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be
@@ -256,18 +248,6 @@ def bedstat(
 
         if not other_metadata:
             other_metadata = {}
-        other_metadata.update(
-            {
-                "description": description,
-                "treatment": treatment,
-                "cell_type": cell_type,
-            }
-        )
-
-        # For now, add all the *other* attributes to other_metadata
-        for key, value in pep_sample_dict.items():
-            if key not in list(other_metadata.keys()):
-                other_metadata.update({key: value})
 
         # unlist the data, since the output of regionstat.R is a dict of lists of
         # length 1 and force keys to lower to correspond with the
@@ -328,8 +308,10 @@ def bedstat(
         del data["md5sum"]
 
         # add added_to_qdrant to the data
-        data["other"] = other_metadata
         data["added_to_qdrant"] = False
+
+        # add other to dict in bb database (now we are using pephub for this purpose)
+        # data["other"] = other_metadata
 
         bbc.bed.report(
             record_identifier=bed_digest,
@@ -342,6 +324,7 @@ def bedstat(
         )
 
     if not skip_qdrant:
+
         bbc.add_bed_to_qdrant(
             bed_id=bed_digest,
             bed_file=bedfile,

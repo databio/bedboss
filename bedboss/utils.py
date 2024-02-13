@@ -1,6 +1,6 @@
 import os
 import logging
-import urllib
+import urllib.request
 import re
 from bbconf import BedBaseConf
 from typing import NoReturn

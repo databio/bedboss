@@ -21,12 +21,12 @@ from bedboss.const import (
     OS_HG19,
     OS_HG38,
     OS_MM10,
-    OPEN_SIGNAL_FOLDER,
+    OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
     BEDBOSS_PEP_SCHEMA_PATH,
-    OUTPUT_FOLDER_NAME,
+    HOME_PATH,
 )
 from bedboss.utils import (
     extract_file_name,
@@ -40,11 +40,12 @@ from bedboss._version import __version__
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_osm_path(genome: str) -> Union[str, None]:
+def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
     """
     By providing genome name download Open Signal Matrix
 
     :param genome: genome assembly
+    :param out_path: working directory, where osm should be saved. If None, current working directory will be used
     :return: path to the Open Signal Matrix
     """
     # TODO: add more osm
@@ -59,11 +60,14 @@ def get_osm_path(genome: str) -> Union[str, None]:
         raise OpenSignalMatrixException(
             "For this genome open Signal Matrix was not found."
         )
+    if not out_path:
+        osm_folder = os.path.join(HOME_PATH, OPEN_SIGNAL_FOLDER_NAME)
+    else:
+        osm_folder = os.path.join(out_path, OPEN_SIGNAL_FOLDER_NAME)
 
-    osm_path = os.path.join(OPEN_SIGNAL_FOLDER, osm_name)
+    osm_path = os.path.join(osm_folder, osm_name)
     if not os.path.exists(osm_path):
-        if not os.path.exists(OPEN_SIGNAL_FOLDER):
-            os.makedirs(OPEN_SIGNAL_FOLDER)
+        os.makedirs(osm_folder, exist_ok=True)
         download_file(
             url=f"{OPEN_SIGNAL_URL}{osm_name}",
             path=osm_path,
@@ -86,10 +90,6 @@ def run_all(
     chrom_sizes: str = None,
     open_signal_matrix: str = None,
     ensdb: str = None,
-    treatment: str = None,
-    pep_sample_dict: dict = None,
-    description: str = None,
-    cell_type: str = None,
     other_metadata: dict = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
@@ -107,7 +107,7 @@ def run_all(
     :param str input_file: Input file [required]
     :param str input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
     :param str outfolder: Folder, where output should be saved  [required]
-    :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38) #TODO: add more
+    :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
     :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
     :param str rfg_config: file path to the genome config file [optional]
     :param bool narrowpeak: whether the regions are narrow
@@ -115,12 +115,8 @@ def run_all(
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
     :param bool standard_chrom: Standardize chromosome names. [optional] (Default: False)
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
-        :param str description: a description of the bed file
     :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
-    :param str treatment: a treatment of the bed file
-    :param dict pep_sample_dict: a dict containing all attributes from the sample
-    :param str cell_type: a cell type of the bed file
-    :param dict other_metadata: a dictionary of other metadata to pass
+    :param dict other_metadata: a dict containing all attributes from the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
     :param bool just_db_commit: whether just to commit the JSON to the database (default: False)
@@ -154,15 +150,18 @@ def run_all(
     output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
     output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
 
-    _LOGGER.info(f"output_bed = {output_bed}")
-    _LOGGER.info(f"output_bigbed = {output_bigbed}")
-
     # set env for bedstat:
     output_folder_bedstat = os.path.join(outfolder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
 
+    _LOGGER.info(f"Input file = '{input_file}'")
+    _LOGGER.info(f"Output bed file = '{output_bed}'")
+    _LOGGER.info(f"Output bigbed file = '{output_bigbed}'")
+    _LOGGER.info(f"Output folder for bedstat = '{output_folder_bedstat}'")
+
     if not pm:
         pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
         pm = pypiper.PipelineManager(
             name="bedboss-pipeline",
             outfolder=pm_out_folder,
@@ -193,10 +192,6 @@ def run_all(
         ensdb=ensdb,
         open_signal_matrix=open_signal_matrix,
         bigbed=output_bigbed,
-        description=description,
-        treatment=treatment,
-        pep_sample_dict=pep_sample_dict,
-        cell_type=cell_type,
         other_metadata=other_metadata,
         just_db_commit=just_db_commit,
         no_db_commit=no_db_commit,
@@ -282,10 +277,7 @@ def insert_pep(
             narrowpeak=is_narrow_peak,
             chrom_sizes=pep_sample.get("chrom_sizes"),
             open_signal_matrix=pep_sample.get("open_signal_matrix"),
-            description=pep_sample.get("description"),
-            cell_type=pep_sample.get("cell_type"),
-            treatment=pep_sample.get("treatment"),
-            pep_sample_dict=pep_sample.to_dict(),
+            other_metadata=pep_sample.to_dict(),
             outfolder=output_folder,
             bedbase_config=bbc,
             rfg_config=rfg_config,

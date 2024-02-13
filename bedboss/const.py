@@ -1,7 +1,13 @@
+import os
+
 DEFAULT_BEDBASE_API_URL = "https://api.bedbase.org"
 # DEFAULT_BEDBASE_API_URL = "http://localhost:8000/api"
 
-OPEN_SIGNAL_FOLDER = "./openSignalMatrix"
+HOME_PATH = os.getenv("HOME")
+if not HOME_PATH:
+    HOME_PATH = os.path.expanduser("~")
+
+OPEN_SIGNAL_FOLDER_NAME = "openSignalMatrix"
 OPEN_SIGNAL_URL = "http://big.databio.org/open_chromatin_matrix/"
 
 OS_HG38 = "openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
