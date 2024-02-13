@@ -104,6 +104,7 @@ def get_bed_type(
     remove regions on ChrUn chromosomes
 
     :param bed: path to the bed file
+    :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
     :param standard_chrom:
     :return bed type
     """
@@ -120,8 +121,6 @@ def get_bed_type(
     #    int blockCount;    "Number of blocks"
     #    int[blockCount] blockSizes; "Comma separated list of block sizes"
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
-
-    # Use nrows to read only a few lines of the BED file (We don't need all of it)
 
     df = None
 
@@ -146,7 +145,6 @@ def get_bed_type(
                         reason=f"Bed type could not be determined due to CSV parse error {e}"
                     )
 
-    print(df)
     if df is not None:
         df = df.dropna(axis=1)
 
@@ -221,13 +219,19 @@ def get_bed_type(
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
+                        if "broadpeak" in bed or "broadPeak" in bed:
+                            return f"broadPeak,bed{bedtype}+{n}"
+                        else:
+                            return f"bed{bedtype}+{n}"
                 elif col == 10 or col == 11:
                     if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
+                        if "narrowpeak" in bed or "narrowPeak" in bed:
+                            return f"narrowPeak,bed{bedtype}+{n}"
+                        else:
+                            return f"bed{bedtype}+{n}"
                 else:
                     n = num_cols - bedtype
                     return f"bed{bedtype}+{n}"
