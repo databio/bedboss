@@ -96,7 +96,7 @@ class BedClassifier:
 
 def get_bed_type(
     bed: str, standard_chrom: Optional[str] = None, no_fail: Optional[bool] = True
-) -> Union[str, None]:
+) -> str:
     """
     get the bed file type (ex. bed3, bed3+n )
     standardize chromosomes if necessary:
@@ -127,7 +127,7 @@ def get_bed_type(
 
     try:
         df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
-    except pandas.errors.ParserError as e:
+    except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
         if no_fail:
             _LOGGER.warning(
                 f"Unable to parse bed file {bed}, setting bed_type = Unknown"
