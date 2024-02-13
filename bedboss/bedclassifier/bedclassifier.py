@@ -9,6 +9,7 @@ import pypiper
 import pandas as pd
 
 from bedboss.const import STANDARD_CHROM_LIST
+from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -93,7 +94,9 @@ class BedClassifier:
             self.pm.stop_pipeline()
 
 
-def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> Union[str, None]:
+def get_bed_type(
+    bed: str, standard_chrom: Optional[str] = None, no_fail: Optional[bool] = True
+) -> Union[str, None]:
     """
     get the bed file type (ex. bed3, bed3+n )
     standardize chromosomes if necessary:
@@ -119,11 +122,22 @@ def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> Union[str, N
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
     # Use nrows to read only a few lines of the BED file (We don't need all of it)
+
     df = None
+
     try:
         df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
     except pandas.errors.ParserError as e:
-        _LOGGER.warning(f"Unable to parse bed file {bed}, setting bed_type = Unknown")
+        if no_fail:
+            _LOGGER.warning(
+                f"Unable to parse bed file {bed}, setting bed_type = Unknown"
+            )
+            return "unknown_bedtype"
+        else:
+            raise BedTypeException(
+                reason=f"Bed type could not be determined due to CSV parse error {e}"
+            )
+
     print(df)
     if df is not None:
         df = df.dropna(axis=1)
@@ -144,13 +158,32 @@ def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> Union[str, N
                 if col == 0:
                     if df[col].dtype == "O":
                         bedtype += 1
+                    elif df[col].dtype == "int" or df[col].dtype == "float":
+                        bedtype += 1
                     else:
-                        return "unknown_bedtype"
+                        if no_fail:
+                            _LOGGER.warning(
+                                f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
+                            )
+                            return "unknown_bedtype"
+                        else:
+                            raise BedTypeException(
+                                reason=f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
+                            )
+
                 else:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
                         bedtype += 1
                     else:
-                        return "unknown_bedtype"
+                        if no_fail:
+                            _LOGGER.warning(
+                                f"Bed type could not be determined at column {col} with data type: {df[col].dtype}"
+                            )
+                            return "unknown_bedtype"
+                        else:
+                            raise BedTypeException(
+                                reason=f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
+                            )
             else:
                 if col == 3:
                     if df[col].dtype == "O":

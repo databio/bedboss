@@ -46,3 +46,16 @@ class RequirementsException(BedBossException):
         :param str reason: additional info about requirements exception
         """
         super(RequirementsException, self).__init__(reason)
+
+
+class BedTypeException(BedBossException):
+    """Exception when Bed Type could not be determined."""
+
+    def __init__(self, reason: str = ""):
+        """
+        Optionally provide explanation for exceptional condition.
+
+        :param str reason: some context why error occurred while
+        using Open Signal Matrix
+        """
+        super(BedTypeException, self).__init__(reason)
