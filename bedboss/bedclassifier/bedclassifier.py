@@ -4,6 +4,7 @@ import os
 import shutil
 from typing import Optional, Union
 
+import pandas.errors
 import pypiper
 import pandas as pd
 
@@ -62,12 +63,12 @@ class BedClassifier:
             self.pm_created = True
 
         if self.file_extension == ".gz":
-            if ".bed" not in self.file_name:
-                unzipped_input_file = os.path.join(
-                    self.output_dir, self.file_name + ".bed"
-                )
-            else:
-                unzipped_input_file = os.path.join(self.output_dir, self.file_name)
+            # if ".bed" not in self.file_name:
+            #     unzipped_input_file = os.path.join(
+            #         self.output_dir, self.file_name + ".bed"
+            #     )
+            # else:
+            unzipped_input_file = os.path.join(self.output_dir, self.file_name)
 
             with gzip.open(self.input_file, "rb") as f_in:
                 _LOGGER.info(
@@ -118,70 +119,77 @@ def get_bed_type(bed: str, standard_chrom: Optional[str] = None) -> Union[str, N
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
     # Use nrows to read only a few lines of the BED file (We don't need all of it)
-    df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
+    df = None
+    try:
+        df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
+    except pandas.errors.ParserError as e:
+        _LOGGER.warning(f"Unable to parse bed file {bed}, setting bed_type = Unknown")
     print(df)
-    df = df.dropna(axis=1)
+    if df is not None:
+        df = df.dropna(axis=1)
 
-    # standardizing chromosome
-    # remove regions on ChrUn chromosomes
-    if standard_chrom:
-        _LOGGER.info("Standardizing chromosomes...")
-        df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-        df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
+        # standardizing chromosome
+        # remove regions on ChrUn chromosomes
+        if standard_chrom:
+            _LOGGER.info("Standardizing chromosomes...")
+            df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
+            df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
 
-    num_cols = len(df.columns)
-    bedtype = 0
+        num_cols = len(df.columns)
+        bedtype = 0
 
-    # TODO add logic for narrow and broadpeak
-    for col in df:
-        if col <= 2:
-            if col == 0:
-                if df[col].dtype == "O":
-                    bedtype += 1
+        # TODO add logic for narrow and broadpeak
+        for col in df:
+            if col <= 2:
+                if col == 0:
+                    if df[col].dtype == "O":
+                        bedtype += 1
+                    else:
+                        return "unknown_bedtype"
                 else:
-                    return None
+                    if df[col].dtype == "int" and (df[col] >= 0).all():
+                        bedtype += 1
+                    else:
+                        return "unknown_bedtype"
             else:
-                if df[col].dtype == "int" and (df[col] >= 0).all():
-                    bedtype += 1
-                else:
-                    return None
-        else:
-            if col == 3:
-                if df[col].dtype == "O":
-                    bedtype += 1
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
-            elif col == 4:
-                if df[col].dtype == "int" and df[col].between(0, 1000).all():
-                    bedtype += 1
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
-            elif col == 5:
-                if df[col].isin(["+", "-", "."]).all():
-                    bedtype += 1
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
-            elif 6 <= col <= 8:
-                if df[col].dtype == "int" and (df[col] >= 0).all():
-                    bedtype += 1
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
-            elif col == 9:
-                if df[col].dtype == "int":
-                    bedtype += 1
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
-            elif col == 10 or col == 11:
-                if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
-                    bedtype += 1
+                if col == 3:
+                    if df[col].dtype == "O":
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
+                elif col == 4:
+                    if df[col].dtype == "int" and df[col].between(0, 1000).all():
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
+                elif col == 5:
+                    if df[col].isin(["+", "-", "."]).all():
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
+                elif 6 <= col <= 8:
+                    if df[col].dtype == "int" and (df[col] >= 0).all():
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
+                elif col == 9:
+                    if df[col].dtype == "int":
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
+                elif col == 10 or col == 11:
+                    if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
+                        bedtype += 1
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}"
                 else:
                     n = num_cols - bedtype
                     return f"bed{bedtype}+{n}"
-            else:
-                n = num_cols - bedtype
-                return f"bed{bedtype}+{n}"
+    else:
+        return "unknown_bedtype"

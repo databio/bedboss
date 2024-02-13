@@ -23,7 +23,26 @@ def test_get_bed_type():
     print(bedtype)
 
 
+def test_manual_dir_beds():
+    """This test is currently just for local manual testing"""
+    local_dir = "/home/drc/Downloads/test_beds_BED_classifier/"
+    output_dir = "/home/drc/Downloads/BED_CLASSIFIER_OUTPUT/"
+
+    for root, dirs, files in os.walk(local_dir):
+        for file in files:
+            print(file)
+            file_path = os.path.join(root, file)
+            print(file_path)
+            bedclass = BedClassifier(
+                input_file=file_path, output_dir=output_dir, bed_digest=file
+            )
+            print("\nDEBUG BEDCLASS\n")
+            print(bedclass.bed_type)
+            print("+++++++++++++++++++")
+
+
 if __name__ == "__main__":
     print("DEBUG FROM MAIN")
     test_get_bed_type()
     test_classification()
+    test_manual_dir_beds()
