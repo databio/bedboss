@@ -64,11 +64,6 @@ class BedClassifier:
             self.pm_created = True
 
         if self.file_extension == ".gz":
-            # if ".bed" not in self.file_name:
-            #     unzipped_input_file = os.path.join(
-            #         self.output_dir, self.file_name + ".bed"
-            #     )
-            # else:
             unzipped_input_file = os.path.join(self.output_dir, self.file_name)
 
             with gzip.open(self.input_file, "rb") as f_in:
