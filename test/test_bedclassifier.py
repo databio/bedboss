@@ -26,7 +26,8 @@ def test_get_bed_type():
 def test_manual_dir_beds():
     """This test is currently just for local manual testing"""
     # local_dir = "/home/drc/Downloads/test_beds_BED_classifier/"
-    local_dir = "/home/drc/Downloads/individual_beds/"
+    # local_dir = "/home/drc/Downloads/individual_beds/"
+    local_dir = "/home/drc/Downloads/only_narrowpeaks/"
     output_dir = "/home/drc/Downloads/BED_CLASSIFIER_OUTPUT/"
 
     for root, dirs, files in os.walk(local_dir):

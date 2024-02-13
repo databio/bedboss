@@ -125,18 +125,26 @@ def get_bed_type(
 
     df = None
 
-    try:
-        df = pd.read_csv(bed, sep="\t", header=None, nrows=4)
-    except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
-        if no_fail:
-            _LOGGER.warning(
-                f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = Unknown"
-            )
-            return "unknown_bedtype"
-        else:
-            raise BedTypeException(
-                reason=f"Bed type could not be determined due to CSV parse error {e}"
-            )
+    max_rows = 5
+    row_count = 0
+    while row_count <= max_rows:
+        print(f"ROW COUNT: {row_count}")
+        try:
+            df = pd.read_csv(bed, sep="\t", header=None, nrows=4, skiprows=row_count)
+            break
+        except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
+            if row_count <= max_rows:
+                row_count += 1
+            else:
+                if no_fail:
+                    _LOGGER.warning(
+                        f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
+                    )
+                    return "unknown_bedtype"
+                else:
+                    raise BedTypeException(
+                        reason=f"Bed type could not be determined due to CSV parse error {e}"
+                    )
 
     print(df)
     if df is not None:
@@ -152,7 +160,6 @@ def get_bed_type(
         num_cols = len(df.columns)
         bedtype = 0
 
-        # TODO add logic for narrow and broadpeak
         for col in df:
             if col <= 2:
                 if col == 0:
