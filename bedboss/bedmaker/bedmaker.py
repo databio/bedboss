@@ -20,6 +20,7 @@ from typing import NoReturn
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
 
+from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import RequirementsException
 
@@ -336,7 +337,7 @@ class BedMaker:
         temp = os.path.join(self.output_bigbed, next(tempfile._get_candidate_names()))
 
         if not os.path.exists(big_narrow_peak):
-            bedtype = self.get_bed_type(self.output_bed)
+            bedtype = get_bed_type(self.output_bed, standard_chrom=self.standard_chrom)
             self.pm.clean_add(temp)
 
             if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
@@ -455,91 +456,3 @@ class BedMaker:
         _LOGGER.info(f"Determined path to chrom.sizes asset: {chrom_sizes}")
 
         return chrom_sizes
-
-    def get_bed_type(self, bed: str) -> str:
-        """
-        get the bed file type (ex. bed3, bed3+n )
-        standardize chromosomes if necessary:
-        filter the input file to contain only the standard chromosomes,
-        remove regions on ChrUn chromosomes
-
-        :param bed: path to the bed file
-        :return bed type
-        """
-        #    column format for bed12
-        #    string chrom;       "Reference sequence chromosome or scaffold"
-        #    uint   chromStart;  "Start position in chromosome"
-        #    uint   chromEnd;    "End position in chromosome"
-        #    string name;        "Name of item."
-        #    uint score;          "Score (0-1000)"
-        #    char[1] strand;     "+ or - for strand"
-        #    uint thickStart;   "Start of where display should be thick (start codon)"
-        #    uint thickEnd;     "End of where display should be thick (stop codon)"
-        #    uint reserved;     "Used as itemRgb as of 2004-11-22"
-        #    int blockCount;    "Number of blocks"
-        #    int[blockCount] blockSizes; "Comma separated list of block sizes"
-        #    int[blockCount] chromStarts; "Start positions relative to chromStart"
-        df = pd.read_csv(bed, sep="\t", header=None)
-        df = df.dropna(axis=1)
-
-        # standardizing chromosome
-        # remove regions on ChrUn chromosomes
-        if self.standard_chrom:
-            _LOGGER.info("Standardizing chromosomes...")
-            df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-            df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
-
-        num_cols = len(df.columns)
-        bedtype = 0
-        for col in df:
-            if col <= 2:
-                if col == 0:
-                    if df[col].dtype == "O":
-                        bedtype += 1
-                    else:
-                        return None
-                else:
-                    if df[col].dtype == "int" and (df[col] >= 0).all():
-                        bedtype += 1
-                    else:
-                        return None
-            else:
-                if col == 3:
-                    if df[col].dtype == "O":
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 4:
-                    if df[col].dtype == "int" and df[col].between(0, 1000).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 5:
-                    if df[col].isin(["+", "-", "."]).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif 6 <= col <= 8:
-                    if df[col].dtype == "int" and (df[col] >= 0).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 9:
-                    if df[col].dtype == "int":
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 10 or col == 11:
-                    if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
