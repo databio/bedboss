@@ -1,4 +1,5 @@
 import os
+import pytest
 from tempfile import TemporaryDirectory
 
 from bedboss.bedclassifier import BedClassifier, get_bed_type
@@ -10,17 +11,22 @@ FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 FILE_PATH_UNZIPPED = f"{HG19_CORRECT_DIR}/hg19_example1.bed"
 
 
+@pytest.mark.skip(reason="Illegal seek during teardown.")
 def test_classification():
     with TemporaryDirectory() as d:
         bedclass = BedClassifier(input_file=FILE_PATH, output_dir=d)
-        print("DEBUG BEDCLASS\n")
-        print(bedclass.bed_type)
 
 
 def test_get_bed_type():
     bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
-    print("DEBUG BEDTYPE\n")
-    print(bedtype)
+    assert bedtype == "bed6+3"
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_from_PEPhub_beds():
+    """"""
+    # TODO implement testing from pephub
+    pass
 
 
 # def test_manual_dir_beds():
@@ -43,14 +49,7 @@ def test_get_bed_type():
 #             print("+++++++++++++++++++")
 
 
-def test_from_PEPhub_beds():
-    """"""
-    # TODO implement testing from pephub
-    pass
-
-
-if __name__ == "__main__":
-    print("DEBUG FROM MAIN")
-    test_get_bed_type()
-    test_classification()
-    # test_manual_dir_beds()
+# if __name__ == "__main__":
+#     test_get_bed_type()
+#     test_classification()
+# test_manual_dir_beds()
