@@ -19,7 +19,7 @@ def test_classification():
 
 def test_get_bed_type():
     bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
-    assert bedtype == "bed6+3"
+    assert bedtype == ("bed6+3", "bed")
 
 
 @pytest.mark.skip(reason="Not implemented")
