@@ -313,7 +313,6 @@ class BedMaker:
                 cmd.append(gzip_cmd)
         # creating cmd for bed files
         else:
-
             if self.standardize:
                 self.copy_with_standardization()
 
