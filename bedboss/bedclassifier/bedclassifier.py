@@ -146,6 +146,13 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
         num_cols = len(df.columns)
         bedtype = 0
 
+        if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed):
+            bed_type_named = "broadpeak"
+        elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed):
+            bed_type_named = "narrowpeak"
+        else:
+            bed_type_named = "bed"
+
         for col in df:
             if col <= 2:
                 if col == 0:
@@ -183,45 +190,39 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 5:
                     if df[col].isin(["+", "-", "."]).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 9:
                     if df[col].dtype == "int":
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        if "broadpeak" in bed or "broadPeak" in bed:
-                            return f"bed{bedtype}+{n}", "broadpeak"
-                        else:
-                            return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 10 or col == 11:
                     if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        if "narrowpeak" in bed or "narrowPeak" in bed:
-                            return f"bed{bedtype}+{n}", "narrowpeak"
-                        else:
-                            return f"bed{bedtype}+{n}", "bed"
+                        return f"bed{bedtype}+{n}", bed_type_named
                 else:
                     n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}", "bed"
+                    return f"bed{bedtype}+{n}", bed_type_named
     else:
         return "unknown_bedtype", "unknown_bedtype"
