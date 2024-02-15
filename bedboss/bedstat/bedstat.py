@@ -24,6 +24,7 @@ from bedboss.const import (
 )
 from bedboss.utils import download_file, convert_unit
 from bedboss.exceptions import OpenSignalMatrixException
+from bedboss.models import BedMetadata
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -55,6 +56,8 @@ def load_to_pephub(
         # Combine data into a dict for sending to pephub
         sample_data = {}
         sample_data.update({"sample_name": bed_digest, "genome": genome})
+
+        metadata = BedMetadata(**metadata).model_dump()
 
         for key, value in metadata.items():
             # TODO: Confirm this key is in the schema

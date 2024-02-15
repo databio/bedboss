@@ -195,6 +195,7 @@ class BedMaker:
         return {
             "bed_type": bed_type,
             "file_type": file_type,
+            "genome": self.genome,
         }
 
     def make_bed(self) -> None:
