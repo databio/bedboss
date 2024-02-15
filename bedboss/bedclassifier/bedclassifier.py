@@ -89,9 +89,7 @@ class BedClassifier:
             self.pm.stop_pipeline()
 
 
-def get_bed_type(
-    bed: str, standard_chrom: Optional[str] = None, no_fail: Optional[bool] = True
-) -> Tuple[str, str]:
+def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
     """
     get the bed file type (ex. bed3, bed3+n )
     standardize chromosomes if necessary:
@@ -100,7 +98,6 @@ def get_bed_type(
 
     :param bed: path to the bed file
     :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
-    :param standard_chrom:
     :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bedtype"], option [bed, narrowpeak, broadpeak, unknown_bedtype]]
     """
     #    column format for bed12
@@ -122,9 +119,10 @@ def get_bed_type(
     max_rows = 5
     row_count = 0
     while row_count <= max_rows:
-        print(f"ROW COUNT: {row_count}")
         try:
             df = pd.read_csv(bed, sep="\t", header=None, nrows=4, skiprows=row_count)
+            if row_count > 0:
+                _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
             break
         except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
             if row_count <= max_rows:
@@ -134,7 +132,7 @@ def get_bed_type(
                     _LOGGER.warning(
                         f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
                     )
-                    return ("unknown_bedtype", "unknown_bedtype")
+                    return "unknown_bedtype", "unknown_bedtype"
                 else:
                     raise BedTypeException(
                         reason=f"Bed type could not be determined due to CSV parse error {e}"
@@ -142,14 +140,6 @@ def get_bed_type(
 
     if df is not None:
         df = df.dropna(axis=1)
-
-        # standardizing chromosome
-        # remove regions on ChrUn chromosomes
-        if standard_chrom:
-            _LOGGER.info("Standardizing chromosomes...")
-            df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-            df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
-
         num_cols = len(df.columns)
         bedtype = 0
 
@@ -165,7 +155,7 @@ def get_bed_type(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
                             )
-                            return ("unknown_bedtype", "unknown_bedtype")
+                            return "unknown_bedtype", "unknown_bedtype"
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
@@ -179,7 +169,7 @@ def get_bed_type(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {col} with data type: {df[col].dtype}"
                             )
-                            return ("unknown_bedtype", "unknown_bedtype")
+                            return "unknown_bedtype", "unknown_bedtype"
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
@@ -190,45 +180,45 @@ def get_bed_type(
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return (f"bed{bedtype}+{n}", "bed")
+                        return f"bed{bedtype}+{n}", "bed"
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return (f"bed{bedtype}+{n}", "bed")
+                        return f"bed{bedtype}+{n}", "bed"
                 elif col == 5:
                     if df[col].isin(["+", "-", "."]).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return (f"bed{bedtype}+{n}", "bed")
+                        return f"bed{bedtype}+{n}", "bed"
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return (f"bed{bedtype}+{n}", "bed")
+                        return f"bed{bedtype}+{n}", "bed"
                 elif col == 9:
                     if df[col].dtype == "int":
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
                         if "broadpeak" in bed or "broadPeak" in bed:
-                            return (f"bed{bedtype}+{n}", "broadpeak")
+                            return f"bed{bedtype}+{n}", "broadpeak"
                         else:
-                            return (f"bed{bedtype}+{n}", "bed")
+                            return f"bed{bedtype}+{n}", "bed"
                 elif col == 10 or col == 11:
                     if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
                         if "narrowpeak" in bed or "narrowPeak" in bed:
-                            return (f"bed{bedtype}+{n}", "narrowpeak")
+                            return f"bed{bedtype}+{n}", "narrowpeak"
                         else:
-                            return (f"bed{bedtype}+{n}", "bed")
+                            return f"bed{bedtype}+{n}", "bed"
                 else:
                     n = num_cols - bedtype
-                    return (f"bed{bedtype}+{n}", "bed")
+                    return f"bed{bedtype}+{n}", "bed"
     else:
-        return ("unknown_bedtype", "unknown_bedtype")
+        return "unknown_bedtype", "unknown_bedtype"

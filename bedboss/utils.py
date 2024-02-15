@@ -3,7 +3,6 @@ import logging
 import urllib.request
 import re
 from bbconf import BedBaseConf
-from typing import NoReturn
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -11,7 +10,8 @@ _LOGGER = logging.getLogger("bedboss")
 
 def extract_file_name(file_path: str) -> str:
     """
-    Extraction file name from file path
+    Extraction bed file name from file path (Whether it is .bed or .bed.gz)
+    e.g. /path/to/file_name.bed.gz -> file_name
 
     :param file_path: full file path
     :return: file name without extension
@@ -48,7 +48,7 @@ def standardize_genome_name(input_genome: str) -> str:
         return input_genome
 
 
-def download_file(url: str, path: str, no_fail: bool = False) -> NoReturn:
+def download_file(url: str, path: str, no_fail: bool = False) -> None:
     """
     Download file from the url to specific location
 
@@ -88,3 +88,20 @@ def check_db_connection(bedbase_config: str) -> bool:
     except Exception as e:
         _LOGGER.error(f"Database connection failed. Error: {e}")
         return False
+
+
+def convert_unit(size_in_bytes: int) -> str:
+    """
+    Convert the size from bytes to other units like KB, MB or GB
+
+    :param int size_in_bytes: size in bytes
+    :return str: File size as string in different units
+    """
+    if size_in_bytes < 1024:
+        return str(size_in_bytes) + "bytes"
+    elif size_in_bytes in range(1024, 1024 * 1024):
+        return str(round(size_in_bytes / 1024, 2)) + "KB"
+    elif size_in_bytes in range(1024 * 1024, 1024 * 1024 * 1024):
+        return str(round(size_in_bytes / (1024 * 1024))) + "MB"
+    elif size_in_bytes >= 1024 * 1024 * 1024:
+        return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"

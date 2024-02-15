@@ -102,8 +102,8 @@ def build_argparser() -> ArgumentParser:
         action="store_true",
     )
     sub_all.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
         action="store_true",
     )
     sub_all.add_argument(
@@ -207,8 +207,8 @@ def build_argparser() -> ArgumentParser:
         action="store_false",
     )
     sub_all_pep.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
         action="store_true",
     )
     sub_all_pep.add_argument(
@@ -333,16 +333,14 @@ def build_argparser() -> ArgumentParser:
     )
     sub_make.add_argument(
         "--chrom-sizes",
-        help="whether standardize chromosome names. "
-        "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
-        "such as chrN_random and chrUn_random. [Default: False]",
+        help="A full path to the chrom.sizes required for the bedtobigbed conversion [optional]",
         default=None,
         type=str,
         required=False,
     )
     sub_make.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
         action="store_true",
     )
     # bed_stat

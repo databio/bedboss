@@ -12,68 +12,25 @@ from pephubclient.helpers import is_registry_path
 import bbconf
 
 from bedboss.bedstat.bedstat import bedstat
-from bedboss.bedmaker.bedmaker import BedMaker
+from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.qdrant_index import add_to_qdrant
 from bedboss.cli import build_argparser
 from bedboss.const import (
-    OS_HG19,
-    OS_HG38,
-    OS_MM10,
-    OPEN_SIGNAL_FOLDER_NAME,
-    OPEN_SIGNAL_URL,
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
     BEDBOSS_PEP_SCHEMA_PATH,
-    HOME_PATH,
 )
 from bedboss.utils import (
     extract_file_name,
     standardize_genome_name,
-    download_file,
     check_db_connection,
 )
-from bedboss.exceptions import OpenSignalMatrixException, BedBossException
+from bedboss.exceptions import BedBossException
 from bedboss._version import __version__
 
 _LOGGER = logging.getLogger("bedboss")
-
-
-def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
-    """
-    By providing genome name download Open Signal Matrix
-
-    :param genome: genome assembly
-    :param out_path: working directory, where osm should be saved. If None, current working directory will be used
-    :return: path to the Open Signal Matrix
-    """
-    # TODO: add more osm
-    _LOGGER.info("Getting Open Signal Matrix file path...")
-    if genome == "hg19" or genome == "GRCh37":
-        osm_name = OS_HG19
-    elif genome == "hg38" or genome == "GRCh38":
-        osm_name = OS_HG38
-    elif genome == "mm10" or genome == "GRCm38":
-        osm_name = OS_MM10
-    else:
-        raise OpenSignalMatrixException(
-            "For this genome open Signal Matrix was not found."
-        )
-    if not out_path:
-        osm_folder = os.path.join(HOME_PATH, OPEN_SIGNAL_FOLDER_NAME)
-    else:
-        osm_folder = os.path.join(out_path, OPEN_SIGNAL_FOLDER_NAME)
-
-    osm_path = os.path.join(osm_folder, osm_name)
-    if not os.path.exists(osm_path):
-        os.makedirs(osm_folder, exist_ok=True)
-        download_file(
-            url=f"{OPEN_SIGNAL_URL}{osm_name}",
-            path=osm_path,
-            no_fail=True,
-        )
-    return osm_path
 
 
 def run_all(
@@ -86,7 +43,7 @@ def run_all(
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
-    standard_chrom: bool = False,
+    standardize: bool = False,
     chrom_sizes: str = None,
     open_signal_matrix: str = None,
     ensdb: str = None,
@@ -113,7 +70,8 @@ def run_all(
     :param bool narrowpeak: whether the regions are narrow
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
-    :param bool standard_chrom: Standardize chromosome names. [optional] (Default: False)
+    :param bool standardize: Standardize bed file: filter the input file to contain only the standard chromosomes,
+        and remove headers if necessary [optional] (default: False)
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
     :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param dict other_metadata: a dict containing all attributes from the sample
@@ -128,7 +86,7 @@ def run_all(
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
-    _LOGGER.warning(f"Unused arguments: {kwargs}")
+    _LOGGER.warning(f"!Unused arguments: {kwargs}")
 
     if isinstance(bedbase_config, str):
         if not check_db_connection(bedbase_config=bedbase_config):
@@ -136,16 +94,6 @@ def run_all(
 
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
-
-    # find/download open signal matrix
-    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-        try:
-            open_signal_matrix = get_osm_path(genome)
-        except OpenSignalMatrixException:
-            _LOGGER.warning(
-                f"Open Signal Matrix was not found for {genome}. Skipping..."
-            )
-            open_signal_matrix = None
 
     output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
     output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
@@ -169,7 +117,7 @@ def run_all(
             recover=True,
         )
 
-    BedMaker(
+    classification_meta = make_all(
         input_file=input_file,
         input_type=input_type,
         output_bed=output_bed,
@@ -179,10 +127,11 @@ def run_all(
         rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
-        standard_chrom=standard_chrom,
+        standardize=standardize,
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
+    other_metadata.update(classification_meta)
 
     bed_digest = bedstat(
         bedfile=output_bed,
@@ -212,7 +161,7 @@ def insert_pep(
     create_bedset: bool = True,
     skip_qdrant: bool = True,
     check_qc: bool = True,
-    standard_chrom: bool = False,
+    standardize: bool = False,
     ensdb: str = None,
     just_db_commit: bool = False,
     no_db_commit: bool = False,
@@ -234,7 +183,7 @@ def insert_pep(
     :param bool create_bedset: whether to create bedset
     :param bool skip_qdrant: whether to skip qdrant indexing
     :param bool check_qc: whether to run quality control during badmaking
-    :param bool standard_chrom: whether to standardize chromosome names
+    :param bool standardize: "Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False"
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param bool just_db_commit: whether just to commit the JSON to the database
     :param bool no_db_commit: whether the JSON commit to the database should be skipped
@@ -282,7 +231,7 @@ def insert_pep(
             bedbase_config=bbc,
             rfg_config=rfg_config,
             check_qc=check_qc,
-            standard_chrom=standard_chrom,
+            standardize=standardize,
             ensdb=ensdb,
             just_db_commit=just_db_commit,
             no_db_commit=no_db_commit,
@@ -344,7 +293,7 @@ def main(test_args: dict = None) -> NoReturn:
     elif args_dict["command"] == "insert":
         insert_pep(pm=pm, **args_dict)
     elif args_dict["command"] == "make":
-        BedMaker(pm=pm, **args_dict)
+        make_all(pm=pm, **args_dict)
     elif args_dict["command"] == "qc":
         bedqc(pm=pm, **args_dict)
     elif args_dict["command"] == "stat":

@@ -1,11 +1,10 @@
-from typing import Union, NoReturn
+from typing import Union
 import json
 import os
 import requests
 import pypiper
 import bbconf
 import logging
-import pephubclient as phc
 from geniml.io import RegionSet
 from pephubclient import PEPHubClient
 from pephubclient.helpers import is_registry_path
@@ -16,7 +15,15 @@ from bedboss.const import (
     BED_FOLDER_NAME,
     BIGBED_FOLDER_NAME,
     BEDSTAT_OUTPUT,
+    OS_HG19,
+    OS_HG38,
+    OS_MM10,
+    HOME_PATH,
+    OPEN_SIGNAL_FOLDER_NAME,
+    OPEN_SIGNAL_URL,
 )
+from bedboss.utils import download_file, convert_unit
+from bedboss.exceptions import OpenSignalMatrixException
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -26,22 +33,6 @@ SCHEMA_PATH_BEDSTAT = os.path.join(
 )
 
 BED_PEP_REGISTRY = "databio/allbeds:bedbase"
-
-
-def convert_unit(size_in_bytes: int) -> str:
-    """
-    Convert the size from bytes to other units like KB, MB or GB
-    :param int size_in_bytes: size in bytes
-    :return str: File size as string in different units
-    """
-    if size_in_bytes < 1024:
-        return str(size_in_bytes) + "bytes"
-    elif size_in_bytes in range(1024, 1024 * 1024):
-        return str(round(size_in_bytes / 1024, 2)) + "KB"
-    elif size_in_bytes in range(1024 * 1024, 1024 * 1024 * 1024):
-        return str(round(size_in_bytes / (1024 * 1024))) + "MB"
-    elif size_in_bytes >= 1024 * 1024 * 1024:
-        return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
 
 
 def load_to_pephub(
@@ -66,7 +57,7 @@ def load_to_pephub(
         sample_data.update({"sample_name": bed_digest, "genome": genome})
 
         for key, value in metadata.items():
-            # TODO Confirm this key is in the schema
+            # TODO: Confirm this key is in the schema
             # Then update sample_data
             sample_data.update({key: value})
 
@@ -74,16 +65,16 @@ def load_to_pephub(
             PEPHubClient().sample.create(
                 namespace=parsed_pep_dict["namespace"],
                 name=parsed_pep_dict["item"],
-                tag=parsed_pep_dict["item"],
+                tag=parsed_pep_dict["tag"],
                 sample_name=bed_digest,
                 overwrite=True,
                 sample_dict=sample_data,
             )
 
         except Exception as e:  # Need more specific exception
-            _LOGGER.warning(f"Failed to upload BEDFILE to Bedbase: See {e}")
+            _LOGGER.error(f"Failed to upload BEDFILE to PEPhub: See {e}")
     else:
-        _LOGGER.warning(f"{pep_registry_path} is not a valid registry path")
+        _LOGGER.error(f"{pep_registry_path} is not a valid registry path")
 
 
 def load_to_s3(
@@ -104,15 +95,51 @@ def load_to_s3(
     :return: NoReturn
     """
     command = f"aws s3 cp {os.path.join(output_folder, bed_file)} s3://bedbase/{BED_FOLDER_NAME}"
-    _LOGGER.info("Uploading to s3 bed files")
+    _LOGGER.info("Uploading to s3 bed file")
     pm.run(cmd=command, lock_name="s3_sync_bed")
     if bigbed_file:
         command = f"aws s3 cp {os.path.join(output_folder, bigbed_file)} s3://bedbase/{BIGBED_FOLDER_NAME}"
-        _LOGGER.info("Uploading to s3 bigbed files")
+        _LOGGER.info("Uploading to s3 bigbed file")
         pm.run(cmd=command, lock_name="s3_sync_bigbed")
     command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME,BEDSTAT_OUTPUT, digest)} s3://bedbase/{OUTPUT_FOLDER_NAME}/{BEDSTAT_OUTPUT}/{digest} --size-only"
-    _LOGGER.info("Uploading to s3 bed statistics files")
+    _LOGGER.info("Uploading to s3 bed statistic files")
     pm.run(cmd=command, lock_name="s3_sync_bedstat")
+
+
+def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
+    """
+    By providing genome name download Open Signal Matrix
+
+    :param genome: genome assembly
+    :param out_path: working directory, where osm should be saved. If None, current working directory will be used
+    :return: path to the Open Signal Matrix
+    """
+    # TODO: add more osm
+    _LOGGER.info("Getting Open Signal Matrix file path...")
+    if genome == "hg19" or genome == "GRCh37":
+        osm_name = OS_HG19
+    elif genome == "hg38" or genome == "GRCh38":
+        osm_name = OS_HG38
+    elif genome == "mm10" or genome == "GRCm38":
+        osm_name = OS_MM10
+    else:
+        raise OpenSignalMatrixException(
+            "For this genome open Signal Matrix was not found."
+        )
+    if not out_path:
+        osm_folder = os.path.join(HOME_PATH, OPEN_SIGNAL_FOLDER_NAME)
+    else:
+        osm_folder = os.path.join(out_path, OPEN_SIGNAL_FOLDER_NAME)
+
+    osm_path = os.path.join(osm_folder, osm_name)
+    if not os.path.exists(osm_path):
+        os.makedirs(osm_folder, exist_ok=True)
+        download_file(
+            url=f"{OPEN_SIGNAL_URL}{osm_name}",
+            path=osm_path,
+            no_fail=True,
+        )
+    return osm_path
 
 
 def bedstat(
@@ -175,6 +202,22 @@ def bedstat(
     else:
         bbc = bedbase_config
 
+    # find/download open signal matrix
+    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
+        try:
+            open_signal_matrix = get_osm_path(genome)
+        except OpenSignalMatrixException:
+            _LOGGER.warning(
+                f"Open Signal Matrix was not found for {genome}. Skipping..."
+            )
+            open_signal_matrix = None
+
+    # Used to stop pipeline bedstat is used independently
+    if not pm:
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     bed_digest = RegionSet(bedfile).identifier
     bedfile_name = os.path.split(bedfile)[1]
 
@@ -212,9 +255,6 @@ def bedstat(
                 outfolder=pm_out_path,
                 pipestat_sample_name=bed_digest,
             )
-            stop_pipeline = True
-        else:
-            stop_pipeline = False
 
         rscript_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -318,12 +358,19 @@ def bedstat(
             values=data,
             force_overwrite=force_overwrite,
         )
+
     if upload_s3:
+        _LOGGER.info(f"Uploading '{bed_digest}' data to S3 ...")
         load_to_s3(
             os.path.abspath(outfolder), pm, bed_relpath, bed_digest, bigbed_relpath
         )
+    else:
+        _LOGGER.info(
+            f"Skipping uploading '{bed_digest}' data to S3. 'upload_s3' is set to False. "
+        )
 
     if not skip_qdrant:
+        _LOGGER.info(f"Adding '{bed_digest}' vector to Qdrant ...")
 
         bbc.add_bed_to_qdrant(
             bed_id=bed_digest,
@@ -335,14 +382,22 @@ def bedstat(
             values={"added_to_qdrant": True},
             force_overwrite=True,
         )
+    else:
+        _LOGGER.info(
+            f"Skipping adding '{bed_digest}' vector to Qdrant, 'skip_qdrant' is set to True. "
+        )
 
     if upload_pephub:
-        _LOGGER.info("UPLOADING TO PEPHUB...")
+        _LOGGER.info(f"Uploading metadata of '{bed_digest}' TO PEPhub ...")
         load_to_pephub(
             pep_registry_path=BED_PEP_REGISTRY,
             bed_digest=bed_digest,
             genome=genome,
             metadata=other_metadata,
+        )
+    else:
+        _LOGGER.info(
+            f"Metadata of '{bed_digest}' is NOT uploaded to PEPhub. 'upload_pephub' is set to False. "
         )
 
     if stop_pipeline:
