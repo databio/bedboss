@@ -61,17 +61,14 @@ def test_qc(bedfile, tmpdir):
             "command": "qc",
             "bedfile": bedfile,
             "outfolder": tmpdir,
+            "multy": True,
         }
     )
     assert qc_passed is None
 
 
 @pytest.mark.skipif(
-    not db_setup() or not dependencies_installed,
-    reason=pytest_db_skip_reason,
-)
-@pytest.mark.skipif(
-    not db_setup() or not dependencies_installed,
+    not dependencies_installed,
     reason=pytest_db_skip_reason,
 )
 @pytest.mark.parametrize(
@@ -92,6 +89,7 @@ def test_make(bedfile, tmpdir):
             "output_bigbed": os.path.join(tmpdir, "bigbed"),
             "outfolder": tmpdir,
             "no_db_commit": True,
+            "multy": True,
         }
     )
     assert os.path.isfile(os.path.join(tmpdir, "bed", "sample1.bed.gz"))
@@ -129,9 +127,9 @@ class TestStat:
                 "bigbed": bigbed_file,
                 "no_db_commit": True,
                 "skip_qdrant": True,
+                "multy": True,
             }
         )
-        assert True
 
     case_name = "sample1"
 
@@ -199,9 +197,9 @@ class TestAll:
                 "no_db_commit": True,
                 "outfolder": output_temp_dir,
                 "skip_qdrant": True,
+                "multy": True,
             }
         )
-        assert True
 
     case_name = "sample1"
 

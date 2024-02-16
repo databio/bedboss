@@ -164,6 +164,7 @@ class BedMaker:
                 name="bedmaker",
                 outfolder=self.logs_dir,
                 recover=True,
+                multi=True,
             )
         else:
             self.pm = pm

@@ -134,7 +134,10 @@ def run_all(
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
-    other_metadata.update(classification_meta)
+    if not other_metadata:
+        other_metadata = classification_meta
+    else:
+        other_metadata.update(classification_meta)
 
     bed_digest = bedstat(
         bedfile=output_bed,
@@ -293,6 +296,7 @@ def main(test_args: dict = None) -> NoReturn:
         outfolder=pm_out_folder,
         version=__version__,
         args=args,
+        multi=args_dict.get("multy", False),
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)

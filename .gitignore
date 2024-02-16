@@ -137,3 +137,6 @@ test/bedqc/*
 openSignalMatrix
 
 out2023/*
+
+# test data
+test/test_data/*

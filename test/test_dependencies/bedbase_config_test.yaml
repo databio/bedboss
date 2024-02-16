@@ -13,7 +13,7 @@ database:
   name: bedbase
   #name: pep-db
   dialect: postgresql
-  driver: psycopg2
+  driver: psycopg
 server:
   host: 0.0.0.0
   port: 8000
