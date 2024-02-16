@@ -3,7 +3,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
 
-class BED_TYPE(str, Enum):
+class FILE_TYPE(str, Enum):
     BED = "bed"
     NARROWPEAK = "narrowpeak"
     BROADPEAK = "broadpeak"
@@ -12,9 +12,9 @@ class BED_TYPE(str, Enum):
 class BedMetadata(BaseModel):
     sample_name: str
     genome: str
-    file_type: BED_TYPE = BED_TYPE.BED
+    file_type: FILE_TYPE = FILE_TYPE.BED
     bed_type: str = Field(
-        default="bed3", pattern="^bed(?:[3-9]|1[0-2])(?:\+|$)[0-9]?+$"
+        default="bed3", pattern="^bed(?:[3-9]|1[0-5])(?:\+|$)[0-9]?+$"
     )
     description: str = None
     organism: str = None

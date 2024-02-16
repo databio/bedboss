@@ -90,7 +90,7 @@ def run_all(
 
     if isinstance(bedbase_config, str):
         if not check_db_connection(bedbase_config=bedbase_config):
-            raise Exception("Database connection failed. Exiting...")
+            raise BedBossException("Database connection failed. Exiting...")
 
     file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
@@ -116,6 +116,9 @@ def run_all(
             version=__version__,
             recover=True,
         )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
 
     classification_meta = make_all(
         input_file=input_file,
@@ -150,6 +153,9 @@ def run_all(
         upload_pephub=upload_pephub,
         pm=pm,
     )
+    if stop_pipeline:
+        pm.stop_pipeline()
+
     return bed_digest
 
 
