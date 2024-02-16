@@ -83,10 +83,19 @@ class BedClassifier:
                     f"BED file classified as different type than given input: {self.bed_type} vs {self.input_type}"
                 )
 
-        self.pm.report_result(
-            key="bedtype",
-            value={"bedtype1": self.bed_type[0], "bedtype2": self.bed_type[1]},
-        )
+        if self.bed_type is not None:
+            self.pm.report_result(
+                key="bedtype",
+                value={"bedtype1": self.bed_type[0], "bedtype2": self.bed_type[1]},
+            )
+        else:
+            _LOGGER.warning(
+                f"BED file classification returned NoneType, reporting as 'None' "
+            )
+            self.pm.report_result(
+                key="bedtype",
+                value={"bedtype1": None, "bedtype2": None},
+            )
 
         if self.pm_created is True:
             self.pm.stop_pipeline()

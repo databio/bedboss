@@ -31,9 +31,9 @@ def test_from_PEPhub_beds():
 
 # def test_manual_dir_beds():
 #     """This test is currently just for local manual testing"""
-#     # local_dir = "/home/drc/Downloads/test_beds_BED_classifier/"
-#     # local_dir = "/home/drc/Downloads/individual_beds/"
-#     local_dir = "/home/drc/Downloads/only_narrowpeaks/"
+#     local_dir = "/home/drc/Downloads/test_beds_BED_classifier/"
+#     #local_dir = "/home/drc/Downloads/individual_beds/"
+#     #local_dir = "/home/drc/Downloads/only_narrowpeaks/"
 #     output_dir = "/home/drc/Downloads/BED_CLASSIFIER_OUTPUT/"
 #
 #     for root, dirs, files in os.walk(local_dir):
@@ -47,9 +47,9 @@ def test_from_PEPhub_beds():
 #             print("\nDEBUG BEDCLASS\n")
 #             print(bedclass.bed_type)
 #             print("+++++++++++++++++++")
-
-
+#
+#
 # if __name__ == "__main__":
-#     test_get_bed_type()
-#     test_classification()
-# test_manual_dir_beds()
+#     # test_get_bed_type()
+#     # test_classification()
+#     test_manual_dir_beds()
