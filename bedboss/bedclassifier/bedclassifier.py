@@ -235,7 +235,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                     return f"bed{bedtype}+{n}", bed_type_named
 
         # This is to catch any files that are assigned a bed number but don't adhere to the above conditions
-        return f"bed{bedtype}+0", "unknown_bedtype"
+        return f"bed{bedtype}+0", bed_type_named
 
     else:
         return "unknown_bedtype", "unknown_bedtype"
