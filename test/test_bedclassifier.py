@@ -33,7 +33,7 @@ def test_classification():
 
 def test_get_bed_type():
     bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
-    assert bedtype == ("bed6+3", "bed")
+    assert bedtype == ("bed6+3", "broadpeak")
 
 
 @pytest.mark.parametrize(
