@@ -69,16 +69,17 @@ def test_from_PEPhub_beds():
     pass
 
 
+#
 # def test_manual_dir_beds():
 #     """This test is currently just for local manual testing"""
 #     local_dir = "/home/drc/Downloads/test_beds_BED_classifier/"
-#     #local_dir = "/home/drc/Downloads/individual_beds/"
-#     #local_dir = "/home/drc/Downloads/only_narrowpeaks/"
+#     # local_dir = "/home/drc/Downloads/individual_beds/"
+#     # local_dir = "/home/drc/Downloads/only_narrowpeaks/"
 #     output_dir = "/home/drc/Downloads/BED_CLASSIFIER_OUTPUT/"
-#     #local_dir = "/home/drc/Downloads/encode_beds/bedfiles/"
-#     #output_dir = "/home/drc/Downloads/encode_beds/output/"
-#     #local_dir ="/home/drc/Downloads/single_encode_beds/bedfiles/"
-#     #output_dir ="/home/drc/Downloads/single_encode_beds/output/"
+#     # local_dir = "/home/drc/Downloads/encode_beds/bedfiles/"
+#     # output_dir = "/home/drc/Downloads/encode_beds/output/"
+#     # local_dir = "/home/drc/Downloads/single_encode_beds/bedfiles/"
+#     # output_dir = "/home/drc/Downloads/single_encode_beds/output/"
 #
 #     for root, dirs, files in os.walk(local_dir):
 #         for file in files:
@@ -93,6 +94,7 @@ def test_from_PEPhub_beds():
 #             print("+++++++++++++++++++")
 #
 #
+# #
 # if __name__ == "__main__":
 #     # test_get_bed_type()
 #     # test_classification()
