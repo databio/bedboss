@@ -214,7 +214,41 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
+                        # TODO Should we be increasing bedtype after 6?
                         bedtype += 1
+                    elif num_cols == 10:
+                        # This is a catch to see if this is actually a narrowpeak file that is unnamed
+                        if col == 6 and all(
+                            [
+                                (df[col].dtype == "float" or df[col][0] == -1),
+                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                                (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
+                                (df[col + 3].dtype == "int" or df[col + 3][0] == -1),
+                            ]
+                        ):
+                            n = num_cols - bedtype
+                            bed_type_named = "narrowpeak"
+                            return f"bed{bedtype}+{n}", bed_type_named
+                        else:
+                            n = num_cols - bedtype
+                            return f"bed{bedtype}+{n}", bed_type_named
+
+                    elif num_cols == 9:
+                        # This is a catch to see if this is actually a broadpeak file that is unnamed
+
+                        if all(
+                            [
+                                (df[col].dtype == "float" or df[col][0] == -1),
+                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                                (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
+                            ]
+                        ):
+                            n = num_cols - bedtype
+                            bed_type_named = "broadpeak"
+                            return f"bed{bedtype}+{n}", bed_type_named
+                        else:
+                            n = num_cols - bedtype
+                            return f"bed{bedtype}+{n}", bed_type_named
                     else:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
