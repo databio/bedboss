@@ -12,7 +12,7 @@ class FILE_TYPE(str, Enum):
 class BedMetadata(BaseModel):
     sample_name: str
     genome: str
-    file_type: FILE_TYPE = FILE_TYPE.BED
+    format_type: FILE_TYPE = FILE_TYPE.BED
     bed_type: str = Field(
         default="bed3", pattern="^bed(?:[3-9]|1[0-5])(?:\+|$)[0-9]?+$"
     )

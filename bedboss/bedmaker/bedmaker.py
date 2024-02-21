@@ -180,10 +180,10 @@ class BedMaker:
         # converting to bed.gz if needed
         self.make_bed()
         try:
-            bed_type, file_type = get_bed_type(self.input_file)
+            bed_type, format_type = get_bed_type(self.input_file)
         except Exception:
             # we need this exception to catch the case when the input file is not a bed file
-            bed_type, file_type = get_bed_type(self.output_bed)
+            bed_type, format_type = get_bed_type(self.output_bed)
         if self.check_qc:
             bedqc(
                 self.output_bed,
