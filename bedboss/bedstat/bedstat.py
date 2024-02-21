@@ -74,7 +74,7 @@ def bedstat(
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
     pm: pypiper.PipelineManager = None,
-    # **kwargs,
+    **kwargs,
 ) -> dict:
     """
     Run bedstat pipeline - pipeline for obtaining statistics about bed files

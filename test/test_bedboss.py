@@ -122,11 +122,8 @@ class TestStat:
                 "command": "stat",
                 "bedfile": bedfile,
                 "outfolder": output_temp_dir,
-                "bedbase_config": BEDBASE_CONFIG,
                 "genome": genome,
                 "bigbed": bigbed_file,
-                "no_db_commit": True,
-                "skip_qdrant": True,
                 "multy": True,
             }
         )
