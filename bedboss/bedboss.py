@@ -219,9 +219,8 @@ def run_all(
         pm=pm,
     )
     if not other_metadata:
-        other_metadata = classification_meta
-    else:
-        other_metadata.update(classification_meta)
+        other_metadata = {}
+
     bed_digest = classification_meta.get("digest")
 
     statistics_dict = bedstat(
@@ -234,6 +233,12 @@ def run_all(
         bigbed=output_bigbed,
         just_db_commit=just_db_commit,
         pm=pm,
+    )
+    statistics_dict.update(
+        {
+            "bed_type": classification_meta["bed_type"],
+            "bed_format": classification_meta["bed_format"],
+        }
     )
 
     if db_commit:

@@ -181,10 +181,10 @@ class BedMaker:
         # converting to bed.gz if needed
         self.make_bed()
         try:
-            bed_type, format_type = get_bed_type(self.input_file)
+            bed_type, bed_format = get_bed_type(self.input_file)
         except Exception:
             # we need this exception to catch the case when the input file is not a bed file
-            bed_type, format_type = get_bed_type(self.output_bed)
+            bed_type, bed_format = get_bed_type(self.output_bed)
         if self.check_qc:
             bedqc(
                 self.output_bed,
@@ -196,7 +196,7 @@ class BedMaker:
 
         return {
             "bed_type": bed_type,
-            "file_type": format_type,
+            "bed_format": bed_format,
             "genome": self.genome,
             "digest": RegionSet(self.output_bed).identifier,
         }
@@ -551,7 +551,13 @@ def make_all(
         ChrUn chromosomes
     :param check_qc: run quality control during bedmaking
     :param pm: pypiper object
-    :return: dict with bed classificator results
+    :return: dict with generated bed metadata:
+        {
+            "bed_type": bed_type. e.g. bed, bigbed
+            "bed_format": bed_format. e.g. narrowpeak, broadpeak
+            "genome": genome of the sample,
+            "digest": bedfile identifier,
+        }
     """
     return BedMaker(
         input_file=input_file,
