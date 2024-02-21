@@ -71,3 +71,10 @@ coloredlogs.install(
     datefmt="%H:%M:%S",
     fmt="[%(levelname)s] [%(asctime)s] [BBCONF] %(message)s",
 )
+
+_LOGGER_BBCONF = logging.getLogger("pephubclient")
+coloredlogs.install(
+    logger=_LOGGER_BBCONF,
+    datefmt="%H:%M:%S",
+    fmt="[%(levelname)s] [%(asctime)s] [PEPHUBCLIENT] %(message)s",
+)
