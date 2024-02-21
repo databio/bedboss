@@ -61,3 +61,5 @@ DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
 
 BEDBOSS_PEP_SCHEMA_PATH = "https://schema.databio.org/pipelines/bedboss.yaml"
 REFGENIE_ENV_VAR = "REFGENIE"
+
+BED_PEP_REGISTRY = "databio/allbeds:bedbase"

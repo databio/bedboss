@@ -18,6 +18,7 @@ from refgenconf import (
 from refgenconf.exceptions import MissingGenomeError
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
+from geniml.io import RegionSet
 
 from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedqc.bedqc import bedqc
@@ -197,6 +198,7 @@ class BedMaker:
             "bed_type": bed_type,
             "file_type": format_type,
             "genome": self.genome,
+            "digest": RegionSet(self.output_bed).identifier,
         }
 
     def make_bed(self) -> None:
