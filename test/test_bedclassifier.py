@@ -1,4 +1,6 @@
 import os
+
+import pypiper
 import pytest
 from tempfile import TemporaryDirectory
 
@@ -10,16 +12,54 @@ HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
 FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 FILE_PATH_UNZIPPED = f"{HG19_CORRECT_DIR}/hg19_example1.bed"
 
+SIMPLE_EXAMPLES_DIR = os.path.join(FILE_DIR, "data", "bed", "simpleexamples")
+BED1 = f"{SIMPLE_EXAMPLES_DIR}/bed1.bed"
+BED2 = f"{SIMPLE_EXAMPLES_DIR}/bed2.bed"
+BED3 = f"{SIMPLE_EXAMPLES_DIR}/bed3.bed"
 
-@pytest.mark.skip(reason="Illegal seek during teardown.")
+
 def test_classification():
     with TemporaryDirectory() as d:
-        bedclass = BedClassifier(input_file=FILE_PATH, output_dir=d)
+        pm = pypiper.PipelineManager(
+            name="bedclassifier",
+            outfolder=d,
+            recover=True,
+            pipestat_sample_name="Generic_Digest",
+            multi=True,
+        )
+        bedclass = BedClassifier(input_file=FILE_PATH, output_dir=d, pm=pm)
+        pm.complete()
 
 
 def test_get_bed_type():
     bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
     assert bedtype == ("bed6+3", "bed")
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        (BED1, ("bed6+4", "narrowpeak")),
+        (BED2, ("bed6+3", "broadpeak")),
+        (BED3, ("bed6+2", "bed")),
+    ],
+)
+def test_get_bed_types(values):
+    # bed1 is encode narrowpeak
+    # bed2 is encode broadpeak
+    # bed 3 is encode bed6+ (6+2)
+
+    with TemporaryDirectory() as d:
+        pm = pypiper.PipelineManager(
+            name="bedclassifier",
+            outfolder=d,
+            recover=True,
+            pipestat_sample_name="Generic_Digest",
+            multi=True,
+        )
+        bedclass = BedClassifier(input_file=values[0], output_dir=d, pm=pm)
+        pm.complete()
+        assert bedclass.bed_type == values[1]
 
 
 @pytest.mark.skip(reason="Not implemented")
