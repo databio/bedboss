@@ -285,19 +285,24 @@ def run_bedbuncher(
             f"Description for bedset {bedset_name or pep_of_bed.get('name')} was not provided."
         )
     record_id = bedset_name or pep_of_bed.name
-    add_bedset_to_database(
-        bbc,
-        record_id=record_id,
-        bed_set=bedset,
-        bedset_name=bedset_name or pep_of_bed.name,
-        genome=dict(pep_of_bed.config.get("genome", {})),
-        description=pep_of_bed.description or "",
-        # pephub_registry_path=pephub_registry_path,
-        heavy=heavy,
-    )
+    try:
+        add_bedset_to_database(
+            bbc,
+            record_id=record_id,
+            bed_set=bedset,
+            bedset_name=bedset_name or pep_of_bed.name,
+            genome=dict(pep_of_bed.config.get("genome", {})),
+            description=pep_of_bed.description or "",
+            # pephub_registry_path=pephub_registry_path,
+            heavy=heavy,
+        )
+    except Exception as err:
+        pass
     if upload_pephub:
         phc = pephubclient.PEPHubClient()
-        reg_path_obj = parse_registry_path(pephub_registry_path)
+        reg_path_obj = parse_registry_path(BED_PEP_REGISTRY)
+        bed_ids = [sample.identifier for sample in bedset if sample.identifier is not None]
+        print(bed_ids)
         phc.view.create(
             namespace=reg_path_obj["namespace"],
             name=reg_path_obj["item"],
