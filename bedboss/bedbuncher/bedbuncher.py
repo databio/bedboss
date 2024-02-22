@@ -301,14 +301,18 @@ def run_bedbuncher(
     if upload_pephub:
         phc = pephubclient.PEPHubClient()
         reg_path_obj = parse_registry_path(BED_PEP_REGISTRY)
-        bed_ids = [sample.identifier for sample in bedset if sample.identifier is not None]
+        bed_ids = [
+            sample.record_identifier
+            for sample in pep_of_bed.samples
+            if sample.get("record_identifier") is not None
+        ]
         print(bed_ids)
         phc.view.create(
             namespace=reg_path_obj["namespace"],
             name=reg_path_obj["item"],
             tag=reg_path_obj["tag"],
             view_name=record_id,
-            sample_list=[sample.identifier for sample in bedset],
+            sample_list=bed_ids,
         )
     return None
 
