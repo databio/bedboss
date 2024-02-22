@@ -28,7 +28,7 @@ from bedboss.const import (
     BEDSTAT_OUTPUT,
     BED_PEP_REGISTRY,
 )
-from bedboss.models import BedMetadata
+from bedboss.models import BedMetadata, BedStatCLIModel, BedMakerCLIModel, BedQCCLIModel
 from bedboss.utils import (
     extract_file_name,
     standardize_genome_name,
@@ -310,6 +310,7 @@ def insert_pep(
     force_overwrite: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
+    upload_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
@@ -327,11 +328,12 @@ def insert_pep(
     :param bool check_qc: whether to run quality control during badmaking
     :param bool standardize: "Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False"
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param bool just_db_commit: whether just to commit the JSON to the database
-    :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool just_db_commit: whether save only to the database (Without saving locally )
+    :param bool db_commit: whether to upload data to the database
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
+    :param bool upload_qdrant: whether to execute qdrant indexing
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -436,11 +438,11 @@ def main(test_args: dict = None) -> NoReturn:
     elif args_dict["command"] == "insert":
         insert_pep(pm=pm, **args_dict)
     elif args_dict["command"] == "make":
-        make_all(pm=pm, **args_dict)
+        make_all(**BedMakerCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "qc":
-        bedqc(pm=pm, **args_dict)
+        bedqc(**BedQCCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "stat":
-        bedstat(pm=pm, **args_dict)
+        bedstat(**BedStatCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "bunch":
         run_bedbuncher(pm=pm, **args_dict)
     elif args_dict["command"] == "index":

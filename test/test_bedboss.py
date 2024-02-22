@@ -60,7 +60,7 @@ def test_qc(bedfile, tmpdir):
         {
             "command": "qc",
             "bedfile": bedfile,
-            "outfolder": tmpdir,
+            "outfolder": str(tmpdir),
             "multy": True,
         }
     )
@@ -193,7 +193,6 @@ class TestAll:
                 "bedbase_config": BEDBASE_CONFIG,
                 "no_db_commit": True,
                 "outfolder": output_temp_dir,
-                "skip_qdrant": True,
                 "multy": True,
             }
         )

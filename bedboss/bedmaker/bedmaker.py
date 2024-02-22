@@ -61,7 +61,6 @@ class BedMaker:
         standardize: bool = False,
         check_qc: bool = True,
         pm: pypiper.PipelineManager = None,
-        **kwargs,
     ):
         """
         Pypiper pipeline to convert supported file formats into
