@@ -301,7 +301,6 @@ def insert_pep(
     pep: Union[str, peppy.Project],
     rfg_config: str = None,
     create_bedset: bool = True,
-    skip_qdrant: bool = True,
     check_qc: bool = True,
     standardize: bool = False,
     ensdb: str = None,
@@ -324,7 +323,7 @@ def insert_pep(
     :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
     :param str rfg_config: path to the genome config file (refgenie)
     :param bool create_bedset: whether to create bedset
-    :param bool skip_qdrant: whether to skip qdrant indexing
+    :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param bool standardize: "Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False"
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
@@ -338,6 +337,8 @@ def insert_pep(
     :return: None
     """
 
+    _LOGGER.warning(f"!Unused arguments: {kwargs}")
+    failed_samples = []
     pephub_registry_path = None
     if isinstance(pep, peppy.Project):
         pass
@@ -356,36 +357,41 @@ def insert_pep(
 
     for i, pep_sample in enumerate(pep.samples):
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
-
-        if pep_sample.get("file_type").lower() == "narrowpeak":
-            is_narrow_peak = True
+        if pep_sample.get("file_type"):
+            if pep_sample.get("file_type").lower() == "narrowpeak":
+                is_narrow_peak = True
+            else:
+                is_narrow_peak = False
         else:
             is_narrow_peak = False
-
-        bed_id = run_all(
-            sample_name=pep_sample.sample_name,
-            input_file=pep_sample.input_file,
-            input_type=pep_sample.input_type,
-            genome=pep_sample.genome,
-            narrowpeak=is_narrow_peak,
-            chrom_sizes=pep_sample.get("chrom_sizes"),
-            open_signal_matrix=pep_sample.get("open_signal_matrix"),
-            other_metadata=pep_sample.to_dict(),
-            outfolder=output_folder,
-            bedbase_config=bbc,
-            rfg_config=rfg_config,
-            check_qc=check_qc,
-            standardize=standardize,
-            ensdb=ensdb,
-            just_db_commit=just_db_commit,
-            no_db_commit=no_db_commit,
-            force_overwrite=force_overwrite,
-            skip_qdrant=skip_qdrant,
-            upload_s3=upload_s3,
-            upload_pephub=upload_pephub,
-            pm=pm,
-        )
-        pep.samples[i].record_identifier = bed_id
+        try:
+            bed_id = run_all(
+                sample_name=pep_sample.sample_name,
+                input_file=pep_sample.input_file,
+                input_type=pep_sample.input_type,
+                genome=pep_sample.genome,
+                narrowpeak=is_narrow_peak,
+                chrom_sizes=pep_sample.get("chrom_sizes"),
+                open_signal_matrix=pep_sample.get("open_signal_matrix"),
+                other_metadata=pep_sample.to_dict(),
+                outfolder=output_folder,
+                bedbase_config=bbc,
+                rfg_config=rfg_config,
+                check_qc=check_qc,
+                standardize=standardize,
+                ensdb=ensdb,
+                just_db_commit=just_db_commit,
+                no_db_commit=no_db_commit,
+                force_overwrite=force_overwrite,
+                upload_qdrant=upload_qdrant,
+                upload_s3=upload_s3,
+                upload_pephub=upload_pephub,
+                pm=pm,
+            )
+            pep.samples[i].record_identifier = bed_id
+        except BedBossException as e:
+            _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
+            failed_samples.append(pep_sample.sample_name)
 
     else:
         _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
@@ -396,11 +402,13 @@ def insert_pep(
             bedbase_config=bbc,
             bedset_pep=pep,
             pephub_registry_path=pephub_registry_path,
+            upload_pephub=upload_pephub,
         )
     else:
         _LOGGER.info(
             f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
         )
+    _LOGGER.info(f"Failed samples: {failed_samples}")
 
 
 def main(test_args: dict = None) -> NoReturn:

@@ -12,11 +12,12 @@ import peppy
 import pephubclient
 from pephubclient.helpers import is_registry_path
 import logging
+from ubiquerg import parse_registry_path
 
 from bedboss.const import (
     DEFAULT_BEDBASE_API_URL,
     DEFAULT_BEDBASE_CACHE_PATH,
-    OUTPUT_FOLDER_NAME,
+    BED_PEP_REGISTRY,
 )
 
 
@@ -37,11 +38,14 @@ def create_bedset_from_pep(
     _LOGGER.info("Creating bedset from pep.")
     new_bedset = BedSet()
     for bedfile_id in pep.samples:
-        bedfile_object = BBClient(
-            cache_folder=cache_folder,
-            bedbase_api=bedbase_api,
-        ).load_bed(bedfile_id.get("record_identifier") or bedfile_id.sample_name)
-        new_bedset.add(bedfile_object)
+        try:
+            bedfile_object = BBClient(
+                cache_folder=cache_folder,
+                bedbase_api=bedbase_api,
+            ).load_bed(bedfile_id.get("record_identifier") or bedfile_id.sample_name)
+            new_bedset.add(bedfile_object)
+        except Exception as err:
+            pass
     _LOGGER.info("Bedset was created successfully")
     return new_bedset
 
@@ -231,6 +235,7 @@ def run_bedbuncher(
     bedbase_api: str = DEFAULT_BEDBASE_API_URL,
     cache_path: str = DEFAULT_BEDBASE_CACHE_PATH,
     heavy: bool = False,
+    upload_pephub: bool = False,
     *args,
     **kwargs,
 ) -> None:
@@ -244,6 +249,7 @@ def run_bedbuncher(
     :param cache_path: path to the cache folder [DEFAULT: ./bedbase_cache]
     :param heavy: whether to use heavy processing (add all columns to the database).
         if False -> R-script won't be executed, only basic statistics will be calculated
+    :param upload_pephub: whether to upload bedset to pephub
     :return: None
     """
 
@@ -278,17 +284,27 @@ def run_bedbuncher(
         _LOGGER.warning(
             f"Description for bedset {bedset_name or pep_of_bed.get('name')} was not provided."
         )
-
+    record_id = bedset_name or pep_of_bed.name
     add_bedset_to_database(
         bbc,
-        record_id=bedset_name or pep_of_bed.name,
+        record_id=record_id,
         bed_set=bedset,
         bedset_name=bedset_name or pep_of_bed.name,
         genome=dict(pep_of_bed.config.get("genome", {})),
         description=pep_of_bed.description or "",
-        pephub_registry_path=pephub_registry_path,
+        # pephub_registry_path=pephub_registry_path,
         heavy=heavy,
     )
+    if upload_pephub:
+        phc = pephubclient.PEPHubClient()
+        reg_path_obj = parse_registry_path(pephub_registry_path)
+        phc.view.create(
+            namespace=reg_path_obj["namespace"],
+            name=reg_path_obj["item"],
+            tag=reg_path_obj["tag"],
+            view_name=record_id,
+            sample_list=[sample.identifier for sample in bedset],
+        )
     return None
 
 
