@@ -29,6 +29,7 @@ def bedqc(
     :param min_region_width: Minimum region width threshold to pass the quality check.
     :param pm: Pypiper object for managing pipeline operations.
     :return: True if the file passes the quality check.
+    :raises QualityException: if the file does not pass the quality
     """
     _LOGGER.info("Running bedqc...")
 
