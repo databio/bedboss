@@ -8,6 +8,7 @@ import logmuse
 import peppy
 from eido import validate_project
 import bbconf
+import subprocess
 
 import pephubclient
 from pephubclient import PEPHubClient
@@ -111,6 +112,18 @@ def load_to_s3(
     command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME,BEDSTAT_OUTPUT, digest)} s3://bedbase/{OUTPUT_FOLDER_NAME}/{BEDSTAT_OUTPUT}/{digest} --size-only"
     _LOGGER.info("Uploading to s3 bed statistic files")
     pm.run(cmd=command, lock_name="s3_sync_bedstat")
+
+
+def requirements_check() -> None:
+    """
+    Check if all requirements are installed
+
+    :return: None
+    """
+    _LOGGER.info("Checking requirements...")
+    subprocess.run(
+        ["bash", f"{os.path.dirname(os.path.abspath(__file__))}/requirements_test.sh"]
+    )
 
 
 def run_all(
@@ -433,13 +446,13 @@ def main(test_args: dict = None) -> NoReturn:
         or "test_outfolder",
     )
     pm_out_folder = os.path.join(os.path.abspath(pm_out_folder[0]), "pipeline_manager")
-
     pm = pypiper.PipelineManager(
         name="bedboss-pipeline",
         outfolder=pm_out_folder,
         version=__version__,
-        args=args,
+        # args=args,
         multi=args_dict.get("multy", False),
+        recover=True,
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
@@ -455,6 +468,8 @@ def main(test_args: dict = None) -> NoReturn:
         run_bedbuncher(pm=pm, **args_dict)
     elif args_dict["command"] == "index":
         add_to_qdrant(pm=pm, **args_dict)
+    elif args_dict["command"] == "requirements-check":
+        requirements_check()
     else:
         parser.print_help()
         # raise Exception("Incorrect pipeline name.")

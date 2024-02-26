@@ -317,8 +317,8 @@ def run_bedbuncher(
     return None
 
 
-if __name__ == "__main__":
-    run_bedbuncher(
-        "/media/alex/Extreme SSD/databio/repos/bedbase_all/bedhost/bedbase_configuration_compose.yaml",
-        "databio/excluderanges:id3",
-    )
+# if __name__ == "__main__":
+#     run_bedbuncher(
+#         "/media/alex/Extreme SSD/databio/repos/bedbase_all/bedhost/bedbase_configuration_compose.yaml",
+#         "databio/excluderanges:id3",
+#     )

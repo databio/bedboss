@@ -51,6 +51,10 @@ def build_argparser() -> ArgumentParser:
         "index", help="Index not indexed bed files and add them to the qdrant database "
     )
 
+    subparser.add_parser(
+        "requirements-check", help="Check if all requirements are installed"
+    )
+
     sub_all.add_argument(
         "--outfolder",
         required=True,
