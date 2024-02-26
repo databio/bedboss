@@ -61,7 +61,6 @@ class BedMaker:
         standardize: bool = False,
         check_qc: bool = True,
         pm: pypiper.PipelineManager = None,
-        **kwargs,
     ):
         """
         Pypiper pipeline to convert supported file formats into
@@ -186,11 +185,16 @@ class BedMaker:
             # we need this exception to catch the case when the input file is not a bed file
             bed_type, bed_format = get_bed_type(self.output_bed)
         if self.check_qc:
-            bedqc(
-                self.output_bed,
-                outfolder=os.path.join(self.bed_parent, QC_FOLDER_NAME),
-                pm=self.pm,
-            )
+            try:
+                bedqc(
+                    self.output_bed,
+                    outfolder=os.path.join(self.bed_parent, QC_FOLDER_NAME),
+                    pm=self.pm,
+                )
+            except Exception as e:
+                raise BedBossException(
+                    f"Quality control failed for {self.output_bed}. Error: {e}"
+                )
 
         self.make_bigbed(bed_type=bed_type)
 
@@ -356,7 +360,7 @@ class BedMaker:
             except (pd.errors.ParserError, pd.errors.EmptyDataError) as e:
                 if row_count <= max_rows:
                     row_count += 1
-        if not df:
+        if not isinstance(df, pd.DataFrame):
             raise BedBossException(
                 reason=f"Bed file is broken and could not be parsed due to CSV parse error."
             )

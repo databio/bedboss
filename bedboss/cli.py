@@ -51,6 +51,10 @@ def build_argparser() -> ArgumentParser:
         "index", help="Index not indexed bed files and add them to the qdrant database "
     )
 
+    subparser.add_parser(
+        "requirements-check", help="Check if all requirements are installed"
+    )
+
     sub_all.add_argument(
         "--outfolder",
         required=True,
@@ -153,18 +157,19 @@ def build_argparser() -> ArgumentParser:
     )
     sub_all.add_argument(
         "--no-db-commit",
-        action="store_true",
-        help="skip the JSON commit to the database",
+        dest="db_commit",
+        action="store_false",
+        help="skip the JSON commit to the database [Default: False]",
     )
     sub_all.add_argument(
         "--just-db-commit",
         action="store_true",
-        help="just commit the JSON to the database",
+        help="Do not save the results locally",
     )
     sub_all.add_argument(
-        "--skip-qdrant",
-        action="store_true",
-        help="whether to skip qdrant indexing",
+        "--upload_qdrant",
+        action="store_false",
+        help="whether to execute qdrant indexing",
     )
     sub_all.add_argument(
         "--upload-pephub",
@@ -217,9 +222,9 @@ def build_argparser() -> ArgumentParser:
         action="store_true",
     )
     sub_all_pep.add_argument(
-        "--skip-qdrant",
-        action="store_true",
-        help="whether to skip qdrant indexing",
+        "--upload_qdrant",
+        action="store_false",
+        help="whether to execute qdrant indexing",
     )
     sub_all_pep.add_argument(
         "--ensdb",
@@ -230,8 +235,9 @@ def build_argparser() -> ArgumentParser:
     )
     sub_all_pep.add_argument(
         "--no-db-commit",
-        action="store_true",
-        help="skip the JSON commit to the database",
+        dest="db_commit",
+        action="store_false",
+        help="skip the JSON commit to the database [Default: False]",
     )
     sub_all_pep.add_argument(
         "--just-db-commit",
@@ -348,10 +354,25 @@ def build_argparser() -> ArgumentParser:
         "--bedfile", help="a full path to bed file to process [Required]", required=True
     )
     sub_stat.add_argument(
+        "--genome",
+        dest="genome",
+        type=str,
+        required=True,
+        help="genome assembly of the sample [Required]",
+    )
+
+    sub_stat.add_argument(
         "--outfolder",
         required=True,
         help="Pipeline output folder [Required]",
         type=str,
+    )
+    sub_stat.add_argument(
+        "--bigbed",
+        type=str,
+        required=False,
+        default=None,
+        help="a full path to the bigbed files",
     )
     sub_stat.add_argument(
         "--open-signal-matrix",
@@ -368,48 +389,6 @@ def build_argparser() -> ArgumentParser:
         required=False,
         default=None,
         help="a full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
-
-    sub_stat.add_argument(
-        "--bigbed",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the bigbed files",
-    )
-
-    sub_stat.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        required=True,
-        help="a path to the bedbase configuration file [Required]",
-    )
-    sub_stat.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
-        required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
-    )
-    sub_stat.add_argument(
-        "--genome",
-        dest="genome",
-        type=str,
-        required=True,
-        help="genome assembly of the sample [Required]",
-    )
-    sub_stat.add_argument(
-        "--no-db-commit",
-        action="store_true",
-        help="whether the JSON commit to the database should be skipped",
-    )
-    sub_stat.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="whether just to commit the JSON to the database",
     )
 
     sub_bunch.add_argument(

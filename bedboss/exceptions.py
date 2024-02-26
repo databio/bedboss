@@ -33,6 +33,7 @@ class QualityException(BedBossException):
 
         :param str reason: reason why quality control wasn't successful
         """
+        self.reason = reason
         super(QualityException, self).__init__(reason)
 
 

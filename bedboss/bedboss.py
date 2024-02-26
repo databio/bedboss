@@ -8,6 +8,7 @@ import logmuse
 import peppy
 from eido import validate_project
 import bbconf
+import subprocess
 
 import pephubclient
 from pephubclient import PEPHubClient
@@ -28,7 +29,7 @@ from bedboss.const import (
     BEDSTAT_OUTPUT,
     BED_PEP_REGISTRY,
 )
-from bedboss.models import BedMetadata
+from bedboss.models import BedMetadata, BedStatCLIModel, BedMakerCLIModel, BedQCCLIModel
 from bedboss.utils import (
     extract_file_name,
     standardize_genome_name,
@@ -111,6 +112,18 @@ def load_to_s3(
     command = f"aws s3 sync {os.path.join(output_folder, OUTPUT_FOLDER_NAME,BEDSTAT_OUTPUT, digest)} s3://bedbase/{OUTPUT_FOLDER_NAME}/{BEDSTAT_OUTPUT}/{digest} --size-only"
     _LOGGER.info("Uploading to s3 bed statistic files")
     pm.run(cmd=command, lock_name="s3_sync_bedstat")
+
+
+def requirements_check() -> None:
+    """
+    Check if all requirements are installed
+
+    :return: None
+    """
+    _LOGGER.info("Checking requirements...")
+    subprocess.run(
+        ["bash", f"{os.path.dirname(os.path.abspath(__file__))}/requirements_test.sh"]
+    )
 
 
 def run_all(
@@ -301,7 +314,6 @@ def insert_pep(
     pep: Union[str, peppy.Project],
     rfg_config: str = None,
     create_bedset: bool = True,
-    skip_qdrant: bool = True,
     check_qc: bool = True,
     standardize: bool = False,
     ensdb: str = None,
@@ -310,6 +322,7 @@ def insert_pep(
     force_overwrite: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
+    upload_qdrant: bool = False,
     pm: pypiper.PipelineManager = None,
     *args,
     **kwargs,
@@ -323,19 +336,22 @@ def insert_pep(
     :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
     :param str rfg_config: path to the genome config file (refgenie)
     :param bool create_bedset: whether to create bedset
-    :param bool skip_qdrant: whether to skip qdrant indexing
+    :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param bool standardize: "Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False"
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param bool just_db_commit: whether just to commit the JSON to the database
-    :param bool no_db_commit: whether the JSON commit to the database should be skipped
+    :param bool just_db_commit: whether save only to the database (Without saving locally )
+    :param bool db_commit: whether to upload data to the database
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
+    :param bool upload_qdrant: whether to execute qdrant indexing
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
 
+    _LOGGER.warning(f"!Unused arguments: {kwargs}")
+    failed_samples = []
     pephub_registry_path = None
     if isinstance(pep, peppy.Project):
         pass
@@ -354,36 +370,41 @@ def insert_pep(
 
     for i, pep_sample in enumerate(pep.samples):
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
-
-        if pep_sample.get("file_type").lower() == "narrowpeak":
-            is_narrow_peak = True
+        if pep_sample.get("file_type"):
+            if pep_sample.get("file_type").lower() == "narrowpeak":
+                is_narrow_peak = True
+            else:
+                is_narrow_peak = False
         else:
             is_narrow_peak = False
-
-        bed_id = run_all(
-            sample_name=pep_sample.sample_name,
-            input_file=pep_sample.input_file,
-            input_type=pep_sample.input_type,
-            genome=pep_sample.genome,
-            narrowpeak=is_narrow_peak,
-            chrom_sizes=pep_sample.get("chrom_sizes"),
-            open_signal_matrix=pep_sample.get("open_signal_matrix"),
-            other_metadata=pep_sample.to_dict(),
-            outfolder=output_folder,
-            bedbase_config=bbc,
-            rfg_config=rfg_config,
-            check_qc=check_qc,
-            standardize=standardize,
-            ensdb=ensdb,
-            just_db_commit=just_db_commit,
-            no_db_commit=no_db_commit,
-            force_overwrite=force_overwrite,
-            skip_qdrant=skip_qdrant,
-            upload_s3=upload_s3,
-            upload_pephub=upload_pephub,
-            pm=pm,
-        )
-        pep.samples[i].record_identifier = bed_id
+        try:
+            bed_id = run_all(
+                sample_name=pep_sample.sample_name,
+                input_file=pep_sample.input_file,
+                input_type=pep_sample.input_type,
+                genome=pep_sample.genome,
+                narrowpeak=is_narrow_peak,
+                chrom_sizes=pep_sample.get("chrom_sizes"),
+                open_signal_matrix=pep_sample.get("open_signal_matrix"),
+                other_metadata=pep_sample.to_dict(),
+                outfolder=output_folder,
+                bedbase_config=bbc,
+                rfg_config=rfg_config,
+                check_qc=check_qc,
+                standardize=standardize,
+                ensdb=ensdb,
+                just_db_commit=just_db_commit,
+                no_db_commit=no_db_commit,
+                force_overwrite=force_overwrite,
+                upload_qdrant=upload_qdrant,
+                upload_s3=upload_s3,
+                upload_pephub=upload_pephub,
+                pm=pm,
+            )
+            pep.samples[i].record_identifier = bed_id
+        except BedBossException as e:
+            _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
+            failed_samples.append(pep_sample.sample_name)
 
     else:
         _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
@@ -394,11 +415,13 @@ def insert_pep(
             bedbase_config=bbc,
             bedset_pep=pep,
             pephub_registry_path=pephub_registry_path,
+            upload_pephub=upload_pephub,
         )
     else:
         _LOGGER.info(
             f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
         )
+    _LOGGER.info(f"Failed samples: {failed_samples}")
 
 
 def main(test_args: dict = None) -> NoReturn:
@@ -423,28 +446,30 @@ def main(test_args: dict = None) -> NoReturn:
         or "test_outfolder",
     )
     pm_out_folder = os.path.join(os.path.abspath(pm_out_folder[0]), "pipeline_manager")
-
     pm = pypiper.PipelineManager(
         name="bedboss-pipeline",
         outfolder=pm_out_folder,
         version=__version__,
-        args=args,
+        # args=args,
         multi=args_dict.get("multy", False),
+        recover=True,
     )
     if args_dict["command"] == "all":
         run_all(pm=pm, **args_dict)
     elif args_dict["command"] == "insert":
         insert_pep(pm=pm, **args_dict)
     elif args_dict["command"] == "make":
-        make_all(pm=pm, **args_dict)
+        make_all(**BedMakerCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "qc":
-        bedqc(pm=pm, **args_dict)
+        bedqc(**BedQCCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "stat":
-        bedstat(pm=pm, **args_dict)
+        bedstat(**BedStatCLIModel(pm=pm, **args_dict).model_dump())
     elif args_dict["command"] == "bunch":
         run_bedbuncher(pm=pm, **args_dict)
     elif args_dict["command"] == "index":
         add_to_qdrant(pm=pm, **args_dict)
+    elif args_dict["command"] == "requirements-check":
+        requirements_check()
     else:
         parser.print_help()
         # raise Exception("Incorrect pipeline name.")
