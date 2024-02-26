@@ -30,7 +30,7 @@ pip install git+https://github.com/databio/bedboss.git
 
 ## Testing
 
-#### Requirements test:
+### Requirements test:
 
 To test requirements, install bedboss and run: 
 
@@ -38,9 +38,16 @@ To test requirements, install bedboss and run:
 bedboss requirements-check
 ```
 
-#### Smoke tests:
+### Smoke tests:
 
 Use this docs:
 - [./test/README.md](./test/README.md)
 
 
+## How to generate usage documentation:
+
+Run this command in the root of the repository:
+```
+cd scripts
+bash update_usage_docs.sh
+```
