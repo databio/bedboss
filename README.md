@@ -1,13 +1,37 @@
 # bedboss
 
----
+[![PEP compatible](https://pepkit.github.io/img/PEP-compatible-green.svg)](https://pep.databio.org/)
 ![Run pytests](https://github.com/bedbase/bedboss/workflows/Run%20instalation%20test/badge.svg)
-[![docs-badge](https://readthedocs.org/projects/bedboss/badge/?version=latest)](https://bedboss.databio.org/en/latest/)
-[![pypi-badge](https://img.shields.io/pypi/v/bedboss)](https://pypi.org/project/bedboss)
+[![pypi-badge](https://img.shields.io/pypi/v/bedboss?color=%2334D058)](https://pypi.org/project/bedboss)
+[![pypi-version](https://img.shields.io/pypi/pyversions/bedboss.svg?color=%2334D058)](https://pypi.org/project/bedboss)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Github badge](https://img.shields.io/badge/source-github-354a75?logo=github)](https://github.com/databio/bedboss)
 
-bedboss is a command-line pipeline that standardizes and calculates statistics for genomic interval data, and enters the results into a BEDbase database. It has 3 components: 1) bedmaker (`bedboss make`); 2) bedqc (`bedboss qc`); and 3) bedstat `bedboss stat`. You may run all 3 pipelines separately, together (`bedbase all`).
+---
 
+**Documentation**: <a href="https://docs.bedbase.org/bedboss" target="_blank">https://docs.bedbase.org/bedboss</a>
+
+**Source Code**: <a href="https://github.com/databio/bedboss" target="_blank">https://github.com/databio/bedboss</a>
+
+---
+
+bedboss is a command-line pipeline that filters, standardizes, and calculates statistics for genomic interval data, 
+and enters the results into a BEDbase database. 
+
+## Installation
+To install `bedboss` use this command: 
+```
+pip install bedboss
+```
+or install the latest version from the GitHub repository:
+```
+pip install git+https://github.com/databio/bedboss.git
+```
+
+
+
+
+It has 3 components: 1) bedmaker (`bedboss make`); 2) bedqc (`bedboss qc`); and 3) bedstat `bedboss stat`. You may run all 3 pipelines separately, together (`bedbase all`).
 ## 1) bedmaker
 
 Converts supported file types into BED and bigBed format. Currently supported formats:
