@@ -1,5 +1,5 @@
 #!/bin/bash
-cp docs/templates/usage.template usage.template
+cp ../docs/templates/usage.template usage.template
 # bedboss --help > USAGE.temp 2>&1
 
 for cmd in "--help" "all --help" "insert --help" "make --help" "qc --help" "stat --help" "bunch --help" "index --help"  ; do
@@ -17,6 +17,6 @@ done
 rm USAGE.temp
 rm USAGE_header.temp
 rm USAGE.temp.bak
-mv usage.template  docs/usage.md
-cat docs/usage.md
+mv usage.template ../docs/usage.md
+#cat usage.template
 # rm USAGE.temp

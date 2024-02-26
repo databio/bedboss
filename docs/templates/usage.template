@@ -2,21 +2,23 @@
 
 BEDboss is command-line tool-warehouse of 3 pipelines for genomic interval files
 
-BEDboss include: bedmaker, bedqc, bedstat. This pipelines can be run using next positional arguments:
+This pipeline can be run using next positional arguments:
 
-- `bedbase all`:  Runs all pipelines one in order: bedmaker -> bedqc -> bedstat
+- `bedboss all`:  Runs all pipelines one in order: bedmaker -> bedqc -> bedstat
 
-- `bedbase insert`:  Runs all pipelines one in order by using PEP file and creates bedset: bedmaker -> bedqc -> bedstat -> bedbuncher
+- `bedboss insert`:  Runs all pipelines one in order by using PEP file and creates bedset: bedmaker -> bedqc -> bedstat -> bedbuncher
 
-- `bedbase make`:  Creates Bed and BigBed files from  other type of genomic interval files [bigwig|bedgraph|bed|bigbed|wig]
+- `bedboss make`:  Creates Bed and BigBed files from  other type of genomic interval files [bigwig|bedgraph|bed|bigbed|wig]
 
-- `bedbase qc`: Runs Quality control for bed file (Works only with bed files)
+- `bedboss qc`: Runs Quality control for bed file (Works only with bed files)
 
-- `bedbase stat`: Runs statistics for bed and bigbed files.
+- `bedboss stat`: Runs statistics for bed and bigbed files.
 
-- `bedbase bunch`: Creates bedset from PEP file
+- `bedboss bunch`: Creates bedset from PEP file
 
-- `bedbase index`: Creates bed file vectors and inserts to qdrant database
+- `bedboss index`: Creates bed file vectors and inserts to qdrant database
+
+- `bedboss requirements-check`:  Check if all requirements are installed
 
 Here you can see the command-line usage instructions for the main bedboss command and for each subcommand:
 
