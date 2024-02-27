@@ -28,6 +28,11 @@ or install the latest version from the GitHub repository:
 pip install git+https://github.com/databio/bedboss.git
 ```
 
+## Development
+For development, you should install all the dependencies, create a virtual environment, and work on the local database.
+The workflow is described in the [development documentation](https://docs.bedbase.org/bedboss/development).
+
+
 ## Testing
 
 ### Requirements test:
