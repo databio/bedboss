@@ -1,13 +1,16 @@
 from ubiquerg import VersionInHelpParser
 from argparse import ArgumentParser
 import logmuse
+import pypiper
 
 from bedboss._version import __version__
+from bedboss.const import DEFAULT_BEDBASE_API_URL, DEFAULT_BEDBASE_CACHE_PATH
 
 
 def build_argparser() -> ArgumentParser:
     """
     BEDboss parser
+
     :retrun: Tuple[pipeline, arguments]
     """
     parser = VersionInHelpParser(
@@ -23,7 +26,7 @@ def build_argparser() -> ArgumentParser:
         "all", help="Run all bedboss pipelines and insert data into bedbase"
     )
     sub_all_pep = subparser.add_parser(
-        "all-pep",
+        "insert",
         help="Run all bedboss pipelines using one PEP and insert data into bedbase",
     )
     sub_make = subparser.add_parser(
@@ -38,6 +41,20 @@ def build_argparser() -> ArgumentParser:
         help="A pipeline to read a file in BED format and produce metadata "
         "in JSON format.",
     )
+
+    sub_bunch = subparser.add_parser(
+        "bunch",
+        help="A pipeline to create bedsets (sets of BED files) that will be retrieved from bedbase.",
+    )
+
+    sub_index = subparser.add_parser(
+        "index", help="Index not indexed bed files and add them to the qdrant database "
+    )
+
+    subparser.add_parser(
+        "requirements-check", help="Check if all requirements are installed"
+    )
+
     sub_all.add_argument(
         "--outfolder",
         required=True,
@@ -89,8 +106,8 @@ def build_argparser() -> ArgumentParser:
         action="store_true",
     )
     sub_all.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
         action="store_true",
     )
     sub_all.add_argument(
@@ -121,38 +138,128 @@ def build_argparser() -> ArgumentParser:
         required=True,
     )
     sub_all.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
+        "--treatment",
         required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
+        help="A treatment of the bed file",
+        type=str,
+    )
+    sub_all.add_argument(
+        "--cell-type",
+        required=False,
+        help="A cell type of the bed file",
+        type=str,
+    )
+    sub_all.add_argument(
+        "--description",
+        required=False,
+        help="A description of the bed file",
+        type=str,
     )
     sub_all.add_argument(
         "--no-db-commit",
-        action="store_true",
-        help="skip the JSON commit to the database",
+        dest="db_commit",
+        action="store_false",
+        help="skip the JSON commit to the database [Default: False]",
     )
     sub_all.add_argument(
         "--just-db-commit",
         action="store_true",
-        help="just commit the JSON to the database",
+        help="Do not save the results locally",
+    )
+    sub_all.add_argument(
+        "--upload_qdrant",
+        action="store_false",
+        help="whether to execute qdrant indexing",
+    )
+    sub_all.add_argument(
+        "--upload-pephub",
+        action="store_true",
+        help="upload to pephub",
     )
 
     # all-pep
     sub_all_pep.add_argument(
-        "--pep_config",
-        dest="pep_config",
-        required=True,
-        help="Path to the pep configuration file [Required]\n "
-        "Required fields in PEP are: "
-        "sample_name, input_file, input_type,outfolder, genome, bedbase_config.\n "
-        "Optional fields in PEP are: "
-        "rfg_config, narrowpeak, check_qc, standard_chrom, chrom_sizes, "
-        "open_signal_matrix, ensdb, sample_yaml, no_db_commit, just_db_commit, "
-        "no_db_commit, force_overwrite, skip_qdrant",
+        "--bedbase-config",
+        dest="bedbase_config",
         type=str,
+        help="a path to the bedbase configuration file [Required]",
+        required=True,
+    )
+    sub_all_pep.add_argument(
+        "--pep",
+        dest="pep",
+        required=True,
+        help="path to the pep file or pephub registry path containing pep [Required]",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "--output-folder",
+        dest="output_folder",
+        required=True,
+        help="Pipeline output folder [Required]",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "-r",
+        "--rfg-config",
+        required=False,
+        help="file path to the genome config file(refgenie)",
+        type=str,
+    )
+    sub_all_pep.add_argument(
+        "--check-qc",
+        help="Check quality control before processing data. Default: True",
+        action="store_false",
+    )
+    sub_all_pep.add_argument(
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
+        action="store_true",
+    )
+    sub_all_pep.add_argument(
+        "--create-bedset",
+        help="Create bedset using pep samples. Name of the bedset will be based on  pep name.Default: False",
+        action="store_true",
+    )
+    sub_all_pep.add_argument(
+        "--upload_qdrant",
+        action="store_false",
+        help="whether to execute qdrant indexing",
+    )
+    sub_all_pep.add_argument(
+        "--ensdb",
+        type=str,
+        required=False,
+        default=None,
+        help="A full path to the ensdb gtf file required for genomes not in GDdata ",
+    )
+    sub_all_pep.add_argument(
+        "--no-db-commit",
+        dest="db_commit",
+        action="store_false",
+        help="skip the JSON commit to the database [Default: False]",
+    )
+    sub_all_pep.add_argument(
+        "--just-db-commit",
+        action="store_true",
+        help="just commit the JSON to the database",
+    )
+    sub_all_pep.add_argument(
+        "--force_overwrite",
+        action="store_true",
+        help="Weather to overwrite existing records. [Default: False]",
+    )
+    sub_all_pep.add_argument(
+        "--upload-s3",
+        action="store_true",
+        help="Weather to upload bed, bigbed, and statistics to s3. "
+        "Before uploading you have to set up all necessury env vars: "
+        "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_ENDPOINT_URL. [Default: False]",
+    )
+    sub_all_pep.add_argument(
+        "--upload-pephub",
+        action="store_true",
+        help="upload to pephub",
     )
 
     # bed_qc
@@ -232,16 +339,14 @@ def build_argparser() -> ArgumentParser:
     )
     sub_make.add_argument(
         "--chrom-sizes",
-        help="whether standardize chromosome names. "
-        "If ture, bedmaker will remove the regions on ChrUn chromosomes, "
-        "such as chrN_random and chrUn_random. [Default: False]",
+        help="A full path to the chrom.sizes required for the bedtobigbed conversion [optional]",
         default=None,
         type=str,
         required=False,
     )
     sub_make.add_argument(
-        "--standard-chrom",
-        help="Standardize chromosome names. Default: False",
+        "--standardize",
+        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
         action="store_true",
     )
     # bed_stat
@@ -249,10 +354,25 @@ def build_argparser() -> ArgumentParser:
         "--bedfile", help="a full path to bed file to process [Required]", required=True
     )
     sub_stat.add_argument(
+        "--genome",
+        dest="genome",
+        type=str,
+        required=True,
+        help="genome assembly of the sample [Required]",
+    )
+
+    sub_stat.add_argument(
         "--outfolder",
         required=True,
         help="Pipeline output folder [Required]",
         type=str,
+    )
+    sub_stat.add_argument(
+        "--bigbed",
+        type=str,
+        required=False,
+        default=None,
+        help="a full path to the bigbed files",
     )
     sub_stat.add_argument(
         "--open-signal-matrix",
@@ -271,46 +391,70 @@ def build_argparser() -> ArgumentParser:
         help="a full path to the ensdb gtf file required for genomes not in GDdata ",
     )
 
-    sub_stat.add_argument(
-        "--bigbed",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the bigbed files",
-    )
-
-    sub_stat.add_argument(
+    sub_bunch.add_argument(
         "--bedbase-config",
         dest="bedbase_config",
         type=str,
         required=True,
         help="a path to the bedbase configuration file [Required]",
     )
-    sub_stat.add_argument(
-        "-y",
-        "--sample-yaml",
-        dest="sample_yaml",
-        type=str,
-        required=False,
-        help="a yaml config file with sample attributes to pass on more metadata "
-        "into the database",
-    )
-    sub_stat.add_argument(
-        "--genome",
-        dest="genome",
+    sub_bunch.add_argument(
+        "--bedset-name",
+        dest="bedset_name",
         type=str,
         required=True,
-        help="genome assembly of the sample [Required]",
+        help="a name of the bedset [Required]",
     )
-    sub_stat.add_argument(
-        "--no-db-commit",
+
+    sub_bunch.add_argument(
+        "--bedset-pep",
+        dest="bedset_pep",
+        type=str,
+        required=True,
+        help="bedset pep path or pephub registry path containing bedset pep [Required]",
+    )
+    sub_bunch.add_argument(
+        "--base-api",
+        dest="bedbase_api",
+        type=str,
+        default=f"{DEFAULT_BEDBASE_API_URL}",
+        required=False,
+        help=f"Bedbase API to use. Default is {DEFAULT_BEDBASE_API_URL}",
+    )
+
+    sub_bunch.add_argument(
+        "--cache-path",
+        dest="cache_path",
+        type=str,
+        default=f"{DEFAULT_BEDBASE_CACHE_PATH}",
+        required=False,
+        help=f"Path to the cache folder. Default is {DEFAULT_BEDBASE_CACHE_PATH}",
+    )
+    sub_bunch.add_argument(
+        "--heavy",
+        dest="heavy",
         action="store_true",
-        help="whether the JSON commit to the database should be skipped",
+        help="whether to use heavy processing (Calculate and crate plots using R script). ",
     )
-    sub_stat.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="whether just to commit the JSON to the database",
+
+    sub_index.add_argument(
+        "--bedbase-config",
+        dest="bedbase_config",
+        type=str,
+        required=True,
+        help="a path to the bedbase configuration file [Required]",
     )
+
+    sub_index.add_argument(
+        "--bedbase-api",
+        dest="bedbase_api",
+        type=str,
+        required=False,
+        default=DEFAULT_BEDBASE_API_URL,
+        help=f"URL of the Bedbase API [Default: {DEFAULT_BEDBASE_API_URL}]",
+    )
+
+    for sub in [sub_all_pep, sub_all, sub_make, sub_stat, sub_qc]:
+        sub_all_pep = pypiper.add_pypiper_args(sub)
 
     return logmuse.add_logging_options(parser)

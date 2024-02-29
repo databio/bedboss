@@ -5,3 +5,7 @@ include bedboss/bedstat/*
 include bedboss/bedstat/tools/*
 include bedboss/bedmaker/*
 include bedboss/bedqc/*
+include bedboss/qdrant_index/*
+include bedboss/bedbuncher/*
+include bedboss/bedbuncher/tools/*
+include bedboss/bedclassifier/*

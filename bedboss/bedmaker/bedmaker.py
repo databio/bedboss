@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
 import pypiper
 import os
 
@@ -16,12 +15,14 @@ from refgenconf import (
     CFG_ENV_VARS,
     CFG_FOLDER_KEY,
 )
-from typing import NoReturn
+from refgenconf.exceptions import MissingGenomeError
 from yacman.exceptions import UndefinedAliasError
 from ubiquerg import is_command_callable
+from geniml.io import RegionSet
 
+from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedqc.bedqc import bedqc
-from bedboss.exceptions import RequirementsException
+from bedboss.exceptions import RequirementsException, BedBossException
 
 from bedboss.const import (
     BEDGRAPH_TEMPLATE,
@@ -33,6 +34,8 @@ from bedboss.const import (
     STANDARD_CHROM_LIST,
     BED_TO_BIGBED_PROGRAM,
     BIGBED_TO_BED_PROGRAM,
+    QC_FOLDER_NAME,
+    REFGENIE_ENV_VAR,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -55,10 +58,9 @@ class BedMaker:
         rfg_config: str = None,
         chrom_sizes: str = None,
         narrowpeak: bool = False,
-        standard_chrom: bool = False,
+        standardize: bool = False,
         check_qc: bool = True,
         pm: pypiper.PipelineManager = None,
-        **kwargs,
     ):
         """
         Pypiper pipeline to convert supported file formats into
@@ -80,10 +82,12 @@ class BedMaker:
                             bedtobigbed conversion
         :param narrowpeak: whether the regions are narrow (transcription factor
                            implies narrow, histone mark implies broad peaks)
-        :param sntandard_chrom: whether standardize chromosome names. Default: False
-                                If true, filter the input file to contain only
-                                the standard chromosomes, remove regions on
-                                ChrUn chromosomes
+        :param standardize: whether standardize bed file. (includes standardizing chromosome names and
+            sanitize file first rows if they exist) Default: False
+            Additionally, standardize chromosome names.
+            If true, filter the input file to contain only
+            the standard chromosomes, remove regions on
+            ChrUn chromosomes
         :param check_qc: run quality control during bedmaking
         :param pm: pypiper object
         :return: noReturn
@@ -103,7 +107,8 @@ class BedMaker:
         self.chrom_sizes = chrom_sizes
         self.check_qc = check_qc
         self.rfg_config = rfg_config
-        self.standard_chrom = standard_chrom
+        self.standardize = standardize
+
         # Define whether input file data is broad or narrow peaks
         self.narrowpeak = narrowpeak
         self.width = "bdgbroadcall" if not self.narrowpeak else "bdgpeakcall"
@@ -147,26 +152,26 @@ class BedMaker:
             )
             os.makedirs(self.output_bigbed)
 
-        # Set pipeline log directory
-        # create one if it doesn't exist
-        self.logs_name = "bedmaker_logs"
-        self.logs_dir = os.path.join(self.bed_parent, self.logs_name, self.sample_name)
-        if not os.path.exists(self.logs_dir):
-            _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
-            os.makedirs(self.logs_dir)
-
         if not pm:
+            self.logs_name = "bedmaker_logs"
+            self.logs_dir = os.path.join(
+                self.bed_parent, self.logs_name, self.sample_name
+            )
+            if not os.path.exists(self.logs_dir):
+                _LOGGER.info("bedmaker logs directory doesn't exist. Creating one...")
+                os.makedirs(self.logs_dir)
             self.pm = pypiper.PipelineManager(
                 name="bedmaker",
                 outfolder=self.logs_dir,
                 recover=True,
+                multi=True,
             )
         else:
             self.pm = pm
 
-        self.make()
+        # self.make()
 
-    def make(self) -> NoReturn:
+    def make(self) -> dict:
         """
         Create bed and BigBed files.
         This is main function that executes every step of the bedmaker pipeline.
@@ -174,13 +179,33 @@ class BedMaker:
         _LOGGER.info(f"Got input type: {self.input_type}")
         # converting to bed.gz if needed
         self.make_bed()
-
+        try:
+            bed_type, bed_format = get_bed_type(self.input_file)
+        except Exception:
+            # we need this exception to catch the case when the input file is not a bed file
+            bed_type, bed_format = get_bed_type(self.output_bed)
         if self.check_qc:
-            bedqc(self.output_bed, outfolder=self.logs_dir, pm=self.pm)
+            try:
+                bedqc(
+                    self.output_bed,
+                    outfolder=os.path.join(self.bed_parent, QC_FOLDER_NAME),
+                    pm=self.pm,
+                )
+            except Exception as e:
+                raise BedBossException(
+                    f"Quality control failed for {self.output_bed}. Error: {e}"
+                )
 
-        self.make_bigbed()
+        self.make_bigbed(bed_type=bed_type)
 
-    def make_bed(self) -> NoReturn:
+        return {
+            "bed_type": bed_type,
+            "bed_format": bed_format,
+            "genome": self.genome,
+            "digest": RegionSet(self.output_bed).identifier,
+        }
+
+    def make_bed(self) -> None:
         """
         Convert the input file to BED format by construct the command based
         on input file type and execute the command.
@@ -296,24 +321,61 @@ class BedMaker:
                 cmd.append(gzip_cmd)
         # creating cmd for bed files
         else:
-            if self.input_extension == ".gz":
-                cmd = BED_TEMPLATE.format(input=self.input_file, output=self.output_bed)
+            if self.standardize:
+                self.copy_with_standardization()
+
             else:
-                cmd = [
-                    BED_TEMPLATE.format(
-                        input=self.input_file,
-                        output=os.path.splitext(self.output_bed)[0],
-                    ),
-                    GZIP_TEMPLATE.format(
-                        unzipped_converted_file=os.path.splitext(self.output_bed)[0]
-                    ),
-                ]
-        self.pm.run(cmd, target=self.output_bed)
+                if self.input_extension == ".gz":
+                    cmd = BED_TEMPLATE.format(
+                        input=self.input_file, output=self.output_bed
+                    )
+                else:
+                    cmd = [
+                        BED_TEMPLATE.format(
+                            input=self.input_file,
+                            output=os.path.splitext(self.output_bed)[0],
+                        ),
+                        GZIP_TEMPLATE.format(
+                            unzipped_converted_file=os.path.splitext(self.output_bed)[0]
+                        ),
+                    ]
+                self.pm.run(cmd, target=self.output_bed)
+
         self.pm._cleanup()
 
-    def make_bigbed(self) -> NoReturn:
+    def copy_with_standardization(self):
+        df = None
+        max_rows = 5
+        row_count = 0
+        while row_count <= max_rows:
+            try:
+                df = pd.read_csv(
+                    self.input_file, sep="\t", header=None, nrows=4, skiprows=row_count
+                )
+                if row_count > 0:
+                    _LOGGER.info(
+                        f"Skipped {row_count} rows while standardization {self.input_file}"
+                    )
+                break
+            except (pd.errors.ParserError, pd.errors.EmptyDataError) as e:
+                if row_count <= max_rows:
+                    row_count += 1
+        if not isinstance(df, pd.DataFrame):
+            raise BedBossException(
+                reason=f"Bed file is broken and could not be parsed due to CSV parse error."
+            )
+        df = df.dropna(axis=1)
+        _LOGGER.info("Standardizing chromosomes...")
+        df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
+        df.to_csv(
+            self.output_bed, compression="gzip", sep="\t", header=False, index=False
+        )
+
+    def make_bigbed(self, bed_type: str = None) -> None:
         """
         Generate bigBed file for the BED file.
+
+        :param bed_type: bed type to be used for bigBed file generation "bed{bedtype}+{n}" [Default: None]
         """
         _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
 
@@ -322,12 +384,15 @@ class BedMaker:
         # Produce bigBed (big_narrow_peak) file from peak file
         big_narrow_peak = os.path.join(self.output_bigbed, fileid + ".bigBed")
         if not self.chrom_sizes:
-            self.chrom_sizes = self.get_chrom_sizes()
+            try:
+                self.chrom_sizes = self.get_chrom_sizes()
+            except MissingGenomeError:
+                _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
+                self.chrom_sizes = ""
 
         temp = os.path.join(self.output_bigbed, next(tempfile._get_candidate_names()))
 
         if not os.path.exists(big_narrow_peak):
-            bedtype = self.get_bed_type(self.output_bed)
             self.pm.clean_add(temp)
 
             if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
@@ -337,11 +402,11 @@ class BedMaker:
                     "Instruction: "
                     "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
                 )
-            if bedtype is not None:
+            if bed_type is not None:
                 cmd = f"zcat {self.output_bed} | sort -k1,1 -k2,2n > {temp}"
                 self.pm.run(cmd, temp)
 
-                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bedtype} {temp} {self.chrom_sizes} {big_narrow_peak}"
+                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_type} {temp} {self.chrom_sizes} {big_narrow_peak}"
                 try:
                     _LOGGER.info(f"Running: {cmd}")
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
@@ -359,10 +424,7 @@ class BedMaker:
                     + temp
                 )
                 self.pm.run(cmd, temp)
-                cmd = {
-                    f"{BED_TO_BIGBED_PROGRAM}"
-                    f"-type=bed3 {temp} {self.chrom_sizes} {big_narrow_peak}"
-                }
+                cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {self.chrom_sizes} {big_narrow_peak}"
 
                 try:
                     self.pm.run(cmd, big_narrow_peak, nofail=True)
@@ -374,15 +436,15 @@ class BedMaker:
                     )
             self.pm._cleanup()
 
-    def get_rgc(self) -> str:
+    def get_rgc(self) -> RGC:
         """
         Get refgenie config file.
 
         :return str: rfg_config file path
         """
         if not self.rfg_config:
-            _LOGGER.info(f"Creating refgenie genome config file...")
-            cwd = os.getcwd()
+            _LOGGER.info("Creating refgenie genome config file...")
+            cwd = os.getenv(REFGENIE_ENV_VAR, os.getcwd())
             self.rfg_config = os.path.join(cwd, "genome_config.yaml")
 
         # get path to the genome config; from arg or env var if arg not provided
@@ -447,90 +509,72 @@ class BedMaker:
 
         return chrom_sizes
 
-    def get_bed_type(self, bed: str) -> str:
-        """
-        get the bed file type (ex. bed3, bed3+n )
-        standardize chromosomes if necessary:
-        filter the input file to contain only the standard chromosomes,
-        remove regions on ChrUn chromosomes
 
-        :param bed: path to the bed file
-        :return bed type
-        """
-        #    column format for bed12
-        #    string chrom;       "Reference sequence chromosome or scaffold"
-        #    uint   chromStart;  "Start position in chromosome"
-        #    uint   chromEnd;    "End position in chromosome"
-        #    string name;        "Name of item."
-        #    uint score;          "Score (0-1000)"
-        #    char[1] strand;     "+ or - for strand"
-        #    uint thickStart;   "Start of where display should be thick (start codon)"
-        #    uint thickEnd;     "End of where display should be thick (stop codon)"
-        #    uint reserved;     "Used as itemRgb as of 2004-11-22"
-        #    int blockCount;    "Number of blocks"
-        #    int[blockCount] blockSizes; "Comma separated list of block sizes"
-        #    int[blockCount] chromStarts; "Start positions relative to chromStart"
-        df = pd.read_csv(bed, sep="\t", header=None)
-        df = df.dropna(axis=1)
+def make_all(
+    input_file: str,
+    input_type: str,
+    output_bed: str,
+    output_bigbed: str,
+    sample_name: str,
+    genome: str,
+    rfg_config: str = None,
+    chrom_sizes: str = None,
+    narrowpeak: bool = False,
+    standardize: bool = False,
+    check_qc: bool = True,
+    pm: pypiper.PipelineManager = None,
+    **kwargs,
+):
+    """
+    Maker of bed and bigbed files.
 
-        # standardizing chromosome
-        # remove regions on ChrUn chromosomes
-        if self.standard_chrom:
-            _LOGGER.info("Standardizing chromosomes...")
-            df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-            df.to_csv(bed, compression="gzip", sep="\t", header=False, index=False)
-
-        num_cols = len(df.columns)
-        bedtype = 0
-        for col in df:
-            if col <= 2:
-                if col == 0:
-                    if df[col].dtype == "O":
-                        bedtype += 1
-                    else:
-                        return None
-                else:
-                    if df[col].dtype == "int" and (df[col] >= 0).all():
-                        bedtype += 1
-                    else:
-                        return None
-            else:
-                if col == 3:
-                    if df[col].dtype == "O":
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 4:
-                    if df[col].dtype == "int" and df[col].between(0, 1000).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 5:
-                    if df[col].isin(["+", "-", "."]).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif 6 <= col <= 8:
-                    if df[col].dtype == "int" and (df[col] >= 0).all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 9:
-                    if df[col].dtype == "int":
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                elif col == 10 or col == 11:
-                    if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
-                        bedtype += 1
-                    else:
-                        n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}"
-                else:
-                    n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}"
+    Pipeline to convert supported file formats into
+    BED format and bigBed format. Currently supported formats*:
+        - bedGraph
+        - bigBed
+        - bigWig
+        - wig
+    :param input_file: path to the input file
+    :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be
+                       converted into BED format
+    :param output_bed: path to the output BED files
+    :param output_bigbed: path to the output bigBed files
+    :param sample_name: name of the sample used to systematically build the
+                        output name
+    :param genome: reference genome
+    :param rfg_config: file path to the genome config file
+    :param chrom_sizes: a full path to the chrom.sizes required for the
+                        bedtobigbed conversion
+    :param narrowpeak: whether the regions are narrow (transcription factor
+                       implies narrow, histone mark implies broad peaks)
+    :param standardize: whether standardize bed file. (includes standardizing chromosome names and
+        sanitize file first rows if they exist) Default: False
+        Additionally, standardize chromosome names.
+        If true, filter the input file to contain only
+        the standard chromosomes, remove regions on
+        ChrUn chromosomes
+    :param check_qc: run quality control during bedmaking
+    :param pm: pypiper object
+    :return: dict with generated bed metadata:
+        {
+            "bed_type": bed_type. e.g. bed, bigbed
+            "bed_format": bed_format. e.g. narrowpeak, broadpeak
+            "genome": genome of the sample,
+            "digest": bedfile identifier,
+        }
+    """
+    return BedMaker(
+        input_file=input_file,
+        input_type=input_type,
+        output_bed=output_bed,
+        output_bigbed=output_bigbed,
+        sample_name=sample_name,
+        genome=genome,
+        rfg_config=rfg_config,
+        chrom_sizes=chrom_sizes,
+        narrowpeak=narrowpeak,
+        standardize=standardize,
+        check_qc=check_qc,
+        pm=pm,
+        **kwargs,
+    ).make()

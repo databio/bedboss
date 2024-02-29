@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+.ruff_cache/
 build/
 develop-eggs/
 dist/
@@ -134,3 +135,8 @@ bedqc/*
 test/bedqc/*
 
 openSignalMatrix
+
+out2023/*
+
+# test data
+test/test_data/*

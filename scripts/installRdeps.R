@@ -17,9 +17,13 @@
 .install_pkg("ensembldb", bioc=TRUE)
 .install_pkg("LOLA", bioc=TRUE)
 .install_pkg("BSgenome", bioc=TRUE)
+.install_pkg("ExperimentHub", bioc=TRUE)
+.install_pkg("AnnotationHub", bioc=TRUE)
+.install_pkg("conflicted")
 if(!require(package = "GenomicDistributions", character.only=TRUE)) {
     devtools::install_github("databio/GenomicDistributions")
 }
+options(timeout=1000)
 if(!require(package = "GenomicDistributionsData", character.only=TRUE)) {
-    install.packages("http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.1.tar.gz", repos=NULL)
+    install.packages("http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.2.tar.gz", repos=NULL)
 }

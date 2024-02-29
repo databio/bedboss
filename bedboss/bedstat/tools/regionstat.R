@@ -141,10 +141,10 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot TSS distance.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: TSS distance plot!')
         print(e)
       }
-    ) 
+    )
   }
   
   
@@ -165,7 +165,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot chromosomes region distribution.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Chromosomes region distribution plot!')
         print(e)
       }
     ) 
@@ -207,7 +207,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Successfully calculated and plot GC content.")
         },
         error = function(e){
-          message('Caught an error!')
+          message('Caught an error in creating: GC content plot!')
           print(e, gcvec)
         }
       ) 
@@ -234,13 +234,13 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         } else {
           if (genome %in% c("hg19", "hg38", "mm10")) {
             gp = calcPartitionsRef(query, genome)
-            plotBoth("paritions", plotPartitions(gp))
+            plotBoth("partitions", plotPartitions(gp))
           } else {
             partitionList = myPartitionList(gtffile)
             gp = calcPartitions(query, partitionList)
-            plotBoth("paritions", plotPartitions(gp))
+            plotBoth("partitions", plotPartitions(gp))
           }
-          plots = rbind(plots, getPlotReportDF("paritions", "Regions distribution over genomic partitions"))
+          plots = rbind(plots, getPlotReportDF("partitions", "Regions distribution over genomic partitions"))
           # flatten the result returned by the function above
           partiotionNames = as.vector(gp[,"partition"])
           partitionsList = list()
@@ -257,7 +257,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Partition plot!')
         print(e)
       }
     ) 
@@ -284,7 +284,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Expected partition plot!')
         print(e)
       }
     ) 
@@ -308,7 +308,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         }
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Cumulative partition plot!')
         print(e)
       }
     ) 
@@ -338,7 +338,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot quantile-trimmed histogram of widths.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Quantile-trimmed histogram of widths plot!')
         print(e, widths)
       }
     ) 
@@ -353,7 +353,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message("Successfully calculated and plot distance between neighbor regions.")
       },
       error = function(e){
-        message('Caught an error!')
+        message('Caught an error in creating: Distance between neighbor regions plot!')
         print(e)
       }
     ) 
@@ -372,7 +372,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Successfully calculated and plot cell specific enrichment for open chromatin.")
         },
         error = function(e){
-          message('Caught an error!')
+          message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
           print(e)
         }
       ) 
@@ -421,21 +421,23 @@ gtffile = opt$ensdb
 
 
 # build BSgenome package ID to check whether it's installed
-if (genome == "T2T"){
+if ( startsWith(genome, "T2T")){
   BSg = "BSgenome.Hsapiens.NCBI.T2T.CHM13v2.0"
 } else {
   if (startsWith(genome, "hg") | startsWith(genome, "grch")) {
-  orgName = "Hsapiens"
+    orgName = "Hsapiens"
   } else if (startsWith(genome, "mm") | startsWith(genome, "grcm")){
-  orgName = "Mmusculus"
+    orgName = "Mmusculus"
   } else if (startsWith(genome, "dm")){
-  orgName = "Dmelanogaster"
+    orgName = "Dmelanogaster"
   } else if (startsWith(genome, "ce")){
-  orgName = "Celegans"
+    orgName = "Celegans"
   } else if (startsWith(genome, "danRer")){
-  orgName = "Drerio"
+    orgName = "Drerio"
   }  else if (startsWith(genome, "TAIR")){
     orgName = "Athaliana"
+  } else {
+    orgName = "Undefined"
   }
   BSg = paste0("BSgenome.", orgName , ".UCSC.", genome)
 }

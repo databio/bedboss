@@ -121,7 +121,7 @@ if is_executable "R"; then
     echo -e "-----------------------------------------------------------"
     echo -e "Checking required R packages for bedstat...                            "
     echo -e "-----------------------------------------------------------"
-    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA")
+    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA" "conflicted")
     for package in "${requiredRPackages[@]}"; do
       if ! r_check_req $package; then
         INSTALL_ERROR=$((INSTALL_ERROR+1))

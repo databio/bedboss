@@ -18,7 +18,6 @@ def bedqc(
     max_region_number: int = MAX_REGION_NUMBER,
     min_region_width: int = MIN_REGION_WIDTH,
     pm: pypiper.PipelineManager = None,
-    **kwargs,
 ) -> bool:
     """
     Perform quality checks on a BED file.
@@ -30,15 +29,17 @@ def bedqc(
     :param min_region_width: Minimum region width threshold to pass the quality check.
     :param pm: Pypiper object for managing pipeline operations.
     :return: True if the file passes the quality check.
+    :raises QualityException: if the file does not pass the quality
     """
     _LOGGER.info("Running bedqc...")
-    _LOGGER.warning(f"Unused arguments: {kwargs}")
 
-    output_file = os.path.join(outfolder, "flagged_bed.csv")
+    output_file = os.path.join(outfolder, "failed_qc.csv")
     bedfile_name = os.path.basename(bedfile)
     input_extension = os.path.splitext(bedfile_name)[1]
 
-    file_exists = os.path.isfile(bedfile)
+    # file_exists = os.path.isfile(bedfile)
+    if not os.path.exists(outfolder):
+        os.makedirs(outfolder)
 
     # to execute bedqc from inside Python (without using cli) Pypiper is set to default:
     if not pm:
@@ -98,7 +99,7 @@ def bedqc(
                 f.write(f"{bedfile_name}\t{detail} \n")
         else:
             with open(output_file, "w") as f:
-                f.write(f"file_name\tdetail \n")
+                f.write("file_name\tdetail \n")
                 f.write(f"{bedfile_name}\t{detail} \n")
 
         raise QualityException(f"{str(detail)}")

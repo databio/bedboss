@@ -1,5 +1,7 @@
 from bedboss.bedboss import main
+import bedboss
 import os
+import warnings
 import subprocess
 import pytest
 from bbconf import BedBaseConf
@@ -12,30 +14,43 @@ BIGBED_PATH = os.path.join(
 )
 
 BEDBASE_CONFIG = os.path.join(FILE_DIR, "test_dependencies", "bedbase_config_test.yaml")
-DEPENDENCIES_TEST_SCRIPT = f"{FILE_DIR}/bash_requirements_test.sh"
+DEPENDENCIES_TEST_SCRIPT = (
+    f"{os.path.dirname(os.path.abspath(bedboss.__file__))}/requirements_test.sh"
+)
+
+pytest_db_skip_reason = "Database is not set up... To run this test, set up the database. Go to test/README.md for more information."
 
 
-def test_dependencies():
+def check_dependencies_installed() -> bool:
     # Make sure bedToBigBed etc is in your PATH.
     print("Testing dependencies...")
-    key = "PATH"
-    value = os.getenv(key)
-    test_dep_return_code = subprocess.run([DEPENDENCIES_TEST_SCRIPT], shell=True)
-    assert 1 > test_dep_return_code.returncode
+    # key = "PATH"
+    # value = os.getenv(key)
+    test_dep_return_code = subprocess.run(["bash", DEPENDENCIES_TEST_SCRIPT])
+    if test_dep_return_code.returncode == 127:
+        raise Exception(f"test script '{DEPENDENCIES_TEST_SCRIPT}' doesn't exist.")
+    elif not (1 > test_dep_return_code.returncode):
+        warnings.warn(UserWarning(f"{pytest_db_skip_reason}"))
+        return False
+    return True
+    # return 1 > test_dep_return_code.returncode
+
+
+dependencies_installed = check_dependencies_installed()
 
 
 def db_setup():
     # Check if the database is setup
     try:
         BedBaseConf(BEDBASE_CONFIG)
-    except Exception as err:
-        print(f"Error: {err}")
-        BedBaseConf(BEDBASE_CONFIG)
+    except Exception:
+        warnings.warn(UserWarning(f"{pytest_db_skip_reason}"))
         return False
     return True
 
 
-pytest_db_skip_reason = "Database is not set up... To run this test, set up the database. Go to test/README.md for more information."
+def test_dependencies():
+    assert dependencies_installed
 
 
 @pytest.mark.parametrize(
@@ -49,12 +64,17 @@ def test_qc(bedfile, tmpdir):
         {
             "command": "qc",
             "bedfile": bedfile,
-            "outfolder": tmpdir,
+            "outfolder": str(tmpdir),
+            "multy": True,
         }
     )
     assert qc_passed is None
 
 
+@pytest.mark.skipif(
+    not dependencies_installed,
+    reason=pytest_db_skip_reason,
+)
 @pytest.mark.parametrize(
     "bedfile",
     [
@@ -73,6 +93,7 @@ def test_make(bedfile, tmpdir):
             "output_bigbed": os.path.join(tmpdir, "bigbed"),
             "outfolder": tmpdir,
             "no_db_commit": True,
+            "multy": True,
         }
     )
     assert os.path.isfile(os.path.join(tmpdir, "bed", "sample1.bed.gz"))
@@ -80,7 +101,7 @@ def test_make(bedfile, tmpdir):
 
 
 @pytest.mark.skipif(
-    not db_setup(),
+    not db_setup() or not dependencies_installed,
     reason=pytest_db_skip_reason,
 )
 class TestStat:
@@ -105,14 +126,11 @@ class TestStat:
                 "command": "stat",
                 "bedfile": bedfile,
                 "outfolder": output_temp_dir,
-                "bedbase_config": BEDBASE_CONFIG,
                 "genome": genome,
                 "bigbed": bigbed_file,
-                "no_db_commit": True,
-                "skip_qdrant": True,
+                "multy": True,
             }
         )
-        assert True
 
     case_name = "sample1"
 
@@ -121,8 +139,8 @@ class TestStat:
         [
             f"{case_name}_cumulative_partitions.png",
             f"{case_name}_expected_partitions.pdf",
-            f"{case_name}_paritions.png",
-            f"{case_name}_paritions.pdf",
+            f"{case_name}_partitions.png",
+            f"{case_name}_partitions.pdf",
             f"{case_name}_cumulative_partitions.pdf",
             f"{case_name}_chrombins.pdf",
             f"{case_name}_widths_histogram.pdf",
@@ -142,14 +160,14 @@ class TestStat:
                 output_temp_dir,
                 "output",
                 "bedstat_output",
-                "c557c915a9901ce377ef724806ff7a2c",
+                "49a72983ca9ddcf6692c5ec8b51c3d92",
                 file,
             )
         )
 
 
 @pytest.mark.skipif(
-    not db_setup(),
+    not db_setup() or not dependencies_installed,
     reason=pytest_db_skip_reason,
 )
 class TestAll:
@@ -179,10 +197,9 @@ class TestAll:
                 "bedbase_config": BEDBASE_CONFIG,
                 "no_db_commit": True,
                 "outfolder": output_temp_dir,
-                "skip_qdrant": True,
+                "multy": True,
             }
         )
-        assert True
 
     case_name = "sample1"
 
@@ -191,8 +208,8 @@ class TestAll:
         [
             f"{case_name}_cumulative_partitions.png",
             f"{case_name}_expected_partitions.pdf",
-            f"{case_name}_paritions.png",
-            f"{case_name}_paritions.pdf",
+            f"{case_name}_partitions.png",
+            f"{case_name}_partitions.pdf",
             f"{case_name}_cumulative_partitions.pdf",
             f"{case_name}_chrombins.pdf",
             f"{case_name}_widths_histogram.pdf",
@@ -212,7 +229,13 @@ class TestAll:
                 output_temp_dir,
                 "output",
                 "bedstat_output",
-                "c557c915a9901ce377ef724806ff7a2c",
+                "49a72983ca9ddcf6692c5ec8b51c3d92",
                 file,
             )
         )
+
+
+@pytest.mark.skipif(True, reason="Not implemented")
+class TestBedbuncher:
+    def test_bedbuncher_run(self):
+        pass

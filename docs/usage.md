@@ -2,36 +2,50 @@
 
 BEDboss is command-line tool-warehouse of 3 pipelines for genomic interval files
 
-BEDboss include: bedmaker, bedqc, bedstat. This pipelines can be run using next positional arguments:
+This pipeline can be run using next positional arguments:
 
-- `bedbase all`:  Runs all pipelines one in order: bedmaker -> bedqc -> bedstat
+- `bedboss all`:  Runs all pipelines one in order: bedmaker -> bedqc -> bedstat
 
-- `bedbase make`:  Creates Bed and BigBed files from  other type of genomic interval files [bigwig|bedgraph|bed|bigbed|wig]
+- `bedboss insert`:  Runs all pipelines one in order by using PEP file and creates bedset: bedmaker -> bedqc -> bedstat -> bedbuncher
 
-- `bedbase qc`: Runs Quality control for bed file (Works only with bed files)
+- `bedboss make`:  Creates Bed and BigBed files from  other type of genomic interval files [bigwig|bedgraph|bed|bigbed|wig]
 
-- `bedbase stat`: Runs statistics for bed and bigbed files.
+- `bedboss qc`: Runs Quality control for bed file (Works only with bed files)
+
+- `bedboss stat`: Runs statistics for bed and bigbed files.
+
+- `bedboss bunch`: Creates bedset from PEP file
+
+- `bedboss index`: Creates bed file vectors and inserts to qdrant database
+
+- `bedboss requirements-check`:  Check if all requirements are installed
 
 Here you can see the command-line usage instructions for the main bedboss command and for each subcommand:
 
 ## `bedboss --help`
 ```console
-version: 0.1.0a3
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+version: 0.1.0
 usage: bedboss [-h] [--version] [--silent] [--verbosity V] [--logdev]
-               {all,all-pep,make,qc,stat} ...
+               {all,insert,make,qc,stat,bunch,index,requirements-check} ...
 
 Warehouse of pipelines for BED-like files: bedmaker, bedstat, and bedqc.
 
 positional arguments:
-  {all,all-pep,make,qc,stat}
+  {all,insert,make,qc,stat,bunch,index,requirements-check}
     all                 Run all bedboss pipelines and insert data into bedbase
-    all-pep             Run all bedboss pipelines using one PEP and insert
+    insert              Run all bedboss pipelines using one PEP and insert
                         data into bedbase
     make                A pipeline to convert bed, bigbed, bigwig or bedgraph
                         files into bed and bigbed formats
     qc                  Run quality control on bed file (bedqc)
     stat                A pipeline to read a file in BED format and produce
                         metadata in JSON format.
+    bunch               A pipeline to create bedsets (sets of BED files) that
+                        will be retrieved from bedbase.
+    index               Index not indexed bed files and add them to the qdrant
+                        database
+    requirements-check  Check if all requirements are installed
 
 options:
   -h, --help            show this help message and exit
@@ -43,12 +57,16 @@ options:
 
 ## `bedboss all --help`
 ```console
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
 usage: bedboss all [-h] --outfolder OUTFOLDER -s SAMPLE_NAME -f INPUT_FILE -t
                    INPUT_TYPE -g GENOME [-r RFG_CONFIG]
-                   [--chrom-sizes CHROM_SIZES] [-n] [--standard-chrom]
+                   [--chrom-sizes CHROM_SIZES] [-n] [--standardize]
                    [--check-qc] [--open-signal-matrix OPEN_SIGNAL_MATRIX]
                    [--ensdb ENSDB] --bedbase-config BEDBASE_CONFIG
-                   [-y SAMPLE_YAML] [--no-db-commit] [--just-db-commit]
+                   [--treatment TREATMENT] [--cell-type CELL_TYPE]
+                   [--description DESCRIPTION] [--no-db-commit]
+                   [--just-db-commit] [--upload_qdrant] [--upload-pephub] [-R]
+                   [-N] [-D] [-F] [-T] [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
@@ -70,7 +88,8 @@ options:
                         a full path to the chrom.sizes required for the
                         bedtobigbed conversion
   -n, --narrowpeak      whether it's a narrowpeak file
-  --standard-chrom      Standardize chromosome names. Default: False
+  --standardize         Standardize bed files: remove non-standard chromosomes
+                        and headers if necessary Default: False
   --check-qc            Check quality control before processing data. Default:
                         True
   --open-signal-matrix OPEN_SIGNAL_MATRIX
@@ -80,35 +99,83 @@ options:
                         not in GDdata
   --bedbase-config BEDBASE_CONFIG
                         a path to the bedbase configuration file [Required]
-  -y SAMPLE_YAML, --sample-yaml SAMPLE_YAML
-                        a yaml config file with sample attributes to pass on
-                        more metadata into the database
-  --no-db-commit        skip the JSON commit to the database
-  --just-db-commit      just commit the JSON to the database
+  --treatment TREATMENT
+                        A treatment of the bed file
+  --cell-type CELL_TYPE
+                        A cell type of the bed file
+  --description DESCRIPTION
+                        A description of the bed file
+  --no-db-commit        skip the JSON commit to the database [Default: False]
+  --just-db-commit      Do not save the results locally
+  --upload_qdrant       whether to execute qdrant indexing
+  --upload-pephub       upload to pephub
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
-## `bedboss all-pep --help`
+## `bedboss insert --help`
 ```console
-usage: bedboss all-pep [-h] --pep_config PEP_CONFIG
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+usage: bedboss insert [-h] --bedbase-config BEDBASE_CONFIG --pep PEP
+                      --output-folder OUTPUT_FOLDER [-r RFG_CONFIG]
+                      [--check-qc] [--standardize] [--create-bedset]
+                      [--upload_qdrant] [--ensdb ENSDB] [--no-db-commit]
+                      [--just-db-commit] [--force_overwrite] [--upload-s3]
+                      [--upload-pephub] [-R] [-N] [-D] [-F] [-T] [--silent]
+                      [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
-  --pep_config PEP_CONFIG
-                        Path to the pep configuration file [Required] Required
-                        fields in PEP are: sample_name, input_file,
-                        input_type,outfolder, genome, bedbase_config. Optional
-                        fields in PEP are: rfg_config, narrowpeak, check_qc,
-                        standard_chrom, chrom_sizes, open_signal_matrix,
-                        ensdb, sample_yaml, no_db_commit, just_db_commit,
-                        no_db_commit, force_overwrite, skip_qdrant
+  --bedbase-config BEDBASE_CONFIG
+                        a path to the bedbase configuration file [Required]
+  --pep PEP             path to the pep file or pephub registry path
+                        containing pep [Required]
+  --output-folder OUTPUT_FOLDER
+                        Pipeline output folder [Required]
+  -r RFG_CONFIG, --rfg-config RFG_CONFIG
+                        file path to the genome config file(refgenie)
+  --check-qc            Check quality control before processing data. Default:
+                        True
+  --standardize         Standardize bed files: remove non-standard chromosomes
+                        and headers if necessary Default: False
+  --create-bedset       Create bedset using pep samples. Name of the bedset
+                        will be based on pep name.Default: False
+  --upload_qdrant       whether to execute qdrant indexing
+  --ensdb ENSDB         A full path to the ensdb gtf file required for genomes
+                        not in GDdata
+  --no-db-commit        skip the JSON commit to the database [Default: False]
+  --just-db-commit      just commit the JSON to the database
+  --force_overwrite     Weather to overwrite existing records. [Default:
+                        False]
+  --upload-s3           Weather to upload bed, bigbed, and statistics to s3.
+                        Before uploading you have to set up all necessury env
+                        vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and
+                        AWS_ENDPOINT_URL. [Default: False]
+  --upload-pephub       upload to pephub
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss make --help`
 ```console
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
 usage: bedboss make [-h] -f INPUT_FILE --outfolder OUTFOLDER [-n] -t
                     INPUT_TYPE -g GENOME [-r RFG_CONFIG] -o OUTPUT_BED
                     --output-bigbed OUTPUT_BIGBED -s SAMPLE_NAME
-                    [--chrom-sizes CHROM_SIZES] [--standard-chrom]
+                    [--chrom-sizes CHROM_SIZES] [--standardize] [-R] [-N] [-D]
+                    [-F] [-T] [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
@@ -132,49 +199,109 @@ options:
                         name of the sample used to systematically build the
                         output name [Required]
   --chrom-sizes CHROM_SIZES
-                        whether standardize chromosome names. If ture,
-                        bedmaker will remove the regions on ChrUn chromosomes,
-                        such as chrN_random and chrUn_random. [Default: False]
-  --standard-chrom      Standardize chromosome names. Default: False
+                        A full path to the chrom.sizes required for the
+                        bedtobigbed conversion [optional]
+  --standardize         Standardize bed files: remove non-standard chromosomes
+                        and headers if necessary Default: False
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss qc --help`
 ```console
-usage: bedboss qc [-h] --bedfile BEDFILE --outfolder OUTFOLDER
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+usage: bedboss qc [-h] --bedfile BEDFILE --outfolder OUTFOLDER [-R] [-N] [-D]
+                  [-F] [-T] [--silent] [--verbosity V] [--logdev]
 
 options:
   -h, --help            show this help message and exit
   --bedfile BEDFILE     a full path to bed file to process [Required]
   --outfolder OUTFOLDER
                         a full path to output log folder. [Required]
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
 ```
 
 ## `bedboss stat --help`
 ```console
-usage: bedboss stat [-h] --bedfile BEDFILE --outfolder OUTFOLDER
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+usage: bedboss stat [-h] --bedfile BEDFILE --genome GENOME --outfolder
+                    OUTFOLDER [--bigbed BIGBED]
                     [--open-signal-matrix OPEN_SIGNAL_MATRIX] [--ensdb ENSDB]
-                    [--bigbed BIGBED] --bedbase-config BEDBASE_CONFIG
-                    [-y SAMPLE_YAML] --genome GENOME [--no-db-commit]
-                    [--just-db-commit]
+                    [-R] [-N] [-D] [-F] [-T] [--silent] [--verbosity V]
+                    [--logdev]
 
 options:
   -h, --help            show this help message and exit
   --bedfile BEDFILE     a full path to bed file to process [Required]
+  --genome GENOME       genome assembly of the sample [Required]
   --outfolder OUTFOLDER
                         Pipeline output folder [Required]
+  --bigbed BIGBED       a full path to the bigbed files
   --open-signal-matrix OPEN_SIGNAL_MATRIX
                         a full path to the openSignalMatrix required for the
                         tissue specificity plots
   --ensdb ENSDB         a full path to the ensdb gtf file required for genomes
                         not in GDdata
-  --bigbed BIGBED       a full path to the bigbed files
+  -R, --recover         Overwrite locks to recover from previous failed run
+  -N, --new-start       Overwrite all results to start a fresh run
+  -D, --dirty           Don't auto-delete intermediate files
+  -F, --force-follow    Always run 'follow' commands
+  -T, --testmode        Only print commands, don't run
+  --silent              Silence logging. Overrides verbosity.
+  --verbosity V         Set logging level (1-5 or logging module level name)
+  --logdev              Expand content of logging message format.
+```
+
+## `bedboss bunch --help`
+```console
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+usage: bedboss bunch [-h] --bedbase-config BEDBASE_CONFIG --bedset-name
+                     BEDSET_NAME --bedset-pep BEDSET_PEP
+                     [--base-api BEDBASE_API] [--cache-path CACHE_PATH]
+                     [--heavy]
+
+options:
+  -h, --help            show this help message and exit
   --bedbase-config BEDBASE_CONFIG
                         a path to the bedbase configuration file [Required]
-  -y SAMPLE_YAML, --sample-yaml SAMPLE_YAML
-                        a yaml config file with sample attributes to pass on
-                        more metadata into the database
-  --genome GENOME       genome assembly of the sample [Required]
-  --no-db-commit        whether the JSON commit to the database should be
-                        skipped
-  --just-db-commit      whether just to commit the JSON to the database
+  --bedset-name BEDSET_NAME
+                        a name of the bedset [Required]
+  --bedset-pep BEDSET_PEP
+                        bedset pep path or pephub registry path containing
+                        bedset pep [Required]
+  --base-api BEDBASE_API
+                        Bedbase API to use. Default is https://api.bedbase.org
+  --cache-path CACHE_PATH
+                        Path to the cache folder. Default is ./bedabse_cache
+  --heavy               whether to use heavy processing (Calculate and crate
+                        plots using R script).
 ```
+
+## `bedboss index --help`
+```console
+HNSWBackend requires hnswlib. Install hnswlib, or ignore this if you don't need HNSWBackend
+usage: bedboss index [-h] --bedbase-config BEDBASE_CONFIG
+                     [--bedbase-api BEDBASE_API]
+
+options:
+  -h, --help            show this help message and exit
+  --bedbase-config BEDBASE_CONFIG
+                        a path to the bedbase configuration file [Required]
+  --bedbase-api BEDBASE_API
+                        URL of the Bedbase API [Default:
+                        https://api.bedbase.org]
+```
+

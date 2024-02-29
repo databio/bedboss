@@ -1,8 +1,8 @@
 import os
 import logging
-import urllib
+import urllib.request
+import re
 from bbconf import BedBaseConf
-from typing import NoReturn
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -10,13 +10,19 @@ _LOGGER = logging.getLogger("bedboss")
 
 def extract_file_name(file_path: str) -> str:
     """
-    Extraction file name from file path
+    Extraction bed file name from file path (Whether it is .bed or .bed.gz)
+    e.g. /path/to/file_name.bed.gz -> file_name
 
     :param file_path: full file path
     :return: file name without extension
     """
     file_name = os.path.basename(file_path)
-    file_name = file_name.split(".")[0]
+    if file_name.split(".")[-1] == "gz":
+        file_name = file_name.split(".")[0:-2]
+
+    else:
+        file_name = file_name.split(".")[0:-1]
+    file_name = re.sub("[^A-Za-z0-9]+", "_", "_".join(file_name))
     return file_name
 
 
@@ -42,7 +48,7 @@ def standardize_genome_name(input_genome: str) -> str:
         return input_genome
 
 
-def download_file(url: str, path: str, no_fail: bool = False) -> NoReturn:
+def download_file(url: str, path: str, no_fail: bool = False) -> None:
     """
     Download file from the url to specific location
 
@@ -55,12 +61,12 @@ def download_file(url: str, path: str, no_fail: bool = False) -> NoReturn:
     _LOGGER.info(f"Local path: {os.path.abspath(path)}")
     try:
         urllib.request.urlretrieve(url, path)
-        _LOGGER.info(f"File downloaded successfully!")
+        _LOGGER.info("File downloaded successfully!")
     except Exception as e:
-        _LOGGER.error(f"File download failed.")
+        _LOGGER.error("File download failed.")
         if not no_fail:
             raise e
-        _LOGGER.error(f"File download failed. Continuing anyway...")
+        _LOGGER.error("File download failed. Continuing anyway...")
 
 
 def check_db_connection(bedbase_config: str) -> bool:
@@ -70,15 +76,32 @@ def check_db_connection(bedbase_config: str) -> bool:
     :param bedbase_config: path to the bedbase config file
     :return: True if connection is successful, False otherwise
     """
-    _LOGGER.info(f"Checking database connection...")
+    _LOGGER.info("Checking database connection...")
     if not os.path.exists(bedbase_config):
         raise FileNotFoundError(f"Bedbase config file {bedbase_config} was not found.")
     else:
         _LOGGER.info(f"Bedbase config file {bedbase_config} was found.")
     try:
         BedBaseConf(bedbase_config)
-        _LOGGER.info(f"Database connection is successful.")
+        _LOGGER.info("Database connection is successful.")
         return True
     except Exception as e:
         _LOGGER.error(f"Database connection failed. Error: {e}")
         return False
+
+
+def convert_unit(size_in_bytes: int) -> str:
+    """
+    Convert the size from bytes to other units like KB, MB or GB
+
+    :param int size_in_bytes: size in bytes
+    :return str: File size as string in different units
+    """
+    if size_in_bytes < 1024:
+        return str(size_in_bytes) + "bytes"
+    elif size_in_bytes in range(1024, 1024 * 1024):
+        return str(round(size_in_bytes / 1024, 2)) + "KB"
+    elif size_in_bytes in range(1024 * 1024, 1024 * 1024 * 1024):
+        return str(round(size_in_bytes / (1024 * 1024))) + "MB"
+    elif size_in_bytes >= 1024 * 1024 * 1024:
+        return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
