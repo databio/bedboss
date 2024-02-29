@@ -50,7 +50,7 @@ setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     keywords="project, bioinformatics, sequencing, ngs, workflow",
-    url=f"https://github.com/databio/{PACKAGE_NAME}/",
+    url="https://databio.org",
     authors=[
         "Oleksandr Khoroshevskyi",
         "Michal Stolarczyk",
@@ -58,6 +58,7 @@ setup(
         "Jose Verdezoto",
         "Bingjie Xue",
     ],
+    author_email="khorosh@virginia.edu",
     license="BSD2",
     entry_points={
         "console_scripts": [
@@ -65,7 +66,6 @@ setup(
         ],
     },
     package_data={PACKAGE_NAME: ["templates/*"]},
-    scripts=scripts,
     include_package_data=True,
     test_suite="tests",
     tests_require=read_reqs("dev"),

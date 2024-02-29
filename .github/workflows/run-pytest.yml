@@ -1,5 +1,5 @@
 ## we can't run test, but lets just install all dependencies and package
-name: Run instalation test
+name: Installation test
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.12"]
+        python-version: ["3.8", "3.11"]
         os: [ubuntu-latest]
 
     steps:
