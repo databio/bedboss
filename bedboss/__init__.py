@@ -16,7 +16,6 @@ from bedboss.bedboss import (
     bedstat,
     run_bedbuncher,
 )
-from bedboss.bedmaker.bedmaker import BedMaker
 
 
 __package_name__ = "bedboss"
@@ -36,8 +35,6 @@ __all__ = [
     "__author__",
     "bedboss",
     "bedqc",
-    "bedmaker",
-    "BedMaker",
     "bedstat",
     "run_all",
     "insert_pep",

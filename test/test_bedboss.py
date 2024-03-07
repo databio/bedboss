@@ -87,12 +87,12 @@ def test_make(bedfile, tmpdir):
         {
             "command": "make",
             "input_file": bedfile,
-            "sample_name": "test",
+            # "sample_name": "test",
             "input_type": "bed",
             "genome": "hg19",
-            "output_bed": os.path.join(tmpdir, "bed"),
-            "output_bigbed": os.path.join(tmpdir, "bigbed"),
-            "outfolder": tmpdir,
+            "output_path": os.path.join(tmpdir, "bed"),
+            # "output_bigbed": os.path.join(tmpdir, "bigbed"),
+            # "outfolder": tmpdir,
             "multy": True,
         }
     )

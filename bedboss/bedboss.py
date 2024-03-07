@@ -189,19 +189,19 @@ def run_all(
     else:
         bbc = bedbase_config
 
-    file_name = extract_file_name(input_file)
+    # file_name = extract_file_name(input_file)
     genome = standardize_genome_name(genome)
 
-    output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
-    output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
+    # output_bed = os.path.join(outfolder, BED_FOLDER_NAME, f"{file_name}.bed.gz")
+    # output_bigbed = os.path.join(outfolder, BIGBED_FOLDER_NAME)
 
     # set env for bedstat:
     output_folder_bedstat = os.path.join(outfolder, "output")
     os.environ["BEDBOSS_OUTPUT_PATH"] = output_folder_bedstat
 
     _LOGGER.info(f"Input file = '{input_file}'")
-    _LOGGER.info(f"Output bed file = '{output_bed}'")
-    _LOGGER.info(f"Output bigbed file = '{output_bigbed}'")
+    # _LOGGER.info(f"Output bed file = '{output_bed}'")
+    # _LOGGER.info(f"Output bigbed file = '{output_bigbed}'")
     _LOGGER.info(f"Output folder for bedstat = '{output_folder_bedstat}'")
 
     if not pm:
@@ -217,95 +217,94 @@ def run_all(
     else:
         stop_pipeline = False
 
-    classification_meta = make_all(
+    bed_metadata = make_all(
         input_file=input_file,
         input_type=input_type,
-        output_bed=output_bed,
-        output_bigbed=output_bigbed,
-        sample_name=sample_name,
+        output_path=outfolder,
         genome=genome,
         rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
-        standardize=standardize,
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
     if not other_metadata:
         other_metadata = {}
 
-    bed_digest = classification_meta.get("digest")
-
     statistics_dict = bedstat(
-        bedfile=output_bed,
+        bedfile=bed_metadata.bed_file,
         outfolder=outfolder,
         genome=genome,
         ensdb=ensdb,
-        bed_digest=bed_digest,
+        bed_digest=bed_metadata.bed_digest,
         open_signal_matrix=open_signal_matrix,
-        bigbed=output_bigbed,
+        bigbed=bed_metadata.bigbed_file,
         just_db_commit=just_db_commit,
         pm=pm,
     )
     statistics_dict.update(
         {
-            "bed_type": classification_meta["bed_type"],
-            "bed_format": classification_meta["bed_format"],
+            "bed_type": bed_metadata.bed_type,
+            "bed_format": bed_metadata.bed_format.value,
         }
     )
 
     if db_commit:
         bbc.bed.report(
-            record_identifier=bed_digest,
+            record_identifier=bed_metadata.bed_digest,
             values=statistics_dict,
             force_overwrite=force_overwrite,
         )
 
     if upload_s3:
-        _LOGGER.info(f"Uploading '{bed_digest}' data to S3 ...")
+        _LOGGER.info(f"Uploading '{bed_metadata.bed_digest}' data to S3 ...")
         load_to_s3(
-            os.path.abspath(outfolder), pm, output_bed, bed_digest, output_bigbed
+            os.path.abspath(outfolder),
+            pm,
+            output_bed,
+            bed_metadata.bed_digest,
+            output_bigbed,
         )
     else:
         _LOGGER.info(
-            f"Skipping uploading '{bed_digest}' data to S3. 'upload_s3' is set to False. "
+            f"Skipping uploading '{bed_metadata.bed_digest}' data to S3. 'upload_s3' is set to False. "
         )
 
     if upload_qdrant:
-        _LOGGER.info(f"Adding '{bed_digest}' vector to Qdrant ...")
+        _LOGGER.info(f"Adding '{bed_metadata.bed_digest}' vector to Qdrant ...")
 
         bbc.add_bed_to_qdrant(
-            bed_id=bed_digest,
+            bed_id=bed_metadata.bed_digest,
             bed_file=output_bed,
-            payload={"digest": bed_digest},
+            payload={"digest": bed_metadata.bed_digest},
         )
         bbc.bed.report(
-            record_identifier=bed_digest,
+            record_identifier=bed_metadata.bed_digest,
             values={"added_to_qdrant": True},
             force_overwrite=True,
         )
     else:
         _LOGGER.info(
-            f"Skipping adding '{bed_digest}' vector to Qdrant, 'skip_qdrant' is set to True. "
+            f"Skipping adding '{bed_metadata.bed_digest}' vector to Qdrant, 'skip_qdrant' is set to True. "
         )
 
     if upload_pephub:
-        _LOGGER.info(f"Uploading metadata of '{bed_digest}' TO PEPhub ...")
+        _LOGGER.info(f"Uploading metadata of '{bed_metadata.bed_digest}' TO PEPhub ...")
         load_to_pephub(
             pep_registry_path=BED_PEP_REGISTRY,
-            bed_digest=bed_digest,
+            bed_digest=bed_metadata.bed_digest,
             genome=genome,
             metadata=other_metadata,
         )
     else:
         _LOGGER.info(
-            f"Metadata of '{bed_digest}' is NOT uploaded to PEPhub. 'upload_pephub' is set to False. "
+            f"Metadata of '{bed_metadata.bed_digest}' is NOT uploaded to PEPhub. 'upload_pephub' is set to False. "
         )
 
     if stop_pipeline:
         pm.stop_pipeline()
 
-    return bed_digest
+    return bed_metadata.bed_digest
 
 
 def insert_pep(

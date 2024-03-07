@@ -1,3 +1,5 @@
+from enum import Enum
+
 BED_TO_BIGBED_PROGRAM = "bedToBigBed"
 # BED_TO_BIGBED_PROGRAM = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/bedToBigBed"
 BIGBED_TO_BED_PROGRAM = "bigBedToBed"
@@ -26,3 +28,5 @@ STANDARD_CHROM_LIST = ["chr" + str(chr_nb) for chr_nb in list(range(1, 23))]
 STANDARD_CHROM_LIST[len(STANDARD_CHROM_LIST) :] = ["chrX", "chrY", "chrM"]
 
 QC_FOLDER_NAME = "bed_qc"
+
+BIGBED_FILE_NAME = "bigbed_files"
