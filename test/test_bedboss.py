@@ -36,7 +36,8 @@ def check_dependencies_installed() -> bool:
     # return 1 > test_dep_return_code.returncode
 
 
-dependencies_installed = check_dependencies_installed()
+# dependencies_installed = check_dependencies_installed()
+dependencies_installed = True
 
 
 def db_setup():
@@ -92,12 +93,34 @@ def test_make(bedfile, tmpdir):
             "output_bed": os.path.join(tmpdir, "bed"),
             "output_bigbed": os.path.join(tmpdir, "bigbed"),
             "outfolder": tmpdir,
-            "no_db_commit": True,
             "multy": True,
         }
     )
     assert os.path.isfile(os.path.join(tmpdir, "bed", "sample1.bed.gz"))
     assert os.path.isfile(os.path.join(tmpdir, "bigbed", "sample1.bigBed"))
+
+
+@pytest.mark.parametrize(
+    "bedfile",
+    [
+        "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM6627nnn/GSM6627985/suppl/GSM6627985_H1P504h_peaks.narrowPeak.gz",
+    ],
+)
+def test_make1(bedfile, tmpdir):
+    ff = main(
+        {
+            "command": "make",
+            "input_file": bedfile,
+            "sample_name": "test",
+            "input_type": "bed",
+            "genome": "hg38",
+            "output_bed": os.path.join(tmpdir, "bed"),
+            "output_bigbed": os.path.join(tmpdir, "bigbed"),
+            "outfolder": tmpdir,
+            "multy": True,
+        }
+    )
+    ff
 
 
 @pytest.mark.skipif(

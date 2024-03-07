@@ -1,32 +1,29 @@
 #!/usr/bin/env python3
 
+from typing import Union
 import pypiper
 import os
+from pathlib import Path
 
 import logging
 import tempfile
 import pandas as pd
 import gzip
 import shutil
-from refgenconf import (
-    RefGenConf as RGC,
-    select_genome_config,
-    RefgenconfError,
-    CFG_ENV_VARS,
-    CFG_FOLDER_KEY,
-)
+
 from refgenconf.exceptions import MissingGenomeError
-from yacman.exceptions import UndefinedAliasError
+
 from ubiquerg import is_command_callable
 from geniml.io import RegionSet
+
+from geniml.bbclient import BBClient
 
 from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import RequirementsException, BedBossException
 
-from bedboss.const import (
+from bedboss.bedmaker.const import (
     BEDGRAPH_TEMPLATE,
-    BED_TEMPLATE,
     BIGWIG_TEMPLATE,
     BIGBED_TEMPLATE,
     WIG_TEMPLATE,
@@ -35,10 +32,119 @@ from bedboss.const import (
     BED_TO_BIGBED_PROGRAM,
     BIGBED_TO_BED_PROGRAM,
     QC_FOLDER_NAME,
-    REFGENIE_ENV_VAR,
 )
+from bedboss.bedmaker.utils import get_chrom_sizes
 
 _LOGGER = logging.getLogger("bedboss")
+
+
+def make_bigbed(
+    bed_path: Union[str, Path],
+    output_path: Union[str, Path],
+    genome: str,
+    bed_type: str = None,
+    rfg_config: Union[str, Path] = None,
+    chrom_sizes: Union[str, Path] = None,
+    pm: pypiper.PipelineManager = None,
+) -> str:
+    """
+    Generate bigBed file for the BED file.
+
+    :param bed_path: path to the BED file
+    :param output_path: folder to save the bigBed file.
+    :param genome: reference genome (e.g. hg38, mm10, etc.)
+    :param chrom_sizes: a full path to the chrom.sizes required for the
+                        bedtobigbed conversion
+    :param rfg_config: file path to the genome config file. [Default: None]
+    :param bed_type: bed type to be used for bigBed file generation "bed{bedtype}+{n}" [Default: None] (e.g bed3+1)
+
+    :return: path to the bigBed file
+    """
+    if not pm:
+        pm = pypiper.PipelineManager(
+            name="bedmaker",
+            outfolder=os.path.join(output_path, "bedmaker_logs"),
+            recover=True,
+            multi=True,
+        )
+        pm_clean = True
+    else:
+        pm_clean = False
+    _LOGGER.info(f"Generating bigBed files for: {bed_path}")
+
+    bedfile_name = os.path.split(bed_path)[1]
+    fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
+    # Produce bigBed (big_narrow_peak) file from peak file
+    big_bed_path = os.path.join(output_path, fileid + ".bigBed")
+    if not chrom_sizes:
+        try:
+            chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
+        except MissingGenomeError:
+            _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
+            chrom_sizes = ""
+
+    temp = os.path.join(output_path, next(tempfile._get_candidate_names()))
+
+    if not os.path.exists(big_bed_path):
+        pm.clean_add(temp)
+
+        if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
+            raise RequirementsException(
+                "To convert bed to BigBed file You must first install "
+                "bedToBigBed add in your PATH. "
+                "Instruction: "
+                "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
+            )
+        if bed_type is not None:
+            cmd = f"zcat {bed_path} | sort -k1,1 -k2,2n > {temp}"
+            pm.run(cmd, temp)
+
+            cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_type} {temp} {chrom_sizes} {big_bed_path}"
+            try:
+                _LOGGER.info(f"Running: {cmd}")
+                pm.run(cmd, big_bed_path, nofail=False)
+            except Exception as err:
+                _LOGGER.error(
+                    f"Fail to generating bigBed files for {bed_path}: "
+                    f"unable to validate genome assembly with Refgenie. "
+                    f"Error: {err}"
+                )
+        else:
+            cmd = (
+                "zcat "
+                + bed_path
+                + " | awk '{ print $1, $2, $3 }'| sort -k1,1 -k2,2n > "
+                + temp
+            )
+            pm.run(cmd, temp)
+            cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {chrom_sizes} {big_bed_path}"
+
+            try:
+                pm.run(cmd, big_bed_path, nofail=True)
+            except Exception as err:
+                _LOGGER.info(
+                    f"Fail to generating bigBed files for {bed_path}: "
+                    f"unable to validate genome assembly with Refgenie. "
+                    f"Error: {err}"
+                )
+        pm._cleanup()
+    if pm_clean:
+        pm.stop_pipeline()
+    return big_bed_path
+
+
+def make_bed(
+    input_file: str,
+    input_type: str,
+    output_bed: str,
+    genome: str,
+    narrowpeak: bool = False,
+):
+    """
+    Convert the input file to BED format by construct the command based
+    on input file type and execute the command.
+    """
+    pass
 
 
 class BedMaker:
@@ -169,8 +275,6 @@ class BedMaker:
         else:
             self.pm = pm
 
-        # self.make()
-
     def make(self) -> dict:
         """
         Create bed and BigBed files.
@@ -195,12 +299,20 @@ class BedMaker:
                 raise BedBossException(
                     f"Quality control failed for {self.output_bed}. Error: {e}"
                 )
-
-        self.make_bigbed(bed_type=bed_type)
+        return_value = make_bigbed(
+            bed_type=bed_type,
+            bed_path=self.output_bed,
+            genome=self.genome,
+            output_path=self.output_bigbed,
+            rfg_config=self.rfg_config,
+            chrom_sizes=self.chrom_sizes,
+            pm=self.pm,
+        )
 
         return {
             "bed_type": bed_type,
             "bed_format": bed_format,
+            "bed_path": self.output_bed,
             "genome": self.genome,
             "digest": RegionSet(self.output_bed).identifier,
         }
@@ -262,7 +374,9 @@ class BedMaker:
             # creating cmd for wig files
             elif self.input_type == "wig":
                 if not self.chrom_sizes:
-                    self.chrom_sizes = self.get_chrom_sizes()
+                    self.chrom_sizes = get_chrom_sizes(
+                        genome=self.genome, rfg_config=self.rfg_config
+                    )
 
                 # define a target for temporary bw files
                 temp_target = os.path.join(self.bed_parent, self.file_id + ".bw")
@@ -319,195 +433,14 @@ class BedMaker:
                 if not isinstance(cmd, list):
                     cmd = [cmd]
                 cmd.append(gzip_cmd)
-        # creating cmd for bed files
         else:
-            if self.standardize:
-                self.copy_with_standardization()
+            # If bed file was provided:
+            bbclient = BBClient()
+            bed_id = bbclient.add_bed_to_cache(self.input_file)
 
-            else:
-                if self.input_extension == ".gz":
-                    cmd = BED_TEMPLATE.format(
-                        input=self.input_file, output=self.output_bed
-                    )
-                else:
-                    cmd = [
-                        BED_TEMPLATE.format(
-                            input=self.input_file,
-                            output=os.path.splitext(self.output_bed)[0],
-                        ),
-                        GZIP_TEMPLATE.format(
-                            unzipped_converted_file=os.path.splitext(self.output_bed)[0]
-                        ),
-                    ]
-                self.pm.run(cmd, target=self.output_bed)
+            self.output_bed = bbclient.seek(bed_id)
 
         self.pm._cleanup()
-
-    def copy_with_standardization(self):
-        df = None
-        max_rows = 5
-        row_count = 0
-        while row_count <= max_rows:
-            try:
-                df = pd.read_csv(
-                    self.input_file, sep="\t", header=None, nrows=4, skiprows=row_count
-                )
-                if row_count > 0:
-                    _LOGGER.info(
-                        f"Skipped {row_count} rows while standardization {self.input_file}"
-                    )
-                break
-            except (pd.errors.ParserError, pd.errors.EmptyDataError) as e:
-                if row_count <= max_rows:
-                    row_count += 1
-        if not isinstance(df, pd.DataFrame):
-            raise BedBossException(
-                reason=f"Bed file is broken and could not be parsed due to CSV parse error."
-            )
-        df = df.dropna(axis=1)
-        _LOGGER.info("Standardizing chromosomes...")
-        df = df[df.loc[:, 0].isin(STANDARD_CHROM_LIST)]
-        df.to_csv(
-            self.output_bed, compression="gzip", sep="\t", header=False, index=False
-        )
-
-    def make_bigbed(self, bed_type: str = None) -> None:
-        """
-        Generate bigBed file for the BED file.
-
-        :param bed_type: bed type to be used for bigBed file generation "bed{bedtype}+{n}" [Default: None]
-        """
-        _LOGGER.info(f"Generating bigBed files for: {self.input_file}")
-
-        bedfile_name = os.path.split(self.output_bed)[1]
-        fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
-        # Produce bigBed (big_narrow_peak) file from peak file
-        big_narrow_peak = os.path.join(self.output_bigbed, fileid + ".bigBed")
-        if not self.chrom_sizes:
-            try:
-                self.chrom_sizes = self.get_chrom_sizes()
-            except MissingGenomeError:
-                _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
-                self.chrom_sizes = ""
-
-        temp = os.path.join(self.output_bigbed, next(tempfile._get_candidate_names()))
-
-        if not os.path.exists(big_narrow_peak):
-            self.pm.clean_add(temp)
-
-            if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
-                raise RequirementsException(
-                    "To convert bed to BigBed file You must first install "
-                    "bedToBigBed add in your PATH. "
-                    "Instruction: "
-                    "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
-                )
-            if bed_type is not None:
-                cmd = f"zcat {self.output_bed} | sort -k1,1 -k2,2n > {temp}"
-                self.pm.run(cmd, temp)
-
-                cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_type} {temp} {self.chrom_sizes} {big_narrow_peak}"
-                try:
-                    _LOGGER.info(f"Running: {cmd}")
-                    self.pm.run(cmd, big_narrow_peak, nofail=True)
-                except Exception as err:
-                    _LOGGER.error(
-                        f"Fail to generating bigBed files for {self.input_file}: "
-                        f"unable to validate genome assembly with Refgenie. "
-                        f"Error: {err}"
-                    )
-            else:
-                cmd = (
-                    "zcat "
-                    + self.output_bed
-                    + " | awk '{ print $1, $2, $3 }'| sort -k1,1 -k2,2n > "
-                    + temp
-                )
-                self.pm.run(cmd, temp)
-                cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {self.chrom_sizes} {big_narrow_peak}"
-
-                try:
-                    self.pm.run(cmd, big_narrow_peak, nofail=True)
-                except Exception as err:
-                    _LOGGER.info(
-                        f"Fail to generating bigBed files for {self.input_file}: "
-                        f"unable to validate genome assembly with Refgenie. "
-                        f"Error: {err}"
-                    )
-            self.pm._cleanup()
-
-    def get_rgc(self) -> RGC:
-        """
-        Get refgenie config file.
-
-        :return str: rfg_config file path
-        """
-        if not self.rfg_config:
-            _LOGGER.info("Creating refgenie genome config file...")
-            cwd = os.getenv(REFGENIE_ENV_VAR, os.getcwd())
-            self.rfg_config = os.path.join(cwd, "genome_config.yaml")
-
-        # get path to the genome config; from arg or env var if arg not provided
-        refgenie_cfg_path = select_genome_config(
-            filename=self.rfg_config, check_exist=False
-        )
-
-        if not refgenie_cfg_path:
-            raise OSError(
-                "Could not determine path to a refgenie genome configuration file. "
-                f"Use --rfg-config argument or set the path with '{CFG_ENV_VARS}'."
-            )
-        if isinstance(refgenie_cfg_path, str) and not os.path.exists(refgenie_cfg_path):
-            # file path not found, initialize a new config file
-            _LOGGER.info(
-                f"File '{refgenie_cfg_path}' does not exist. "
-                "Initializing refgenie genome configuration file."
-            )
-            rgc = RGC(entries={CFG_FOLDER_KEY: os.path.dirname(refgenie_cfg_path)})
-            rgc.initialize_config_file(filepath=refgenie_cfg_path)
-        else:
-            _LOGGER.info(
-                "Reading refgenie genome configuration file from file: "
-                f"{refgenie_cfg_path}"
-            )
-            rgc = RGC(filepath=refgenie_cfg_path)
-
-        return rgc
-
-    def get_chrom_sizes(self) -> str:
-        """
-        Get chrom.sizes file with Refgenie.
-
-        :return str: chrom.sizes file path
-        """
-
-        _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
-        # initalizing refginie config file
-        rgc = self.get_rgc()
-
-        try:
-            # get local path to the chrom.sizes asset
-            chrom_sizes = rgc.seek(
-                genome_name=self.genome,
-                asset_name="fasta",
-                tag_name="default",
-                seek_key="chrom_sizes",
-            )
-            _LOGGER.info(chrom_sizes)
-        except (UndefinedAliasError, RefgenconfError):
-            # if no local chrom.sizes file found, pull it first
-            _LOGGER.info("Could not determine path to chrom.sizes asset, pulling")
-            rgc.pull(genome=self.genome, asset="fasta", tag="default")
-            chrom_sizes = rgc.seek(
-                genome_name=self.genome,
-                asset_name="fasta",
-                tag_name="default",
-                seek_key="chrom_sizes",
-            )
-
-        _LOGGER.info(f"Determined path to chrom.sizes asset: {chrom_sizes}")
-
-        return chrom_sizes
 
 
 def make_all(
@@ -523,7 +456,6 @@ def make_all(
     standardize: bool = False,
     check_qc: bool = True,
     pm: pypiper.PipelineManager = None,
-    **kwargs,
 ):
     """
     Maker of bed and bigbed files.
@@ -576,5 +508,4 @@ def make_all(
         standardize=standardize,
         check_qc=check_qc,
         pm=pm,
-        **kwargs,
     ).make()
