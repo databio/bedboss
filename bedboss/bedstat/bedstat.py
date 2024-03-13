@@ -140,7 +140,7 @@ def bedstat(
         os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     bigbed_relpath = os.path.relpath(
-        os.path.join(bigbed, fileid + ".bigBed"),
+        bigbed,
         os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     if not just_db_commit:
@@ -190,6 +190,9 @@ def bedstat(
     # length 1 and force keys to lower to correspond with the
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+
+    # TODO: This should be moved to bedmaker output. Or
+
     data.update(
         {
             "bedfile": {
@@ -200,20 +203,20 @@ def bedstat(
         }
     )
 
-    if os.path.exists(os.path.join(bigbed, fileid + ".bigBed")):
+    if os.path.exists(bigbed):
         data.update(
             {
                 "bigbedfile": {
                     "path": bigbed_relpath,
                     "size": convert_unit(
-                        os.path.getsize(os.path.join(bigbed, fileid + ".bigBed"))
+                        os.path.getsize(bigbed)
                     ),
                     "title": "Path to the big BED file",
                 }
             }
         )
 
-        if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
+        if not os.path.islink(bigbed):
             digest = requests.get(
                 f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
             ).text.strip('""')

@@ -172,13 +172,13 @@ def run_all(
         )
         statistics_dict["bedfile"]["path"] = uploading_status["s3"].get("bed_file")
         if statistics_dict.get("bigbed"):
-            statistics_dict["bigbed"]["path"] = uploading_status["s3"].get(
+            statistics_dict["bigbedfile"]["path"] = uploading_status["s3"].get(
                 "bigbed_file"
             )
     else:
         _LOGGER.info(f"Skipping uploading to s3. Flag `upload_s3` is set to False")
         statistics_dict["bedfile"] = None
-        statistics_dict["bigbed"] = None
+        statistics_dict["bigbedfile"] = None
 
     if upload_qdrant:
         _LOGGER.info(f"Adding '{bed_metadata.bed_digest}' vector to Qdrant ...")

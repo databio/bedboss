@@ -186,7 +186,6 @@ class BedBossUploader:
             "gccontent",
             "chrombins",
             "tssdist",
-            "bigbedfile",
         ]
 
         return_dict = {}
@@ -210,4 +209,10 @@ class BedBossUploader:
                             "local_path": os.path.join(local_path, path),
                             "s3_path": path,
                         }
+            elif key == "bigbedfile":
+                if value.get("path"):
+                    return_dict["bigbedfile"] = {
+                        "local_path": os.path.join(local_path, value["path"]),
+                        "s3_path": value["path"],
+                    }
         return return_dict

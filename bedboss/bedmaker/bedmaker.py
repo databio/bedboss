@@ -394,7 +394,7 @@ def make_all(
         pm.stop_pipeline()
 
     _LOGGER.info(f"Bed output file: {output_bed}")
-    _LOGGER.info(f"BigBed output file: {output_bed}")
+    _LOGGER.info(f"BigBed output file: {output_bigbed}")
 
     return BedMakerOutput(
         bed_file=output_bed,
