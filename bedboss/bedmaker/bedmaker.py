@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from typing import Union
 import pypiper
 import os
@@ -26,7 +24,6 @@ from bedboss.bedmaker.const import (
     BIGWIG_TEMPLATE,
     BIGBED_TEMPLATE,
     WIG_TEMPLATE,
-    GZIP_TEMPLATE,
     BED_TO_BIGBED_PROGRAM,
     BIGBED_TO_BED_PROGRAM,
     QC_FOLDER_NAME,
@@ -343,7 +340,7 @@ def make_all(
     :param check_qc: run quality control during bedmaking
     :param pm: pypiper object
 
-    :return: dict with generated bed metadata:
+    :return: dict with generated bed metadata - BedMakerOutput object:
         {
             "bed_type": bed_type. e.g. bed, bigbed
             "bed_format": bed_format. e.g. narrowpeak, broadpeak

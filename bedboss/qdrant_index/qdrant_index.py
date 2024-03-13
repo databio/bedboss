@@ -14,6 +14,7 @@ _LOGGER = logging.getLogger("bedboss")
 REGION2VEC_MODEL = "databio/r2v-ChIP-atlas-hg38-v2"
 
 
+# TODO: outdated, because added_to_qdrant was deldeted
 def get_unindexed_bed_files(bbc: BedBaseConf) -> List[str]:
     """
     Get list of unindexed bed files from the bedbase
@@ -63,12 +64,6 @@ def add_to_qdrant(
             bed_file=bedfile_object,
             payload={"description": "test"},
             region_to_vec=region_to_vec_obj,
-        )
-
-        bbc.bed.report(
-            record_identifier=record_id,
-            values={"added_to_qdrant": True},
-            force_overwrite=True,
         )
 
     return None

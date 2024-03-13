@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from typing import Dict
 
 from enum import Enum
 import pypiper
@@ -100,3 +101,13 @@ class BedMakerCLIModel(BaseModel):
     pm: pypiper.PipelineManager = None
 
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
+
+
+class UploadStatusModel(BaseModel):
+    """
+    Model for upload status
+    """
+
+    s3: Union[Dict[str, str], bool] = False
+    qdrant: bool = False
+    pephub: bool = False

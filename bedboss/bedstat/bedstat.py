@@ -245,9 +245,6 @@ def bedstat(
     if "md5sum" in data:
         del data["md5sum"]
 
-    # add added_to_qdrant to the data
-    data["added_to_qdrant"] = False
-
     if stop_pipeline:
         pm.stop_pipeline()
 
