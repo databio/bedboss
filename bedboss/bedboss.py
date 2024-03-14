@@ -78,7 +78,7 @@ def run_all(
     pm: pypiper.PipelineManager = None,
 ) -> str:
     """
-    Run bedboss: bedmaker, bedqc, bedstat, and bedbuncher pipelines from PEP.
+    Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
 
     :param str input_file: Input file [required]
     :param str input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
