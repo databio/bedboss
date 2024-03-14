@@ -5,9 +5,7 @@ import os
 
 import geniml.bbclient
 from bbconf import BedBaseConf
-from geniml.io.io import RegionSet
 import boto3
-import botocore
 from rich.progress import track
 from geniml.bbclient.const import DEFALUT_BUCKET_NAME
 
@@ -117,6 +115,7 @@ class BedBossUploader:
         self,
         identifier: str,
         results: dict,
+        bigbed: str = None,
         local_path: str = None,
         bucket: str = DEFALUT_BUCKET_NAME,
         endpoint_url: str = None,
@@ -127,6 +126,7 @@ class BedBossUploader:
         Upload file to s3
 
         :param identifier: the unique identifier of the BED file
+        :param bigbed: the path to the bigbed file
         :param results: the dictionary with the results
         :param local_path: the local path to the output files
         :param bucket: the name of the bucket
@@ -153,16 +153,27 @@ class BedBossUploader:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
         )
-
         return_dict["bed_file"] = bed_path_s3
 
-        upload_dict = self._parse_results_to_s3(results, local_path=local_path)
+        if bigbed:
+            _LOGGER.info(f"Uploading bigbed file '{bigbed}' to S3 ...")
+            bigbed_s3_path = os.path.join(
+                "bigbed_files", identifier[0], identifier[1], os.path.basename(bigbed)
+            )
+            s3_client.upload_file(bigbed, bucket, bigbed_s3_path)
+            return_dict["bigbed_file"] = bigbed_s3_path
+        else:
+            return_dict["bigbed_file"] = None
 
-        # TODO: Add rich logging
-        for key, value in upload_dict.items():
+        upload_dict = self._parse_results_to_s3(results, local_path=local_path)
+        _LOGGER.info(f"Uploading plots to S3...")
+        for key, value in track(
+            upload_dict.items(), description="Uploading plots to S3..."
+        ):
             s3_client.upload_file(value["local_path"], bucket, value["s3_path"])
             return_dict[key] = value["s3_path"]
 
+        _LOGGER.info(f"Data for '{identifier}' uploaded to S3 successfully!")
         return return_dict
 
     @staticmethod
@@ -209,10 +220,4 @@ class BedBossUploader:
                             "local_path": os.path.join(local_path, path),
                             "s3_path": path,
                         }
-            elif key == "bigbedfile":
-                if value.get("path"):
-                    return_dict["bigbedfile"] = {
-                        "local_path": os.path.join(local_path, value["path"]),
-                        "s3_path": value["path"],
-                    }
         return return_dict

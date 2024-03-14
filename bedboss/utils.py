@@ -2,6 +2,7 @@ import os
 import logging
 import urllib.request
 from bbconf import BedBaseConf
+import requests
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -86,3 +87,9 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024))) + "MB"
     elif size_in_bytes >= 1024 * 1024 * 1024:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
+
+
+def get_genome_digest(genome):
+    return requests.get(
+        f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
+    ).text.strip('""')

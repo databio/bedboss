@@ -33,6 +33,8 @@ from bedboss.models import (
 from bedboss.utils import (
     standardize_genome_name,
     check_db_connection,
+    convert_unit,
+    get_genome_digest,
 )
 from bedboss.uploader import BedBossUploader
 from bedboss.exceptions import BedBossException
@@ -106,10 +108,7 @@ def run_all(
 
     if isinstance(bedbase_config, str):
         if not check_db_connection(bedbase_config=bedbase_config):
-            raise BedBossException("Database connection failed. Exiting...")
-        bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
-    else:
-        bbc = bedbase_config
+            raise BedBossException("Unable to connect to the database. Exiting...")
 
     genome = standardize_genome_name(genome)
 
@@ -150,7 +149,6 @@ def run_all(
         ensdb=ensdb,
         bed_digest=bed_metadata.bed_digest,
         open_signal_matrix=open_signal_matrix,
-        bigbed=bed_metadata.bigbed_file,
         just_db_commit=just_db_commit,
         pm=pm,
     )
@@ -161,31 +159,54 @@ def run_all(
         }
     )
 
-    uploading_status = UploadStatusModel().model_dump()
+    uploading_status = UploadStatusModel()
     bbuploader = BedBossUploader(bedbase_config)
 
     if upload_s3:
-        uploading_status["s3"] = bbuploader.upload_s3(
+        uploading_status.s3 = bbuploader.upload_s3(
             identifier=bed_metadata.bed_digest,
             results=statistics_dict,
             local_path=outfolder,
+            bigbed=bed_metadata.bigbed_file,
         )
-        statistics_dict["bedfile"]["path"] = uploading_status["s3"].get("bed_file")
-        if statistics_dict.get("bigbed"):
-            statistics_dict["bigbedfile"]["path"] = uploading_status["s3"].get(
-                "bigbed_file"
-            )
+
+        statistics_dict["bedfile"] = {
+            "path": uploading_status.s3.get("bed_file"),
+            "size": convert_unit(os.path.getsize(bed_metadata.bed_file)),
+            "title": "Path to the BED file",
+        }
+        if bed_metadata.bigbed_file:
+            statistics_dict["bigbedfile"] = {
+                "path": uploading_status.s3.get("bigbed_file"),
+                "size": convert_unit(os.path.getsize(bed_metadata.bigbed_file)),
+                "title": "Path to the BED file",
+            }
+            digest = get_genome_digest(genome)
+
+            statistics_dict["genome"] = {
+                "alias": genome,
+                "digest": digest,
+            }
+        else:
+            statistics_dict["bigbedfile"] = None
+            statistics_dict["genome"] = {
+                "alias": genome,
+                "digest": "",
+            }
     else:
         _LOGGER.info(f"Skipping uploading to s3. Flag `upload_s3` is set to False")
         statistics_dict["bedfile"] = None
         statistics_dict["bigbedfile"] = None
+        statistics_dict["genome"] = {
+            "alias": genome,
+            "digest": "",
+        }
 
     if upload_qdrant:
         _LOGGER.info(f"Adding '{bed_metadata.bed_digest}' vector to Qdrant ...")
-        uploading_status["qdrant"] = bbuploader.upload_qdrant(
+        uploading_status.qdrant = bbuploader.upload_qdrant(
             identifier=bed_metadata.bed_digest
         )
-
     else:
         _LOGGER.info(
             f"Skipping adding '{bed_metadata.bed_digest}' vector to Qdrant, 'skip_qdrant' is set to True. "
@@ -193,7 +214,7 @@ def run_all(
 
     if upload_pephub:
         _LOGGER.info(f"Uploading metadata of '{bed_metadata.bed_digest}' TO PEPhub ...")
-        uploading_status["pephub"] = bbuploader.upload_pephub(
+        uploading_status.pephub = bbuploader.upload_pephub(
             pep_registry_path=BED_PEP_REGISTRY,
             bed_digest=bed_metadata.bed_digest,
             genome=genome,
@@ -205,11 +226,7 @@ def run_all(
         )
 
     if db_commit:
-        statistics_dict["upload_status"] = UploadStatusModel(
-            s3=uploading_status.get("s3", False),
-            qdrant=uploading_status.get("qdrant", False),
-            pephub=uploading_status.get("pephub", False),
-        ).model_dump()
+        statistics_dict["upload_status"] = uploading_status.model_dump()
 
         bbuploader.upload_bedbase(
             sample_name=bed_metadata.bed_digest,
