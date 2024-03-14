@@ -12,6 +12,7 @@ import subprocess
 
 import pephubclient
 from pephubclient.helpers import is_registry_path
+from bbconf.models import BedFileTableModel
 
 
 from bedboss.bedstat.bedstat import bedstat
@@ -75,7 +76,6 @@ def run_all(
     upload_s3: bool = False,
     upload_pephub: bool = False,
     pm: pypiper.PipelineManager = None,
-    **kwargs,
 ) -> str:
     """
     Run bedboss: bedmaker, bedqc, bedstat, and bedbuncher pipelines from PEP.
@@ -104,8 +104,6 @@ def run_all(
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
-    _LOGGER.warning(f"!Unused arguments: {kwargs}")
-
     if isinstance(bedbase_config, str):
         if not check_db_connection(bedbase_config=bedbase_config):
             raise BedBossException("Unable to connect to the database. Exiting...")
@@ -142,22 +140,20 @@ def run_all(
     if not other_metadata:
         other_metadata = {}
 
-    statistics_dict = bedstat(
-        bedfile=bed_metadata.bed_file,
-        outfolder=outfolder,
-        genome=genome,
-        ensdb=ensdb,
-        bed_digest=bed_metadata.bed_digest,
-        open_signal_matrix=open_signal_matrix,
-        just_db_commit=just_db_commit,
-        pm=pm,
+    statistics_model = BedFileTableModel(
+        **bedstat(
+            bedfile=bed_metadata.bed_file,
+            outfolder=outfolder,
+            genome=genome,
+            ensdb=ensdb,
+            bed_digest=bed_metadata.bed_digest,
+            open_signal_matrix=open_signal_matrix,
+            just_db_commit=just_db_commit,
+            pm=pm,
+        )
     )
-    statistics_dict.update(
-        {
-            "bed_type": bed_metadata.bed_type,
-            "bed_format": bed_metadata.bed_format.value,
-        }
-    )
+    statistics_model.bed_type = bed_metadata.bed_type
+    statistics_model.bed_format = bed_metadata.bed_format.value
 
     uploading_status = UploadStatusModel()
     bbuploader = BedBossUploader(bedbase_config)
@@ -165,39 +161,37 @@ def run_all(
     if upload_s3:
         uploading_status.s3 = bbuploader.upload_s3(
             identifier=bed_metadata.bed_digest,
-            results=statistics_dict,
+            results=statistics_model.model_dump(exclude_unset=True),
             local_path=outfolder,
             bigbed=bed_metadata.bigbed_file,
         )
 
-        statistics_dict["bedfile"] = {
+        statistics_model.bedfile = {
             "path": uploading_status.s3.get("bed_file"),
             "size": convert_unit(os.path.getsize(bed_metadata.bed_file)),
             "title": "Path to the BED file",
         }
         if bed_metadata.bigbed_file:
-            statistics_dict["bigbedfile"] = {
+            statistics_model.bigbedfile = {
                 "path": uploading_status.s3.get("bigbed_file"),
                 "size": convert_unit(os.path.getsize(bed_metadata.bigbed_file)),
                 "title": "Path to the BED file",
             }
             digest = get_genome_digest(genome)
 
-            statistics_dict["genome"] = {
+            statistics_model.genome = {
                 "alias": genome,
                 "digest": digest,
             }
         else:
-            statistics_dict["bigbedfile"] = None
-            statistics_dict["genome"] = {
+            statistics_model.bigbedfile = None
+            statistics_model.genome = {
                 "alias": genome,
                 "digest": "",
             }
     else:
-        _LOGGER.info(f"Skipping uploading to s3. Flag `upload_s3` is set to False")
-        statistics_dict["bedfile"] = None
-        statistics_dict["bigbedfile"] = None
-        statistics_dict["genome"] = {
+        _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
+        statistics_model.genome = {
             "alias": genome,
             "digest": "",
         }
@@ -226,11 +220,11 @@ def run_all(
         )
 
     if db_commit:
-        statistics_dict["upload_status"] = uploading_status.model_dump()
+        statistics_model.upload_status = uploading_status.model_dump()
 
         bbuploader.upload_bedbase(
             sample_name=bed_metadata.bed_digest,
-            results=statistics_dict,
+            results=statistics_model.model_dump(exclude_none=True, exclude_unset=True),
             force=force_overwrite,
         )
     else:
@@ -249,10 +243,9 @@ def insert_pep(
     rfg_config: str = None,
     create_bedset: bool = True,
     check_qc: bool = True,
-    standardize: bool = False,
     ensdb: str = None,
+    db_commit: bool = True,
     just_db_commit: bool = False,
-    no_db_commit: bool = False,
     force_overwrite: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
@@ -272,7 +265,6 @@ def insert_pep(
     :param bool create_bedset: whether to create bedset
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
-    :param bool standardize: "Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False"
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param bool just_db_commit: whether save only to the database (Without saving locally )
     :param bool db_commit: whether to upload data to the database
@@ -313,7 +305,6 @@ def insert_pep(
             is_narrow_peak = False
         try:
             bed_id = run_all(
-                sample_name=pep_sample.sample_name,
                 input_file=pep_sample.input_file,
                 input_type=pep_sample.input_type,
                 genome=pep_sample.genome,
@@ -325,10 +316,9 @@ def insert_pep(
                 bedbase_config=bbc,
                 rfg_config=rfg_config,
                 check_qc=check_qc,
-                standardize=standardize,
                 ensdb=ensdb,
                 just_db_commit=just_db_commit,
-                no_db_commit=no_db_commit,
+                db_commit=db_commit,
                 force_overwrite=force_overwrite,
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
