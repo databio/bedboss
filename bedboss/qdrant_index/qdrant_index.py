@@ -6,27 +6,27 @@ from pipestat.const import RECORD_IDENTIFIER
 from geniml.bbclient import BBClient
 from geniml.region2vec import Region2VecExModel
 
-from bedboss.const import DEFAULT_BEDBASE_API_URL
-
 _LOGGER = logging.getLogger("bedboss")
 
+AVAILABLE_GENOMES = ["hg38"]
+DEFAULT_GENOME = "hg38"
 
-REGION2VEC_MODEL = "databio/r2v-ChIP-atlas-hg38-v2"
+# TODO: should be moved to the bedbase configuration?
 
 
-# TODO: outdated, because added_to_qdrant was deldeted
-def get_unindexed_bed_files(bbc: BedBaseConf) -> List[str]:
+def get_unindexed_bed_files(bbc: BedBaseConf, genome: str = DEFAULT_GENOME) -> List[str]:
     """
     Get list of unindexed bed files from the bedbase
 
     :param BedBaseConf bbc: bedbase configuration
+    :param str genome: genome assembly to be indexed
     :return: list of record_identifiers of unindexed bed files
     """
     result_list = bbc.bed.select_records(
         columns=[RECORD_IDENTIFIER],
         filter_conditions=[
-            {"key": ["added_to_qdrant"], "operator": "eq", "value": False},
-            {"key": ["genome", "alias"], "operator": "eq", "value": "hg38"},
+            {"key": ["upload_status", "qdrant"], "operator": "eq", "value": False},
+            {"key": ["genome", "alias"], "operator": "eq", "value": genome},
         ],
     )
     return [result.get(RECORD_IDENTIFIER) for result in result_list["records"]]
@@ -34,8 +34,7 @@ def get_unindexed_bed_files(bbc: BedBaseConf) -> List[str]:
 
 def add_to_qdrant(
     bedbase_config: str,
-    bedbase_api: str = DEFAULT_BEDBASE_API_URL,
-    **kwargs,
+    genome: str = "hg38",
 ) -> None:
     """
     Add unindexed bed files to qdrant
@@ -44,22 +43,22 @@ def add_to_qdrant(
     :param str bedbase_api: URL of the Bedbase API
     :return: None
     """
-    # get list of bed files
-    bbc = BedBaseConf(config_path=bedbase_config)
-    list_of_record_ids = get_unindexed_bed_files(bbc)
+
+    agent = BedBaseConf(config_path=bedbase_config)
+    list_of_record_ids = get_unindexed_bed_files(agent, genome=genome)
 
     if len(list_of_record_ids) == 0:
         _LOGGER.info("No unindexed bed files found")
         return None
 
-    region_to_vec_obj = Region2VecExModel(REGION2VEC_MODEL)
+    region_to_vec_obj = Region2VecExModel(agent.region2vec_model)
+
+    bb_client = BBClient()
 
     for record_id in list_of_record_ids:
-        bedfile_object = BBClient(
-            cache_folder="./bed_cache", bedbase_api=bedbase_api
-        ).load_bed(record_id)
+        bedfile_object = bb_client.load_bed(record_id)
 
-        bbc.add_bed_to_qdrant(
+        agent.add_bed_to_qdrant(
             bed_id=record_id,
             bed_file=bedfile_object,
             payload={"description": "test"},
@@ -67,3 +66,6 @@ def add_to_qdrant(
         )
 
     return None
+
+if __name__ == "__main__":
+    add_to_qdrant("/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml", genome="hg19")
