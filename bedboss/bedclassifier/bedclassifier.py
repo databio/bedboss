@@ -8,7 +8,7 @@ import pandas.errors
 import pypiper
 import pandas as pd
 
-from bedboss.const import STANDARD_CHROM_LIST
+from bedboss.bedmaker.const import STANDARD_CHROM_LIST
 from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")

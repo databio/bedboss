@@ -1,29 +1,11 @@
 import os
 import logging
 import urllib.request
-import re
 from bbconf import BedBaseConf
+import requests
 
 
 _LOGGER = logging.getLogger("bedboss")
-
-
-def extract_file_name(file_path: str) -> str:
-    """
-    Extraction bed file name from file path (Whether it is .bed or .bed.gz)
-    e.g. /path/to/file_name.bed.gz -> file_name
-
-    :param file_path: full file path
-    :return: file name without extension
-    """
-    file_name = os.path.basename(file_path)
-    if file_name.split(".")[-1] == "gz":
-        file_name = file_name.split(".")[0:-2]
-
-    else:
-        file_name = file_name.split(".")[0:-1]
-    file_name = re.sub("[^A-Za-z0-9]+", "_", "_".join(file_name))
-    return file_name
 
 
 def standardize_genome_name(input_genome: str) -> str:
@@ -105,3 +87,9 @@ def convert_unit(size_in_bytes: int) -> str:
         return str(round(size_in_bytes / (1024 * 1024))) + "MB"
     elif size_in_bytes >= 1024 * 1024 * 1024:
         return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
+
+
+def get_genome_digest(genome):
+    return requests.get(
+        f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
+    ).text.strip('""')

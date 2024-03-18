@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from typing import Dict
 
 from enum import Enum
 import pypiper
@@ -88,15 +89,25 @@ class BedMakerCLIModel(BaseModel):
 
     input_file: Union[str, pathlib.Path]
     input_type: str
-    output_bed: Union[str, pathlib.Path]
-    output_bigbed: Union[str, pathlib.Path]
-    sample_name: str
+    output_path: Union[str, pathlib.Path]
+    # output_bigbed: Union[str, pathlib.Path]
+    # sample_name: str
     genome: str
     rfg_config: Union[str, pathlib.Path] = None
     chrom_sizes: str = None
     narrowpeak: bool = False
-    standardize: bool = False
+    # standardize: bool = False
     check_qc: bool = True
     pm: pypiper.PipelineManager = None
 
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
+
+
+class UploadStatusModel(BaseModel):
+    """
+    Model for upload status
+    """
+
+    s3: Union[Dict[str, str], bool] = False
+    qdrant: bool = False
+    pephub: bool = False
