@@ -13,6 +13,7 @@ import subprocess
 import pephubclient
 from pephubclient.helpers import is_registry_path
 from bbconf.models import BedFileTableModel
+from bbconf.bbagent import BedBaseAgent
 
 
 from bedboss.bedstat.bedstat import bedstat
@@ -30,6 +31,10 @@ from bedboss.models import (
     BedMakerCLIModel,
     BedQCCLIModel,
     UploadStatusModel,
+    StatsUpload,
+    PlotsUpload,
+    FilesUpload,
+    BedClassificationUpload,
 )
 from bedboss.utils import (
     standardize_genome_name,
@@ -157,6 +162,61 @@ def run_all(
 
     uploading_status = UploadStatusModel()
     bbuploader = BedBossUploader(bedbase_config)
+
+    bbagent = BedBaseAgent(bedbase_config)
+
+    if bed_metadata.bigbed_file:
+        genome_digest = get_genome_digest(genome)
+    else:
+        statistics_model.bigbedfile = None
+        genome_digest = None
+
+    stats = StatsUpload(
+        **statistics_model.model_dump(exclude_unset=True, exclude_none=True)
+    )
+    plots = PlotsUpload(
+        **statistics_model.model_dump(exclude_unset=True, exclude_none=True)
+    )
+
+    files = FilesUpload(
+        bedfile={
+            "name": "bedfile",
+            "path": bed_metadata.bed_file,
+            "description": "Path to the BED file",
+            "size": convert_unit(os.path.getsize(bed_metadata.bed_file)),
+        },
+        bigbedfile={
+            "name": "bigbedfile",
+            "path": bed_metadata.bigbed_file,
+            "description": "Path to the bigbed file",
+            "size": (
+                convert_unit(os.path.getsize(bed_metadata.bigbed_file))
+                if bed_metadata.bigbed_file
+                else 0
+            ),
+        },
+    )
+
+    classification = BedClassificationUpload(
+        name=bed_metadata.bed_digest,
+        genome_digest=genome_digest,
+        genome_alias=genome,
+        bed_type=bed_metadata.bed_type,
+        bed_format=bed_metadata.bed_format.value,
+    )
+
+    bbagent.bed.add(
+        identifier=bed_metadata.bed_digest,
+        stats=stats.model_dump(exclude_unset=True),
+        metadata=other_metadata,
+        plots=plots.model_dump(exclude_unset=True),
+        files=files.model_dump(exclude_unset=True),
+        classification=classification.model_dump(exclude_unset=True),
+        add_to_qdrant=False,
+        upload_pephub=False,
+        upload_s3=True,
+        local_path=outfolder,
+    )
 
     if upload_s3:
         uploading_status.s3 = bbuploader.upload_s3(

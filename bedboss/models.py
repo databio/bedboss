@@ -5,6 +5,7 @@ from enum import Enum
 import pypiper
 import pathlib
 from typing import Union
+from bbconf.modules.models import BedStats, BedPlots, BedFiles, BedClassification
 
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
@@ -111,3 +112,19 @@ class UploadStatusModel(BaseModel):
     s3: Union[Dict[str, str], bool] = False
     qdrant: bool = False
     pephub: bool = False
+
+
+class StatsUpload(BedStats):
+    model_config = ConfigDict(extra="ignore")
+
+
+class PlotsUpload(BedPlots):
+    model_config = ConfigDict(extra="ignore")
+
+
+class FilesUpload(BedFiles):
+    model_config = ConfigDict(extra="ignore")
+
+
+class BedClassificationUpload(BedClassification):
+    model_config = ConfigDict(extra="ignore")
