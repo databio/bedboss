@@ -1,7 +1,8 @@
 import bbconf
 from geniml.io import BedSet
-from bbconf import BedBaseConf
-from bbconf.const import CFG_PATH_KEY, CFG_PATH_BEDBUNCHER_DIR_KEY
+
+# from bbconf import BedBaseConf
+# from bbconf.const import CFG_PATH_KEY, CFG_PATH_BEDBUNCHER_DIR_KEY
 from geniml.bbclient import BBClient
 from sqlmodel import select, func, Numeric, Float
 import os
@@ -14,7 +15,7 @@ from pephubclient.helpers import is_registry_path
 import logging
 from ubiquerg import parse_registry_path
 
-from bbconf.models import BedSetTableModel
+# from bbconf.models import BedSetTableModel
 from sqlalchemy.exc import IntegrityError
 
 from bedboss.const import (
@@ -51,7 +52,7 @@ def create_view_in_pephub(bedfile_list: List[str], view_name: str) -> str:
     return view_name
 
 
-def calculate_bedset_statistics(bbc: BedBaseConf, bedset: List[str]) -> dict:
+def calculate_bedset_statistics(bbc, bedset: List[str]) -> dict:
     """
     Calculate mean and standard deviation for each numeric column of bedfiles in bedset
 
@@ -113,7 +114,7 @@ def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
 
 
 def create_plots(
-    bbc: BedBaseConf,
+    bbc,
     bedset: BedSet,
 ) -> dict:
     """
@@ -163,7 +164,7 @@ def create_plots(
 
 
 def run_bedbuncher(
-    bedbase_config: Union[BedBaseConf, str],
+    bedbase_config: str,
     record_id: str,
     bed_set: Union[BedSet, List[str]],
     genome: dict = None,
@@ -255,7 +256,7 @@ def run_bedbuncher(
 
 
 def run_bedbuncher_form_pep(
-    bedbase_config: Union[str, bbconf.BedBaseConf],
+    bedbase_config: str,
     bedset_pep: Union[str, peppy.Project],
     bedset_name: str = None,
     heavy: bool = False,

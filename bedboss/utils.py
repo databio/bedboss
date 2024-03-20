@@ -1,7 +1,6 @@
 import os
 import logging
 import urllib.request
-from bbconf import BedBaseConf
 import requests
 
 
@@ -51,45 +50,7 @@ def download_file(url: str, path: str, no_fail: bool = False) -> None:
         _LOGGER.error("File download failed. Continuing anyway...")
 
 
-def check_db_connection(bedbase_config: str) -> bool:
-    """
-    Check if the database connection is working
-
-    :param bedbase_config: path to the bedbase config file
-    :return: True if connection is successful, False otherwise
-    """
-    _LOGGER.info("Checking database connection...")
-    if not os.path.exists(bedbase_config):
-        raise FileNotFoundError(f"Bedbase config file {bedbase_config} was not found.")
-    else:
-        _LOGGER.info(f"Bedbase config file {bedbase_config} was found.")
-    try:
-        BedBaseConf(bedbase_config)
-        _LOGGER.info("Database connection is successful.")
-        return True
-    except Exception as e:
-        _LOGGER.error(f"Database connection failed. Error: {e}")
-        return False
-
-
-def convert_unit(size_in_bytes: int) -> str:
-    """
-    Convert the size from bytes to other units like KB, MB or GB
-
-    :param int size_in_bytes: size in bytes
-    :return str: File size as string in different units
-    """
-    if size_in_bytes < 1024:
-        return str(size_in_bytes) + "bytes"
-    elif size_in_bytes in range(1024, 1024 * 1024):
-        return str(round(size_in_bytes / 1024, 2)) + "KB"
-    elif size_in_bytes in range(1024 * 1024, 1024 * 1024 * 1024):
-        return str(round(size_in_bytes / (1024 * 1024))) + "MB"
-    elif size_in_bytes >= 1024 * 1024 * 1024:
-        return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
-
-
-def get_genome_digest(genome):
+def get_genome_digest(genome: str) -> str:
     return requests.get(
         f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
     ).text.strip('""')

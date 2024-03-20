@@ -12,7 +12,6 @@ import subprocess
 
 import pephubclient
 from pephubclient.helpers import is_registry_path
-from bbconf.models import BedFileTableModel
 from bbconf.bbagent import BedBaseAgent
 
 
@@ -24,13 +23,11 @@ from bedboss.qdrant_index import add_to_qdrant
 from bedboss.cli import build_argparser
 from bedboss.const import (
     BEDBOSS_PEP_SCHEMA_PATH,
-    BED_PEP_REGISTRY,
 )
 from bedboss.models import (
     BedStatCLIModel,
     BedMakerCLIModel,
     BedQCCLIModel,
-    UploadStatusModel,
     StatsUpload,
     PlotsUpload,
     FilesUpload,
@@ -38,11 +35,8 @@ from bedboss.models import (
 )
 from bedboss.utils import (
     standardize_genome_name,
-    check_db_connection,
-    convert_unit,
     get_genome_digest,
 )
-from bedboss.uploader import BedBossUploader
 from bedboss.exceptions import BedBossException
 from bedboss._version import __version__
 
@@ -66,7 +60,7 @@ def run_all(
     input_type: str,
     outfolder: str,
     genome: str,
-    bedbase_config: Union[str, bbconf.BedBaseConf],
+    bedbase_config: str,
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -109,9 +103,11 @@ def run_all(
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
-    if isinstance(bedbase_config, str):
-        if not check_db_connection(bedbase_config=bedbase_config):
-            raise BedBossException("Unable to connect to the database. Exiting...")
+    # if isinstance(bedbase_config, str):
+    #     if not check_db_connection(bedbase_config=bedbase_config):
+    #         raise BedBossException("Unable to connect to the database. Exiting...")
+
+    bbagent = BedBaseAgent(bedbase_config)
 
     genome = standardize_genome_name(genome)
 
@@ -145,55 +141,37 @@ def run_all(
     if not other_metadata:
         other_metadata = {}
 
-    statistics_model = BedFileTableModel(
-        **bedstat(
-            bedfile=bed_metadata.bed_file,
-            outfolder=outfolder,
-            genome=genome,
-            ensdb=ensdb,
-            bed_digest=bed_metadata.bed_digest,
-            open_signal_matrix=open_signal_matrix,
-            just_db_commit=just_db_commit,
-            pm=pm,
-        )
+    statistics_dict = bedstat(
+        bedfile=bed_metadata.bed_file,
+        outfolder=outfolder,
+        genome=genome,
+        ensdb=ensdb,
+        bed_digest=bed_metadata.bed_digest,
+        open_signal_matrix=open_signal_matrix,
+        just_db_commit=just_db_commit,
+        pm=pm,
     )
-    statistics_model.bed_type = bed_metadata.bed_type
-    statistics_model.bed_format = bed_metadata.bed_format.value
-
-    uploading_status = UploadStatusModel()
-    bbuploader = BedBossUploader(bedbase_config)
-
-    bbagent = BedBaseAgent(bedbase_config)
+    statistics_dict["bed_type"] = bed_metadata.bed_type
+    statistics_dict["bed_format"] = bed_metadata.bed_format.value
 
     if bed_metadata.bigbed_file:
         genome_digest = get_genome_digest(genome)
     else:
-        statistics_model.bigbedfile = None
         genome_digest = None
 
-    stats = StatsUpload(
-        **statistics_model.model_dump(exclude_unset=True, exclude_none=True)
-    )
-    plots = PlotsUpload(
-        **statistics_model.model_dump(exclude_unset=True, exclude_none=True)
-    )
+    stats = StatsUpload(**statistics_dict)
+    plots = PlotsUpload(**statistics_dict)
 
     files = FilesUpload(
         bedfile={
             "name": "bedfile",
             "path": bed_metadata.bed_file,
             "description": "Path to the BED file",
-            "size": convert_unit(os.path.getsize(bed_metadata.bed_file)),
         },
         bigbedfile={
             "name": "bigbedfile",
             "path": bed_metadata.bigbed_file,
             "description": "Path to the bigbed file",
-            "size": (
-                convert_unit(os.path.getsize(bed_metadata.bigbed_file))
-                if bed_metadata.bigbed_file
-                else 0
-            ),
         },
     )
 
@@ -217,78 +195,6 @@ def run_all(
         upload_s3=True,
         local_path=outfolder,
     )
-
-    if upload_s3:
-        uploading_status.s3 = bbuploader.upload_s3(
-            identifier=bed_metadata.bed_digest,
-            results=statistics_model.model_dump(exclude_unset=True),
-            local_path=outfolder,
-            bigbed=bed_metadata.bigbed_file,
-        )
-
-        statistics_model.bedfile = {
-            "path": uploading_status.s3.get("bed_file"),
-            "size": convert_unit(os.path.getsize(bed_metadata.bed_file)),
-            "title": "Path to the BED file",
-        }
-        if bed_metadata.bigbed_file:
-            statistics_model.bigbedfile = {
-                "path": uploading_status.s3.get("bigbed_file"),
-                "size": convert_unit(os.path.getsize(bed_metadata.bigbed_file)),
-                "title": "Path to the BED file",
-            }
-            digest = get_genome_digest(genome)
-
-            statistics_model.genome = {
-                "alias": genome,
-                "digest": digest,
-            }
-        else:
-            statistics_model.bigbedfile = None
-            statistics_model.genome = {
-                "alias": genome,
-                "digest": "",
-            }
-    else:
-        _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
-        statistics_model.genome = {
-            "alias": genome,
-            "digest": "",
-        }
-
-    if upload_qdrant:
-        _LOGGER.info(f"Adding '{bed_metadata.bed_digest}' vector to Qdrant ...")
-        uploading_status.qdrant = bbuploader.upload_qdrant(
-            identifier=bed_metadata.bed_digest
-        )
-    else:
-        _LOGGER.info(
-            f"Skipping adding '{bed_metadata.bed_digest}' vector to Qdrant, 'skip_qdrant' is set to True. "
-        )
-
-    if upload_pephub:
-        _LOGGER.info(f"Uploading metadata of '{bed_metadata.bed_digest}' TO PEPhub ...")
-        uploading_status.pephub = bbuploader.upload_pephub(
-            pep_registry_path=BED_PEP_REGISTRY,
-            bed_digest=bed_metadata.bed_digest,
-            genome=genome,
-            metadata=other_metadata,
-        )
-    else:
-        _LOGGER.info(
-            f"Metadata of '{bed_metadata.bed_digest}' is NOT uploaded to PEPhub. 'upload_pephub' is set to False. "
-        )
-
-    if db_commit:
-        statistics_model.upload_status = uploading_status.model_dump()
-
-        bbuploader.upload_bedbase(
-            sample_name=bed_metadata.bed_digest,
-            results=statistics_model.model_dump(exclude_none=True, exclude_unset=True),
-            force=force_overwrite,
-        )
-    else:
-        _LOGGER.info(f"Skipping database commit. 'db_commit' is set to {db_commit}.")
 
     if stop_pipeline:
         pm.stop_pipeline()

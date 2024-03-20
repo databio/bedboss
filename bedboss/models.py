@@ -5,7 +5,7 @@ from enum import Enum
 import pypiper
 import pathlib
 from typing import Union
-from bbconf.modules.models import BedStats, BedPlots, BedFiles, BedClassification
+from bbconf.models.bed_models import BedStats, BedPlots, BedFiles, BedClassification
 
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
@@ -37,12 +37,6 @@ class BedMetadata(BaseModel):
     global_sample_id: str = Field("", description="Global sample identifier")
     global_experiment_id: str = Field("", description="Global experiment identifier")
     description: str = Field("", description="Description of the sample")
-
-    # THIS IS NOW PART OF THE BedBase model in bbconf
-    # bed_format: FILE_TYPE = FILE_TYPE.BED
-    # bed_type: str = Field(
-    #     default="bed3", pattern="^bed(?:[3-9]|1[0-5])(?:\+|$)[0-9]?+$"
-    # )
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -102,16 +96,6 @@ class BedMakerCLIModel(BaseModel):
     pm: pypiper.PipelineManager = None
 
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
-
-
-class UploadStatusModel(BaseModel):
-    """
-    Model for upload status
-    """
-
-    s3: Union[Dict[str, str], bool] = False
-    qdrant: bool = False
-    pephub: bool = False
 
 
 class StatsUpload(BedStats):
