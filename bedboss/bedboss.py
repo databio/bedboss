@@ -103,10 +103,6 @@ def run_all(
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
-    # if isinstance(bedbase_config, str):
-    #     if not check_db_connection(bedbase_config=bedbase_config):
-    #         raise BedBossException("Unable to connect to the database. Exiting...")
-
     bbagent = BedBaseAgent(bedbase_config)
 
     genome = standardize_genome_name(genome)
@@ -190,10 +186,12 @@ def run_all(
         plots=plots.model_dump(exclude_unset=True),
         files=files.model_dump(exclude_unset=True),
         classification=classification.model_dump(exclude_unset=True),
-        add_to_qdrant=False,
-        upload_pephub=False,
-        upload_s3=True,
+        add_to_qdrant=upload_qdrant,
+        upload_pephub=upload_pephub,
+        upload_s3=upload_s3,
         local_path=outfolder,
+        overwrite=force_overwrite,
+        nofail=True
     )
 
     if stop_pipeline:
