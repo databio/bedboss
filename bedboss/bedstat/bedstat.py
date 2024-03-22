@@ -177,10 +177,8 @@ def bedstat(
 
     for plot in plots:
         plot_id = plot["name"]
-        del plot["name"]
         data.update({plot_id: plot})
 
-    # deleting md5sum, because it is record_identifier
     if "md5sum" in data:
         del data["md5sum"]
 

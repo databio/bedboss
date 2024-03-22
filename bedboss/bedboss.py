@@ -13,6 +13,7 @@ import subprocess
 import pephubclient
 from pephubclient.helpers import is_registry_path
 from bbconf.bbagent import BedBaseAgent
+from bbconf.models.base_models import FileModel
 
 
 from bedboss.bedstat.bedstat import bedstat
@@ -159,16 +160,18 @@ def run_all(
     plots = PlotsUpload(**statistics_dict)
 
     files = FilesUpload(
-        bedfile={
-            "name": "bedfile",
-            "path": bed_metadata.bed_file,
-            "description": "Path to the BED file",
-        },
-        bigbedfile={
-            "name": "bigbedfile",
-            "path": bed_metadata.bigbed_file,
-            "description": "Path to the bigbed file",
-        },
+        bedfile=FileModel(
+            name="bedfile",
+            title="BED file",
+            path=bed_metadata.bed_file,
+            description="Path to the BED file",
+        ),
+        bigbedfile=FileModel(
+            name="bigbedfile",
+            title="BigBed file",
+            path=bed_metadata.bigbed_file,
+            description="Path to the bigbed file",
+        ),
     )
 
     classification = BedClassificationUpload(
@@ -191,12 +194,13 @@ def run_all(
         upload_s3=upload_s3,
         local_path=outfolder,
         overwrite=force_overwrite,
-        nofail=True
+        nofail=True,
     )
 
     if stop_pipeline:
         pm.stop_pipeline()
 
+    _LOGGER.info(f"All done! Bed digest: {bed_metadata.bed_digest}")
     return bed_metadata.bed_digest
 
 
