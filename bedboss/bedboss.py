@@ -11,7 +11,7 @@ import bbconf
 import subprocess
 
 import pephubclient
-from pephubclient.helpers import is_registry_path
+from pephubclient.helpers import is_registry_path, MessageHandler as m
 from bbconf.bbagent import BedBaseAgent
 from bbconf.models.base_models import FileModel
 
@@ -24,6 +24,7 @@ from bedboss.qdrant_index import add_to_qdrant
 from bedboss.cli import build_argparser
 from bedboss.const import (
     BEDBOSS_PEP_SCHEMA_PATH,
+    PKG_NAME,
 )
 from bedboss.models import (
     BedStatCLIModel,
@@ -41,7 +42,7 @@ from bedboss.utils import (
 from bedboss.exceptions import BedBossException
 from bedboss._version import __version__
 
-_LOGGER = logging.getLogger("bedboss")
+_LOGGER = logging.getLogger(PKG_NAME)
 
 
 def requirements_check() -> None:
@@ -61,7 +62,7 @@ def run_all(
     input_type: str,
     outfolder: str,
     genome: str,
-    bedbase_config: str,
+    bedbase_config: Union[str, bbconf.BedBaseAgent],
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -70,7 +71,6 @@ def run_all(
     ensdb: str = None,
     other_metadata: dict = None,
     just_db_commit: bool = False,
-    db_commit: bool = True,
     force_overwrite: bool = False,
     upload_qdrant: bool = False,
     upload_s3: bool = False,
@@ -86,7 +86,7 @@ def run_all(
     :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
     :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
     :param str rfg_config: file path to the genome config file [optional]
-    :param bool narrowpeak: whether the regions are narrow
+    :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
@@ -95,16 +95,19 @@ def run_all(
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
     :param bool just_db_commit: whether just to commit the JSON to the database (default: False)
-    :param bool force_overwrite: force overwrite analysis
-
-    :param bool db_commit: whether the JSON commit to the database should be skipped (default: False)
+    :param bool force_overwrite: force overwrite analysis (default: False)
     :param bool upload_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
-    bbagent = BedBaseAgent(bedbase_config)
+    if isinstance(bedbase_config, str):
+        bbagent = BedBaseAgent(bedbase_config)
+    elif isinstance(bedbase_config, bbconf.BedBaseAgent):
+        bbagent = bedbase_config
+    else:
+        raise BedBossException("Incorrect bedbase_config type. Exiting...")
 
     genome = standardize_genome_name(genome)
 
@@ -208,19 +211,18 @@ def insert_pep(
     bedbase_config: str,
     output_folder: str,
     pep: Union[str, peppy.Project],
+    bedset_id: str = None,
     rfg_config: str = None,
     create_bedset: bool = True,
     check_qc: bool = True,
     ensdb: str = None,
-    db_commit: bool = True,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
     upload_qdrant: bool = False,
+    no_fail: bool = False,
     pm: pypiper.PipelineManager = None,
-    *args,
-    **kwargs,
 ) -> None:
     """
     Run all bedboss pipelines for all samples in the pep file.
@@ -229,36 +231,35 @@ def insert_pep(
     :param str bedbase_config: bedbase configuration file path
     :param str output_folder: output statistics folder
     :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
+    :param str bedset_id: bedset identifier
     :param str rfg_config: path to the genome config file (refgenie)
     :param bool create_bedset: whether to create bedset
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param bool just_db_commit: whether save only to the database (Without saving locally )
-    :param bool db_commit: whether to upload data to the database
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
+    :param bool no_fail: whether to raise an error if bedset was not added to the database
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
 
-    _LOGGER.warning(f"!Unused arguments: {kwargs}")
     failed_samples = []
-    pephub_registry_path = None
+    processed_ids = []
     if isinstance(pep, peppy.Project):
         pass
     elif isinstance(pep, str):
         if is_registry_path(pep):
-            pephub_registry_path = pep
             pep = pephubclient.PEPHubClient().load_project(pep)
         else:
             pep = peppy.Project(pep)
     else:
         raise BedBossException("Incorrect pep type. Exiting...")
 
-    bbc = bbconf.BedBaseConf(config_path=bedbase_config, database_only=True)
+    bbagent = BedBaseAgent(bedbase_config)
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
@@ -276,44 +277,52 @@ def insert_pep(
                 input_file=pep_sample.input_file,
                 input_type=pep_sample.input_type,
                 genome=pep_sample.genome,
+                bedbase_config=bbagent,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
                 open_signal_matrix=pep_sample.get("open_signal_matrix"),
                 other_metadata=pep_sample.to_dict(),
                 outfolder=output_folder,
-                bedbase_config=bbc,
                 rfg_config=rfg_config,
                 check_qc=check_qc,
                 ensdb=ensdb,
                 just_db_commit=just_db_commit,
-                db_commit=db_commit,
                 force_overwrite=force_overwrite,
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
                 pm=pm,
             )
-            pep.samples[i].record_identifier = bed_id
+            processed_ids.append(bed_id)
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
             failed_samples.append(pep_sample.sample_name)
 
-    else:
-        _LOGGER.info("Skipping uploading to s3. Flag `upload_s3` is set to False")
-
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
         run_bedbuncher(
-            bedbase_config=bbc,
-            bedset_pep=pep,
-            pephub_registry_path=pephub_registry_path,
+            bedbase_config=bbagent,
+            record_id=pep.name,
+            bed_set=bedset_id or pep.name,
+            output_folder=output_folder,
+            name=pep.name,
+            description=pep.description,
+            heavy=True,
             upload_pephub=upload_pephub,
+            upload_s3=upload_s3,
+            no_fail=no_fail,
         )
     else:
         _LOGGER.info(
             f"Skipping bedset creation. Create_bedset is set to {create_bedset}"
         )
-    _LOGGER.info(f"Failed samples: {failed_samples}")
+    m.print_success(f"Processed samples: {processed_ids}")
+    m.print_error(f"Failed samples: {failed_samples}")
+
+    m.print_success(f"Processed samples: {processed_ids}")
+    m.print_error(f"Failed samples: {failed_samples}")
+
+    return None
 
 
 def main(test_args: dict = None) -> NoReturn:

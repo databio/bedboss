@@ -92,7 +92,7 @@ def create_plots(
 
 
 def run_bedbuncher(
-    bedbase_config: str,
+    bedbase_config: Union[str, BedBaseAgent],
     record_id: str,
     bed_set: List[str],
     output_folder: str,

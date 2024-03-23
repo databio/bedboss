@@ -1,5 +1,6 @@
 import os
 
+PKG_NAME = "bedboss"
 DEFAULT_BEDBASE_API_URL = "https://api.bedbase.org"
 # DEFAULT_BEDBASE_API_URL = "http://localhost:8000/api"
 
