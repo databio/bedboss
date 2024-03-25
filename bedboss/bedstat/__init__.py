@@ -1,3 +1,3 @@
 from .bedstat import bedstat
 
-__all__ = ['bedstat']
+__all__ = ["bedstat"]

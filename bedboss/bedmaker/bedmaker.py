@@ -105,7 +105,7 @@ def make_bigbed(
                 _LOGGER.info(f"Running: {cmd}")
                 pm.run(cmd, big_bed_path, nofail=False)
             except Exception as err:
-                _LOGGER.error(
+                raise BedBossException(
                     f"Fail to generating bigBed files for {bed_path}: "
                     f"unable to validate genome assembly with Refgenie. "
                     f"Error: {err}"
@@ -381,15 +381,18 @@ def make_all(
             raise BedBossException(
                 f"Quality control failed for {output_path}. Error: {e}"
             )
-    output_bigbed = make_bigbed(
-        bed_path=output_bed,
-        output_path=output_path,
-        genome=genome,
-        bed_type=bed_type,
-        rfg_config=rfg_config,
-        chrom_sizes=chrom_sizes,
-        pm=pm,
-    )
+    try:
+        output_bigbed = make_bigbed(
+            bed_path=output_bed,
+            output_path=output_path,
+            genome=genome,
+            bed_type=bed_type,
+            rfg_config=rfg_config,
+            chrom_sizes=chrom_sizes,
+            pm=pm,
+        )
+    except BedBossException as e:
+        output_bigbed = None
     if pm_clean:
         pm.stop_pipeline()
 

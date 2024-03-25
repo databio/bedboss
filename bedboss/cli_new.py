@@ -8,13 +8,13 @@ from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 from bedboss import __version__
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=False)
 
 
 def create_pm(
     outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
-):
-    pm_out_folder = (outfolder,)
+) -> pypiper.PipelineManager:
+    pm_out_folder = outfolder
     pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
     pm = pypiper.PipelineManager(
@@ -88,6 +88,7 @@ def run_all(
     Run the bedboss pipeline for a single bed file
     """
     from bedboss.bedboss import run_all as run_all_bedboss
+
     run_all_bedboss(
         input_file=input_file,
         input_type=input_type,
@@ -143,6 +144,7 @@ def run_pep(
     Run the bedboss pipeline for a bed files in a PEP
     """
     from bedboss.bedboss import insert_pep
+
     insert_pep(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
@@ -306,6 +308,7 @@ def run_stats(
     dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
     from bedboss.bedstat.bedstat import bedstat
+
     bedstat(
         bedfile=bed_file,
         genome=genome,
@@ -330,6 +333,7 @@ def reindex(
     ),
 ):
     from bedboss.qdrant_index.qdrant_index import add_to_qdrant
+
     add_to_qdrant(config=bedbase_config)
 
 
@@ -356,6 +360,7 @@ def make_bedset(
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
 ):
     from bedboss.bedbuncher.bedbuncher import run_bedbuncher_form_pep
+
     run_bedbuncher_form_pep(
         bedbase_config=bedbase_config,
         bedset_pep=pep,
@@ -375,6 +380,7 @@ def init_config(
 ):
 
     from bedboss.utils import save_example_bedbase_config
+
     save_example_bedbase_config(outfolder)
 
 

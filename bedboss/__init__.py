@@ -16,7 +16,7 @@ __author__ = [
     "Ognen Duzlevski",
     "Jose Verdezoto",
     "Bingjie Xue",
-    "Donald Campbell"
+    "Donald Campbell",
 ]
 __email__ = "khorosh@virginia.edu"
 

@@ -154,6 +154,17 @@ def run_all(
     stats = StatsUpload(**statistics_dict)
     plots = PlotsUpload(**statistics_dict)
 
+    if bed_metadata.bigbed_file:
+        big_bed = (
+            FileModel(
+                name="bigbedfile",
+                title="BigBed file",
+                path=bed_metadata.bigbed_file,
+                description="Path to the bigbed file",
+            ),
+        )
+    else:
+        big_bed = None
     files = FilesUpload(
         bedfile=FileModel(
             name="bedfile",
@@ -161,12 +172,7 @@ def run_all(
             path=bed_metadata.bed_file,
             description="Path to the BED file",
         ),
-        bigbedfile=FileModel(
-            name="bigbedfile",
-            title="BigBed file",
-            path=bed_metadata.bigbed_file,
-            description="Path to the bigbed file",
-        ),
+        bigbedfile=big_bed,
     )
 
     classification = BedClassificationUpload(
@@ -204,6 +210,7 @@ def insert_pep(
     output_folder: str,
     pep: Union[str, peppy.Project],
     bedset_id: str = None,
+    bedset_name: str = None,
     rfg_config: str = None,
     create_bedset: bool = True,
     check_qc: bool = True,
@@ -294,10 +301,10 @@ def insert_pep(
         _LOGGER.info(f"Creating bedset from {pep.name}")
         run_bedbuncher(
             bedbase_config=bbagent,
-            record_id=pep.name,
-            bed_set=bedset_id or pep.name,
+            record_id=bedset_id or pep.name,
+            bed_set=processed_ids,
+            name=bedset_name or pep.name,
             output_folder=output_folder,
-            name=pep.name,
             description=pep.description,
             heavy=True,
             upload_pephub=upload_pephub,
