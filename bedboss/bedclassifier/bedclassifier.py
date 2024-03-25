@@ -1,14 +1,9 @@
-import gzip
 import logging
-import os
-import shutil
 from typing import Optional, Tuple
 
 import pandas.errors
-import pypiper
 import pandas as pd
 
-from bedboss.bedmaker.const import STANDARD_CHROM_LIST
 from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")

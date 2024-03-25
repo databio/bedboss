@@ -15,7 +15,7 @@ from geniml.io import RegionSet
 
 from geniml.bbclient import BBClient
 
-from bedboss.bedclassifier.bedclassifier import get_bed_type
+from bedboss.bedclassifier import get_bed_type
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import RequirementsException, BedBossException
 
