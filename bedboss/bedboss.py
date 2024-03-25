@@ -1,10 +1,8 @@
 import logging
 import os
-from typing import NoReturn, Union
+from typing import Union
 
 import pypiper
-from argparse import Namespace
-import logmuse
 import peppy
 from eido import validate_project
 import bbconf
@@ -18,18 +16,12 @@ from bbconf.models.base_models import FileModel
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import make_all
-from bedboss.bedqc.bedqc import bedqc
 from bedboss.bedbuncher import run_bedbuncher
-from bedboss.qdrant_index import add_to_qdrant
-from bedboss.cli import build_argparser
 from bedboss.const import (
     BEDBOSS_PEP_SCHEMA_PATH,
     PKG_NAME,
 )
 from bedboss.models import (
-    BedStatCLIModel,
-    BedMakerCLIModel,
-    BedQCCLIModel,
     StatsUpload,
     PlotsUpload,
     FilesUpload,
@@ -323,55 +315,3 @@ def insert_pep(
     m.print_error(f"Failed samples: {failed_samples}")
 
     return None
-
-
-def main(test_args: dict = None) -> NoReturn:
-    """
-    Run pipeline that was specified in as positional argument.
-
-    :param str test_args: one of the bedboss pipelines
-    """
-    parser = build_argparser()
-    if test_args:
-        args = Namespace(**test_args)
-    else:
-        args, _ = parser.parse_known_args()
-        global _LOGGER
-        _LOGGER = logmuse.logger_via_cli(args, make_root=True)
-
-    args_dict = vars(args)
-
-    pm_out_folder = (
-        args_dict.get("outfolder")
-        or args_dict.get("output_folder")
-        or "test_outfolder",
-    )
-    pm_out_folder = os.path.join(os.path.abspath(pm_out_folder[0]), "pipeline_manager")
-    pm = pypiper.PipelineManager(
-        name="bedboss-pipeline",
-        outfolder=pm_out_folder,
-        version=__version__,
-        # args=args,
-        multi=args_dict.get("multy", False),
-        recover=True,
-    )
-    if args_dict["command"] == "all":
-        run_all(pm=pm, **args_dict)
-    elif args_dict["command"] == "insert":
-        insert_pep(pm=pm, **args_dict)
-    elif args_dict["command"] == "make":
-        make_all(**BedMakerCLIModel(pm=pm, **args_dict).model_dump())
-    elif args_dict["command"] == "qc":
-        bedqc(**BedQCCLIModel(pm=pm, **args_dict).model_dump())
-    elif args_dict["command"] == "stat":
-        bedstat(**BedStatCLIModel(pm=pm, **args_dict).model_dump())
-    elif args_dict["command"] == "bunch":
-        run_bedbuncher(pm=pm, **args_dict)
-    elif args_dict["command"] == "index":
-        add_to_qdrant(pm=pm, **args_dict)
-    elif args_dict["command"] == "requirements-check":
-        requirements_check()
-    else:
-        parser.print_help()
-        # raise Exception("Incorrect pipeline name.")
-    pm.stop_pipeline()

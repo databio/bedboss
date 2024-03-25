@@ -2,6 +2,7 @@ import os
 import logging
 import urllib.request
 import requests
+from pephubclient.files_manager import FilesManager
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -54,3 +55,67 @@ def get_genome_digest(genome: str) -> str:
     return requests.get(
         f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
     ).text.strip('""')
+
+
+def example_bedbase_config():
+    """
+    Return example configuration for BedBase
+    """
+    return {
+        "database": {
+            "host": "localhost",
+            "port": 5432,
+            "user": "postgres",
+            "password": "docker",
+            "database": "bedbase",
+            "dialect": "postgresql",
+            "driver": "psycopg",
+        },
+        "qdrant": {
+            "host": "localhost",
+            "port": 6333,
+            "api_key": None,
+            "collection": "test_collection",
+        },
+        "server": {"host": "0.0.0.0", "port": 8000},
+        "path": {
+            "region2vec": "databio/r2v-encode-hg38",
+            "vec2vec": "databio/v2v-geo-hg38",
+            "text2vec": "sentence-transformers/all-MiniLM-L6-v2",
+        },
+        "access_methods": {
+            "http": {
+                "type": "https",
+                "description": "HTTP compatible path",
+                "prefix": "https://data2.bedbase.org/",
+            },
+            "s3": {
+                "type": "s3",
+                "description": "S3 compatible path",
+                "prefix": "s3://data2.bedbase.org/",
+            },
+            "local": {
+                "type": "https",
+                "description": "How to serve local files.",
+                "prefix": "/static/",
+            },
+        },
+        "s3": {
+            "endpoint_url": None,
+            "aws_access_key_id": None,
+            "aws_secret_access_key": None,
+            "bucket": "bedbase",
+        },
+        "phc": {"namespace": "bedbase", "name": "bedbase", "tag": "latest"},
+    }
+
+
+def save_example_bedbase_config(path: str) -> None:
+    """
+    Save example configuration for BedBase
+
+    :param path: path to the file
+    """
+    file_path = os.path.abspath(os.path.join(path, "bedbase_config.yaml"))
+    FilesManager.save_yaml(example_bedbase_config(), file_path)
+    _LOGGER.info(f"Example BedBase configuration saved to: {file_path}")
