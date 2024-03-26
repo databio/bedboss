@@ -155,13 +155,11 @@ def run_all(
     plots = PlotsUpload(**statistics_dict)
 
     if bed_metadata.bigbed_file:
-        big_bed = (
-            FileModel(
-                name="bigbedfile",
-                title="BigBed file",
-                path=bed_metadata.bigbed_file,
-                description="Path to the bigbed file",
-            ),
+        big_bed = FileModel(
+            name="bigbedfile",
+            title="BigBed file",
+            path=bed_metadata.bigbed_file,
+            description="Path to the bigbed file",
         )
     else:
         big_bed = None
@@ -190,7 +188,7 @@ def run_all(
         plots=plots.model_dump(exclude_unset=True),
         files=files.model_dump(exclude_unset=True),
         classification=classification.model_dump(exclude_unset=True),
-        add_to_qdrant=upload_qdrant,
+        upload_qdrant=upload_qdrant,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         local_path=outfolder,
