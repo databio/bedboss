@@ -384,6 +384,16 @@ def init_config(
     save_example_bedbase_config(outfolder)
 
 
+@app.command(help="Delete sample from the bedbase database")
+def delete_sample(sample_id: str = typer.Option(..., help="Sample ID"),
+                  config: str = typer.Option(..., help="Path to the bedbase config file")):
+    from bbconf import BedBaseAgent
+
+    bbagent = BedBaseAgent(config)
+    bbagent.bed.delete(sample_id)
+    print(f"sample {sample_id} deleted from the bedbase database")
+
+
 def version_callback(value: bool):
     if value:
         typer.echo(f"Bedboss version: {__version__}")
