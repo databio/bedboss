@@ -176,7 +176,7 @@ def run_all(
     )
 
     classification = BedClassificationUpload(
-        name=bed_metadata.bed_digest,
+        name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
         genome_alias=genome,
         bed_type=bed_metadata.bed_type,
@@ -185,7 +185,6 @@ def run_all(
 
     bbagent.bed.add(
         identifier=bed_metadata.bed_digest,
-        name=name or bed_metadata.bed_digest,
         stats=stats.model_dump(exclude_unset=True),
         metadata=other_metadata,
         plots=plots.model_dump(exclude_unset=True),
