@@ -5,7 +5,12 @@ from enum import Enum
 import pypiper
 import pathlib
 from typing import Union
-from bbconf.models.bed_models import BedStats, BedPlots, BedFiles, BedClassification
+from bbconf.models.bed_models import (
+    BedStatsModel,
+    BedPlots,
+    BedFiles,
+    BedClassification,
+)
 
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
@@ -98,7 +103,7 @@ class BedMakerCLIModel(BaseModel):
     model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
 
 
-class StatsUpload(BedStats):
+class StatsUpload(BedStatsModel):
     model_config = ConfigDict(extra="ignore")
 
 

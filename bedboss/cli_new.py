@@ -385,8 +385,10 @@ def init_config(
 
 
 @app.command(help="Delete sample from the bedbase database")
-def delete_sample(sample_id: str = typer.Option(..., help="Sample ID"),
-                  config: str = typer.Option(..., help="Path to the bedbase config file")):
+def delete_sample(
+    sample_id: str = typer.Option(..., help="Sample ID"),
+    config: str = typer.Option(..., help="Path to the bedbase config file"),
+):
     from bbconf import BedBaseAgent
 
     bbagent = BedBaseAgent(config)

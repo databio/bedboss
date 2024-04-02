@@ -182,6 +182,9 @@ def bedstat(
     if "md5sum" in data:
         del data["md5sum"]
 
+    if "name" in data:
+        del data["name"]
+
     if stop_pipeline:
         pm.stop_pipeline()
 

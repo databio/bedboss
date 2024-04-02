@@ -55,6 +55,7 @@ def run_all(
     outfolder: str,
     genome: str,
     bedbase_config: Union[str, bbconf.BedBaseAgent],
+    name: str = None,
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -76,6 +77,7 @@ def run_all(
     :param str input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
     :param str outfolder: Folder, where output should be saved  [required]
     :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
+    :param str name: name of the sample (human-readable name, e.g. "H3K27ac in liver") [optional]
     :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
     :param str rfg_config: file path to the genome config file [optional]
     :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
@@ -183,6 +185,7 @@ def run_all(
 
     bbagent.bed.add(
         identifier=bed_metadata.bed_digest,
+        name=name or bed_metadata.bed_digest,
         stats=stats.model_dump(exclude_unset=True),
         metadata=other_metadata,
         plots=plots.model_dump(exclude_unset=True),
