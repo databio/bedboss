@@ -166,13 +166,13 @@ def run_all(
     else:
         big_bed = None
     files = FilesUpload(
-        bedfile=FileModel(
+        bed_file=FileModel(
             name="bedfile",
             title="BED file",
             path=bed_metadata.bed_file,
             description="Path to the BED file",
         ),
-        bigbedfile=big_bed,
+        bigbed_file=big_bed,
     )
 
     classification = BedClassificationUpload(
