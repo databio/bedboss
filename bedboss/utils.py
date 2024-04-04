@@ -16,11 +16,11 @@ def standardize_genome_name(input_genome: str) -> str:
     we should use
     :return: genome name string
     """
-    input_genome = input_genome.strip()
+    input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
-    if input_genome == "hg38" or input_genome == "GRCh38":
+    if input_genome == "hg38" or input_genome == "grch38":
         return "hg38"
-    elif input_genome == "hg19" or input_genome == "GRCh37":
+    elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
     elif input_genome == "mm10":
         return "mm10"
