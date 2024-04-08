@@ -1,7 +1,7 @@
 import sys
 import logmuse
 
-from bedboss.cli_new import app
+from bedboss.cli import app
 
 _LOGGER = logmuse.init_logger("bedboss")
 
