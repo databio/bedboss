@@ -1,29 +1,11 @@
 import os
 import logging
 import urllib.request
-import re
-from bbconf import BedBaseConf
+import requests
+from pephubclient.files_manager import FilesManager
 
 
 _LOGGER = logging.getLogger("bedboss")
-
-
-def extract_file_name(file_path: str) -> str:
-    """
-    Extraction bed file name from file path (Whether it is .bed or .bed.gz)
-    e.g. /path/to/file_name.bed.gz -> file_name
-
-    :param file_path: full file path
-    :return: file name without extension
-    """
-    file_name = os.path.basename(file_path)
-    if file_name.split(".")[-1] == "gz":
-        file_name = file_name.split(".")[0:-2]
-
-    else:
-        file_name = file_name.split(".")[0:-1]
-    file_name = re.sub("[^A-Za-z0-9]+", "_", "_".join(file_name))
-    return file_name
 
 
 def standardize_genome_name(input_genome: str) -> str:
@@ -34,11 +16,11 @@ def standardize_genome_name(input_genome: str) -> str:
     we should use
     :return: genome name string
     """
-    input_genome = input_genome.strip()
+    input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
-    if input_genome == "hg38" or input_genome == "GRCh38":
+    if input_genome == "hg38" or input_genome == "grch38":
         return "hg38"
-    elif input_genome == "hg19" or input_genome == "GRCh37":
+    elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
     elif input_genome == "mm10":
         return "mm10"
@@ -69,39 +51,71 @@ def download_file(url: str, path: str, no_fail: bool = False) -> None:
         _LOGGER.error("File download failed. Continuing anyway...")
 
 
-def check_db_connection(bedbase_config: str) -> bool:
-    """
-    Check if the database connection is working
-
-    :param bedbase_config: path to the bedbase config file
-    :return: True if connection is successful, False otherwise
-    """
-    _LOGGER.info("Checking database connection...")
-    if not os.path.exists(bedbase_config):
-        raise FileNotFoundError(f"Bedbase config file {bedbase_config} was not found.")
-    else:
-        _LOGGER.info(f"Bedbase config file {bedbase_config} was found.")
-    try:
-        BedBaseConf(bedbase_config)
-        _LOGGER.info("Database connection is successful.")
-        return True
-    except Exception as e:
-        _LOGGER.error(f"Database connection failed. Error: {e}")
-        return False
+def get_genome_digest(genome: str) -> str:
+    return requests.get(
+        f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
+    ).text.strip('""')
 
 
-def convert_unit(size_in_bytes: int) -> str:
+def example_bedbase_config():
     """
-    Convert the size from bytes to other units like KB, MB or GB
+    Return example configuration for BedBase
+    """
+    return {
+        "database": {
+            "host": "localhost",
+            "port": 5432,
+            "user": "postgres",
+            "password": "docker",
+            "database": "bedbase",
+            "dialect": "postgresql",
+            "driver": "psycopg",
+        },
+        "qdrant": {
+            "host": "localhost",
+            "port": 6333,
+            "api_key": None,
+            "collection": "test_collection",
+        },
+        "server": {"host": "0.0.0.0", "port": 8000},
+        "path": {
+            "region2vec": "databio/r2v-encode-hg38",
+            "vec2vec": "databio/v2v-geo-hg38",
+            "text2vec": "sentence-transformers/all-MiniLM-L6-v2",
+        },
+        "access_methods": {
+            "http": {
+                "type": "https",
+                "description": "HTTP compatible path",
+                "prefix": "https://data2.bedbase.org/",
+            },
+            "s3": {
+                "type": "s3",
+                "description": "S3 compatible path",
+                "prefix": "s3://data2.bedbase.org/",
+            },
+            "local": {
+                "type": "https",
+                "description": "How to serve local files.",
+                "prefix": "/static/",
+            },
+        },
+        "s3": {
+            "endpoint_url": None,
+            "aws_access_key_id": None,
+            "aws_secret_access_key": None,
+            "bucket": "bedbase",
+        },
+        "phc": {"namespace": "bedbase", "name": "bedbase", "tag": "latest"},
+    }
 
-    :param int size_in_bytes: size in bytes
-    :return str: File size as string in different units
+
+def save_example_bedbase_config(path: str) -> None:
     """
-    if size_in_bytes < 1024:
-        return str(size_in_bytes) + "bytes"
-    elif size_in_bytes in range(1024, 1024 * 1024):
-        return str(round(size_in_bytes / 1024, 2)) + "KB"
-    elif size_in_bytes in range(1024 * 1024, 1024 * 1024 * 1024):
-        return str(round(size_in_bytes / (1024 * 1024))) + "MB"
-    elif size_in_bytes >= 1024 * 1024 * 1024:
-        return str(round(size_in_bytes / (1024 * 1024 * 1024))) + "GB"
+    Save example configuration for BedBase
+
+    :param path: path to the file
+    """
+    file_path = os.path.abspath(os.path.join(path, "bedbase_config.yaml"))
+    FilesManager.save_yaml(example_bedbase_config(), file_path)
+    _LOGGER.info(f"Example BedBase configuration saved to: {file_path}")

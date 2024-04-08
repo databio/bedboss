@@ -1,95 +1,24 @@
-import bbconf
 from geniml.io import BedSet
-from bbconf import BedBaseConf
-from bbconf.const import CFG_PATH_KEY, CFG_PATH_BEDBUNCHER_DIR_KEY
 from geniml.bbclient import BBClient
-from sqlmodel import select, func, Numeric, Float
+
 import os
 import json
 import subprocess
-from typing import Union
+from typing import Union, List
 import peppy
 import pephubclient
 from pephubclient.helpers import is_registry_path
 import logging
-from ubiquerg import parse_registry_path
 
-from bedboss.const import (
-    DEFAULT_BEDBASE_API_URL,
-    DEFAULT_BEDBASE_CACHE_PATH,
-    BED_PEP_REGISTRY,
-)
+from bbconf import BedBaseAgent
+from bbconf.models.base_models import FileModel
+from bbconf.models.bedset_models import BedSetPlots
+
+
+from bedboss.exceptions import BedBossException
 
 
 _LOGGER = logging.getLogger("bedboss")
-
-
-def create_bedset_from_pep(
-    pep: peppy.Project, bedbase_api: str, cache_folder: str = DEFAULT_BEDBASE_CACHE_PATH
-) -> BedSet:
-    """
-    Create bedset from pep file, where sample_name is bed identifier
-
-    :param pep: peppy object with bedfiles. where pep contains sample attribute with bedfile identifier, or sample_name is bedfile identifier
-    :param bedbase_api: bedbase api url
-    :param cache_folder: cache folder path
-    :return:
-    """
-    _LOGGER.info("Creating bedset from pep.")
-    new_bedset = BedSet()
-    for bedfile_id in pep.samples:
-        try:
-            bedfile_object = BBClient(
-                cache_folder=cache_folder,
-                bedbase_api=bedbase_api,
-            ).load_bed(bedfile_id.get("record_identifier") or bedfile_id.sample_name)
-            new_bedset.add(bedfile_object)
-        except Exception as err:
-            pass
-    _LOGGER.info("Bedset was created successfully")
-    return new_bedset
-
-
-def calculate_bedset_statistics(bbc: BedBaseConf, bedset: BedSet) -> dict:
-    """
-    Calculate mean and standard deviation for each numeric column of bedfiles in bedset
-
-    :param bbc: BedBase configuration object
-    :param bedset: Bedset object
-    :return: dict with mean and standard deviation for each
-        {"sd": {"column_name": sd_value},
-         "mean": {"column_name": mean_value}}
-    """
-
-    _LOGGER.info("Calculating bedset statistics...")
-
-    numeric_columns = [
-        column
-        for column, value in bbc.bed.result_schemas.items()
-        if value["type"] == "number"
-    ]
-    list_of_samples = [sample.identifier for sample in bedset]
-
-    results_dict = {"mean": {}, "sd": {}}
-
-    for column_name in numeric_columns:
-        with bbc.bed.backend.session as s:
-            mean_bedset_statement = select(
-                func.round(
-                    func.avg(getattr(bbc.BedfileORM, column_name)).cast(Numeric), 4
-                ).cast(Float)
-            ).where(bbc.BedfileORM.record_identifier.in_(list_of_samples))
-            sd_bedset_statement = select(
-                func.round(
-                    func.stddev(getattr(bbc.BedfileORM, column_name)).cast(Numeric), 4
-                ).cast(Float)
-            ).where(bbc.BedfileORM.record_identifier.in_(list_of_samples))
-
-            results_dict["mean"][column_name] = s.exec(mean_bedset_statement).one()
-            results_dict["sd"][column_name] = s.exec(sd_bedset_statement).one()
-
-    _LOGGER.info("Bedset statistics were calculated successfully")
-    return results_dict
 
 
 def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
@@ -110,26 +39,29 @@ def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
 
 
 def create_plots(
-    bbc: BedBaseConf,
-    bedset: BedSet,
+    bedset: List[str],
+    output_folder: str,
 ) -> dict:
     """
     Create plots for a bedset (commonality region plot)
 
-    :param bbc: BedBaseConf object
-    :param bedset: Bedset object
+    :param bedset: list of bedfiles ids
+    :param output_folder: path to the output folder
     :return: dict with information about crated plots
     """
-    bedset_md5sum = bedset.identifier
+    bbclient_obj = BBClient()
 
-    output_folder = os.path.abspath(
-        bbc.config[CFG_PATH_KEY][CFG_PATH_BEDBUNCHER_DIR_KEY]
-    )
+    bed_set_object = BedSet()
+    for bed_id in bedset:
+        bed_set_object.add(bbclient_obj.load_bed(bed_id))
+
+    bedset_md5sum = bed_set_object.identifier
+
     # if output folder doesn't exist create it
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     bedset_list_path = os.path.join(output_folder, f"{bedset_md5sum}_bedset.txt")
-    create_bed_list_file(bedset, bedset_list_path)
+    create_bed_list_file(bed_set_object, bedset_list_path)
     rscript_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "bedbuncher",
@@ -159,110 +91,111 @@ def create_plots(
     return bedset_summary_info["plots"][0]
 
 
-def add_bedset_to_database(
-    bbc: BedBaseConf,
+def run_bedbuncher(
+    bedbase_config: Union[str, BedBaseAgent],
     record_id: str,
-    bed_set: BedSet,
-    bedset_name: str,
-    genome: dict = None,
+    bed_set: List[str],
+    output_folder: str,
+    name: str = None,
     description: str = None,
-    pephub_registry_path: str = None,
     heavy: bool = False,
+    upload_pephub: bool = False,
+    upload_s3: bool = False,
+    no_fail: bool = False,
+    force_overwrite: bool = False,
 ) -> None:
     """
     Add bedset to the database
 
-    :param bbc: BedBaseConf object
-    :param record_id: record identifier to be used in database
-    :param bed_set: Bedset object
-    :param bedset_name: Bedset name
-    :param genome: genome of the bedset
+    :param bedbase_config: BedBaseConf object
+    :param record_id: record identifier or name to be used in database
+    :param name: name of the bedset
+    :param output_folder: path to the output folder
+    :param bed_set: Bedset object or list of bedfiles ids
     :param description: Bedset description
     :param heavy: whether to use heavy processing (add all columns to the database).
         if False -> R-script won't be executed, only basic statistics will be calculated
+    :param no_fail: whether to raise an error if bedset was not added to the database
+    :param upload_pephub: whether to create a view in pephub
+    :param upload_s3: whether to upload files to s3
+    :param force_overwrite: whether to overwrite the record in the database
+    # TODO: force_overwrite is not working!!! Fix it!
     :return:
     """
-    _LOGGER.info(f"Adding bedset {bedset_name} to the database")
+    _LOGGER.info(f"Adding bedset { record_id} to the database")
 
-    if not bedset_name:
-        raise ValueError(
+    if isinstance(bedbase_config, str):
+        bbagent = BedBaseAgent(bedbase_config)
+    else:
+        bbagent = bedbase_config
+
+    if not record_id:
+        raise BedBossException(
             "bedset_name was not provided correctly. Please provide it in pep name or as argument"
         )
 
-    bedset_stats = calculate_bedset_statistics(bbc, bed_set)
-    result_dict = {
-        "name": bedset_name,
-        "md5sum": bed_set.identifier,
-        "description": description,
-        "genome": genome,
-        "bedset_standard_deviation": bedset_stats["sd"],
-        "bedset_means": bedset_stats["mean"],
-        "processed": heavy,
-        "pephub_path": pephub_registry_path or "",
-    }
-
-    print(pephub_registry_path)
+    output_folder = os.path.join(
+        output_folder,
+        "bedsets",
+    )
 
     if heavy:
         _LOGGER.info("Heavy processing is True. Calculating plots...")
         plot_value = create_plots(
-            bbc,
             bedset=bed_set,
+            output_folder=output_folder,
         )
-        result_dict["region_commonality"] = plot_value
+        plots = BedSetPlots(region_commonality=FileModel(**plot_value))
     else:
         _LOGGER.info("Heavy processing is False. Plots won't be calculated")
+        plots = None
 
-    bbc.bedset.report(
-        record_identifier=record_id,
-        values=result_dict,
-        force_overwrite=True,
+    bbagent.bedset.create(
+        identifier=record_id,
+        name=name,
+        bedid_list=bed_set,
+        statistics=True,
+        description=description,
+        upload_pephub=upload_pephub,
+        upload_s3=upload_s3,
+        plots=plots.model_dump(exclude_none=True, exclude_unset=True),
+        local_path=output_folder,
+        no_fail=no_fail,
     )
-    for sample in bed_set:
-        bbc.report_relationship(record_id, sample.identifier)
-
-    _LOGGER.info(
-        f"Bedset {bedset_name} was added successfully to the database. "
-        f"With following files: {', '.join([sample.identifier for sample in bed_set])}"
-    )
 
 
-def run_bedbuncher(
-    bedbase_config: Union[str, bbconf.BedBaseConf],
+def run_bedbuncher_form_pep(
+    bedbase_config: str,
     bedset_pep: Union[str, peppy.Project],
+    output_folder: str,
     bedset_name: str = None,
-    pephub_registry_path: str = None,
-    bedbase_api: str = DEFAULT_BEDBASE_API_URL,
-    cache_path: str = DEFAULT_BEDBASE_CACHE_PATH,
     heavy: bool = False,
     upload_pephub: bool = False,
-    *args,
-    **kwargs,
-) -> None:
+    upload_s3: bool = False,
+    no_fail: bool = False,
+    force_overwrite: bool = False,
+) -> str:
     """
-    Create bedset using file with a list of bedfiles
+    Create bedset from pep and add it to the database
 
-    :param bedbase_config: bed base configuration file path
-    :param bedset_name: name of the bedset, can be provided here or as pep name
-    :param bedset_pep: bedset pep path or pephub registry path containing bedset pep
-    :param bedbase_api: bedbase api url [DEFAULT: http://localhost:8000/api]
-    :param cache_path: path to the cache folder [DEFAULT: ./bedbase_cache]
+    :param bedbase_config: BedBaseConf object or path to the config file
+    :param bedset_pep: path to the pep file or pephub registry path
+    :param bedset_name: name of the bedset
+    :param output_folder: path to the output folder
     :param heavy: whether to use heavy processing (add all columns to the database).
         if False -> R-script won't be executed, only basic statistics will be calculated
-    :param upload_pephub: whether to upload bedset to pephub
-    :return: None
-    """
+    :param upload_pephub: whether to create a view in pephub
+    :param upload_s3: whether to upload files to s3
+    :param no_fail: whether to raise an error if bedset was not added to the database
+    :param force_overwrite: whether to overwrite the record in the database
 
-    if isinstance(bedbase_config, str):
-        bbc = BedBaseConf(bedbase_config)
-    else:
-        bbc = bedbase_config
+    return bedset_name
+    """
     if isinstance(bedset_pep, peppy.Project):
         pep_of_bed = bedset_pep
     elif isinstance(bedset_pep, str):
         if is_registry_path(bedset_pep):
             pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
-            pephub_registry_path = bedset_pep
         else:
             pep_of_bed = peppy.Project(bedset_pep)
     else:
@@ -270,55 +203,47 @@ def run_bedbuncher(
             "bedset_pep should be either path to the pep file or pephub registry path"
         )
 
-    _LOGGER.info(f"Initializing bedbuncher. Bedset name {pep_of_bed.name}")
+    bedfiles_list = [
+        bedfile_id.get("record_identifier") or bedfile_id.sample_name
+        for bedfile_id in pep_of_bed.samples
+    ]
 
-    bedset = create_bedset_from_pep(
-        pep=pep_of_bed, bedbase_api=bedbase_api, cache_folder=cache_path
+    run_bedbuncher(
+        bedbase_config=bedbase_config,
+        record_id=bedset_name or pep_of_bed.name,
+        bed_set=bedfiles_list,
+        output_folder=output_folder,
+        name=bedset_name or pep_of_bed.name,
+        description=pep_of_bed.description,
+        heavy=heavy,
+        upload_pephub=upload_pephub,
+        upload_s3=upload_s3,
+        no_fail=no_fail,
+        force_overwrite=force_overwrite,
     )
-
-    if not pep_of_bed.config.get("genome"):
-        _LOGGER.warning(
-            f"Genome for bedset {bedset_name or pep_of_bed.get('name')} was not provided."
-        )
-    if not pep_of_bed.get("description"):
-        _LOGGER.warning(
-            f"Description for bedset {bedset_name or pep_of_bed.get('name')} was not provided."
-        )
-    record_id = bedset_name or pep_of_bed.name
-    try:
-        add_bedset_to_database(
-            bbc,
-            record_id=record_id,
-            bed_set=bedset,
-            bedset_name=bedset_name or pep_of_bed.name,
-            genome=dict(pep_of_bed.config.get("genome", {})),
-            description=pep_of_bed.description or "",
-            # pephub_registry_path=pephub_registry_path,
-            heavy=heavy,
-        )
-    except Exception as err:
-        pass
-    if upload_pephub:
-        phc = pephubclient.PEPHubClient()
-        reg_path_obj = parse_registry_path(BED_PEP_REGISTRY)
-        bed_ids = [
-            sample.record_identifier
-            for sample in pep_of_bed.samples
-            if sample.get("record_identifier") is not None
-        ]
-        print(bed_ids)
-        phc.view.create(
-            namespace=reg_path_obj["namespace"],
-            name=reg_path_obj["item"],
-            tag=reg_path_obj["tag"],
-            view_name=record_id,
-            sample_list=bed_ids,
-        )
-    return None
+    return bedset_name
 
 
 # if __name__ == "__main__":
 #     run_bedbuncher(
-#         "/media/alex/Extreme SSD/databio/repos/bedbase_all/bedhost/bedbase_configuration_compose.yaml",
-#         "databio/excluderanges:id3",
+#         "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+#         record_id="test_bedset",
+#         name="This is a name",
+#         bed_set=[
+#             "bbad85f21962bb8d972444f7f9a3a932",
+#             "0dcdf8986a72a3d85805bbc9493a1302",
+#         ],
+#         output_folder="/home/bnt4me/virginia/",
+#         description="This is a description",
+#         upload_s3=True,
+#         no_fail=True,
+#         upload_pephub=True,
+#         heavy=True,
 #     )
+
+# run_bedbuncher_form_pep(
+#     "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+#     bedset_name="pephub_test",
+#     bedset_pep="khoroshevskyi/bedbunch:default",
+#     upload_pephub=True,
+# )

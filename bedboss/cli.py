@@ -1,460 +1,424 @@
-from ubiquerg import VersionInHelpParser
-from argparse import ArgumentParser
-import logmuse
+import typer
+from typing import Union
+import os
 import pypiper
 
-from bedboss._version import __version__
-from bedboss.const import DEFAULT_BEDBASE_API_URL, DEFAULT_BEDBASE_CACHE_PATH
+from bedboss.bedqc.bedqc import bedqc
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+
+from bedboss import __version__
+
+app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=False)
 
 
-def build_argparser() -> ArgumentParser:
-    """
-    BEDboss parser
+def create_pm(
+    outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
+) -> pypiper.PipelineManager:
+    pm_out_folder = outfolder
+    pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
-    :retrun: Tuple[pipeline, arguments]
-    """
-    parser = VersionInHelpParser(
-        prog="bedboss",
-        description="Warehouse of pipelines for BED-like files: "
-        "bedmaker, bedstat, and bedqc.",
-        epilog="",
+    pm = pypiper.PipelineManager(
+        name="bedboss-pipeline",
+        outfolder=pm_out_folder,
         version=__version__,
+        multi=multi,
+        recover=recover,
+        dirty=dirty,
+    )
+    return pm
+
+
+options_list = ["bigwig", "bedgraph", "bed", "bigbed", "wig"]
+
+
+def validate_input_options(option: str):
+    if option not in options_list:
+        raise typer.BadParameter(
+            f"Invalid input type option '{option}'. Options are: {', '.join(options_list)}"
+        )
+    return option
+
+
+@app.command(help="Run all the bedboss pipeline for a single bed file")
+def run_all(
+    input_file: str = typer.Option(
+        ...,
+        help="Path to the input file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    input_type: str = typer.Option(
+        ...,
+        help=f"Type of the input file. Options are: {', '.join(options_list)}",
+        callback=validate_input_options,
+        case_sensitive=False,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
+    narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
+    check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
+    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
+    open_signal_matrix: str = typer.Option(
+        None, help="Path to the open signal matrix file"
+    ),
+    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    force_overwrite: bool = typer.Option(
+        False, help="Force overwrite the output files"
+    ),
+    upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
+    upload_s3: bool = typer.Option(False, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    """
+
+    Run the bedboss pipeline for a single bed file
+    """
+    from bedboss.bedboss import run_all as run_all_bedboss
+
+    run_all_bedboss(
+        input_file=input_file,
+        input_type=input_type,
+        outfolder=outfolder,
+        genome=genome,
+        bedbase_config=bedbase_config,
+        rfg_config=rfg_config,
+        narrowpeak=narrowpeak,
+        check_qc=check_qc,
+        chrom_sizes=chrom_sizes,
+        open_signal_matrix=open_signal_matrix,
+        ensdb=ensdb,
+        other_metadata=None,
+        just_db_commit=just_db_commit,
+        force_overwrite=force_overwrite,
+        upload_qdrant=upload_qdrant,
+        upload_s3=upload_s3,
+        upload_pephub=upload_pephub,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
-    subparser = parser.add_subparsers(dest="command")
-    sub_all = subparser.add_parser(
-        "all", help="Run all bedboss pipelines and insert data into bedbase"
-    )
-    sub_all_pep = subparser.add_parser(
-        "insert",
-        help="Run all bedboss pipelines using one PEP and insert data into bedbase",
-    )
-    sub_make = subparser.add_parser(
-        "make",
-        help="A pipeline to convert bed, bigbed, bigwig or bedgraph "
-        "files into bed and bigbed formats",
+
+@app.command(help="Run the all bedboss pipeline for a bed files in a PEP")
+def run_pep(
+    pep: str = typer.Option(..., help="PEP file. Local or remote path"),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
+    bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
+    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
+    check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
+    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    force_overwrite: bool = typer.Option(
+        False, help="Force overwrite the output files"
+    ),
+    upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
+    upload_s3: bool = typer.Option(False, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    no_fail: bool = typer.Option(False, help="Do not fail on error"),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    """
+    Run the bedboss pipeline for a bed files in a PEP
+    """
+    from bedboss.bedboss import insert_pep
+
+    insert_pep(
+        bedbase_config=bedbase_config,
+        output_folder=outfolder,
+        pep=pep,
+        bedset_id=bedset_id,
+        rfg_config=rfg_config,
+        create_bedset=create_bedset,
+        check_qc=check_qc,
+        ensdb=ensdb,
+        just_db_commit=just_db_commit,
+        force_overwrite=force_overwrite,
+        upload_s3=upload_s3,
+        upload_pephub=upload_pephub,
+        upload_qdrant=upload_qdrant,
+        no_fail=no_fail,
+        pm=create_pm(
+            outfolder=outfolder,
+            multi=multi,
+            recover=recover,
+            dirty=dirty,
+        ),
     )
 
-    sub_qc = subparser.add_parser("qc", help="Run quality control on bed file (bedqc)")
-    sub_stat = subparser.add_parser(
-        "stat",
-        help="A pipeline to read a file in BED format and produce metadata "
-        "in JSON format.",
+
+@app.command(help=f"Create a bed files form a [{', '.join(options_list)}] file")
+def make_bed(
+    input_file: str = typer.Option(
+        ...,
+        help="Path to the input file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    input_type: str = typer.Option(
+        ...,
+        help=f"Type of the input file. Options are: {', '.join(options_list)}",
+        callback=validate_input_options,
+        case_sensitive=False,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
+    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
+    narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
+    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    """
+
+    Run the bedboss pipeline for a single bed file
+    """
+    from bedboss.bedmaker.bedmaker import make_bed as mk_bed_func
+
+    mk_bed_func(
+        input_file=input_file,
+        input_type=input_type,
+        output_path=outfolder,
+        genome=genome,
+        narrowpeak=narrowpeak,
+        rfg_config=rfg_config,
+        chrom_sizes=chrom_sizes,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
-    sub_bunch = subparser.add_parser(
-        "bunch",
-        help="A pipeline to create bedsets (sets of BED files) that will be retrieved from bedbase.",
+
+@app.command(help=f"Create a bigbed files form a bed file")
+def make_bigbed(
+    bed_file: str = typer.Option(
+        ...,
+        help="Path to the input file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    bed_type: str = typer.Option(
+        ...,
+        help="bed type to be used for bigBed file generation 'bed{bedtype}+{n}' [Default: None] (e.g bed3+1)",
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
+    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
+    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    """
+
+    Run the bedboss pipeline for a single bed file
+    """
+    from bedboss.bedmaker.bedmaker import make_bigbed as mk_bigbed_func
+
+    mk_bigbed_func(
+        bed_path=bed_file,
+        output_path=outfolder,
+        genome=genome,
+        bed_type=bed_type,
+        rfg_config=rfg_config,
+        chrom_sizes=chrom_sizes,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
-    sub_index = subparser.add_parser(
-        "index", help="Index not indexed bed files and add them to the qdrant database "
+
+@app.command(help="Run the quality control for a bed file")
+def run_qc(
+    bed_file: str = typer.Option(
+        ...,
+        help="Path to the bed file to check the quality control on.",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    max_file_size: int = typer.Option(
+        MAX_FILE_SIZE, help="Maximum file size threshold to pass the quality"
+    ),
+    max_region_number: int = typer.Option(
+        MAX_REGION_NUMBER,
+        help="Maximum number of regions threshold to pass the quality",
+    ),
+    min_region_width: int = typer.Option(
+        MIN_REGION_WIDTH, help="Minimum region width threshold to pass the quality"
+    ),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    bedqc(
+        bedfile=bed_file,
+        outfolder=outfolder,
+        max_file_size=max_file_size,
+        max_region_number=max_region_number,
+        min_region_width=min_region_width,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
-    subparser.add_parser(
-        "requirements-check", help="Check if all requirements are installed"
+
+@app.command(help="Create the statistics for a single bed file.")
+def run_stats(
+    bed_file: str = typer.Option(
+        ...,
+        help="Path to the bed file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    open_signal_matrix: str = typer.Option(
+        None, help="Path to the open signal matrix file"
+    ),
+    just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    # PipelineManager
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+):
+    from bedboss.bedstat.bedstat import bedstat
+
+    bedstat(
+        bedfile=bed_file,
+        genome=genome,
+        outfolder=outfolder,
+        ensdb=ensdb,
+        open_signal_matrix=open_signal_matrix,
+        just_db_commit=just_db_commit,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
-    sub_all.add_argument(
-        "--outfolder",
-        required=True,
-        help="Pipeline output folder [Required]",
-        type=str,
+
+@app.command(
+    help="Reindex the bedbase database and insert all files to the qdrant database."
+)
+def reindex(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bedboss.qdrant_index.qdrant_index import add_to_qdrant
+
+    add_to_qdrant(config=bedbase_config)
+
+
+@app.command(
+    help="Create a bedset from a pep file, and insert it to the bedbase database."
+)
+def make_bedset(
+    pep: str = typer.Option(..., help="PEP file. Local or remote path"),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    bedset_name: str = typer.Option(..., help="Name of the bedset"),
+    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
+    force_overwrite: bool = typer.Option(
+        False, help="Force overwrite the output files"
+    ),
+    upload_s3: bool = typer.Option(False, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    no_fail: bool = typer.Option(False, help="Do not fail on error"),
+):
+    from bedboss.bedbuncher.bedbuncher import run_bedbuncher_form_pep
+
+    run_bedbuncher_form_pep(
+        bedbase_config=bedbase_config,
+        bedset_pep=pep,
+        output_folder=outfolder,
+        bedset_name=bedset_name,
+        heavy=heavy,
+        upload_pephub=upload_pephub,
+        upload_s3=upload_s3,
+        no_fail=no_fail,
+        force_overwrite=force_overwrite,
     )
 
-    sub_all.add_argument(
-        "-s",
-        "--sample-name",
-        required=True,
-        help="name of the sample used to systematically build the output name [Required]",
-        type=str,
-    )
-    sub_all.add_argument(
-        "-f", "--input-file", required=True, help="Input file [Required]", type=str
-    )
-    sub_all.add_argument(
-        "-t",
-        "--input-type",
-        required=True,
-        help="Input type [Required] options: (bigwig|bedgraph|bed|bigbed|wig)",
-        type=str,
-    )
-    sub_all.add_argument(
-        "-g",
-        "--genome",
-        required=True,
-        help="reference genome (assembly) [Required]",
-        type=str,
-    )
-    sub_all.add_argument(
-        "-r",
-        "--rfg-config",
-        required=False,
-        help="file path to the genome config file(refgenie)",
-        type=str,
-    )
-    sub_all.add_argument(
-        "--chrom-sizes",
-        help="a full path to the chrom.sizes required for the bedtobigbed conversion",
-        type=str,
-        required=False,
-    )
-    sub_all.add_argument(
-        "-n",
-        "--narrowpeak",
-        help="whether it's a narrowpeak file",
-        action="store_true",
-    )
-    sub_all.add_argument(
-        "--standardize",
-        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
-        action="store_true",
-    )
-    sub_all.add_argument(
-        "--check-qc",
-        help="Check quality control before processing data. Default: True",
-        action="store_false",
-    )
-    sub_all.add_argument(
-        "--open-signal-matrix",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the openSignalMatrix required for the tissue "
-        "specificity plots",
-    )
-    sub_all.add_argument(
-        "--ensdb",
-        type=str,
-        required=False,
-        default=None,
-        help="A full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
-    sub_all.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        help="a path to the bedbase configuration file [Required]",
-        required=True,
-    )
-    sub_all.add_argument(
-        "--treatment",
-        required=False,
-        help="A treatment of the bed file",
-        type=str,
-    )
-    sub_all.add_argument(
-        "--cell-type",
-        required=False,
-        help="A cell type of the bed file",
-        type=str,
-    )
-    sub_all.add_argument(
-        "--description",
-        required=False,
-        help="A description of the bed file",
-        type=str,
-    )
-    sub_all.add_argument(
-        "--no-db-commit",
-        dest="db_commit",
-        action="store_false",
-        help="skip the JSON commit to the database [Default: False]",
-    )
-    sub_all.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="Do not save the results locally",
-    )
-    sub_all.add_argument(
-        "--upload_qdrant",
-        action="store_false",
-        help="whether to execute qdrant indexing",
-    )
-    sub_all.add_argument(
-        "--upload-pephub",
-        action="store_true",
-        help="upload to pephub",
-    )
 
-    # all-pep
-    sub_all_pep.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        help="a path to the bedbase configuration file [Required]",
-        required=True,
-    )
-    sub_all_pep.add_argument(
-        "--pep",
-        dest="pep",
-        required=True,
-        help="path to the pep file or pephub registry path containing pep [Required]",
-        type=str,
-    )
-    sub_all_pep.add_argument(
-        "--output-folder",
-        dest="output_folder",
-        required=True,
-        help="Pipeline output folder [Required]",
-        type=str,
-    )
-    sub_all_pep.add_argument(
-        "-r",
-        "--rfg-config",
-        required=False,
-        help="file path to the genome config file(refgenie)",
-        type=str,
-    )
-    sub_all_pep.add_argument(
-        "--check-qc",
-        help="Check quality control before processing data. Default: True",
-        action="store_false",
-    )
-    sub_all_pep.add_argument(
-        "--standardize",
-        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
-        action="store_true",
-    )
-    sub_all_pep.add_argument(
-        "--create-bedset",
-        help="Create bedset using pep samples. Name of the bedset will be based on  pep name.Default: False",
-        action="store_true",
-    )
-    sub_all_pep.add_argument(
-        "--upload_qdrant",
-        action="store_false",
-        help="whether to execute qdrant indexing",
-    )
-    sub_all_pep.add_argument(
-        "--ensdb",
-        type=str,
-        required=False,
-        default=None,
-        help="A full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
-    sub_all_pep.add_argument(
-        "--no-db-commit",
-        dest="db_commit",
-        action="store_false",
-        help="skip the JSON commit to the database [Default: False]",
-    )
-    sub_all_pep.add_argument(
-        "--just-db-commit",
-        action="store_true",
-        help="just commit the JSON to the database",
-    )
-    sub_all_pep.add_argument(
-        "--force_overwrite",
-        action="store_true",
-        help="Weather to overwrite existing records. [Default: False]",
-    )
-    sub_all_pep.add_argument(
-        "--upload-s3",
-        action="store_true",
-        help="Weather to upload bed, bigbed, and statistics to s3. "
-        "Before uploading you have to set up all necessury env vars: "
-        "AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_ENDPOINT_URL. [Default: False]",
-    )
-    sub_all_pep.add_argument(
-        "--upload-pephub",
-        action="store_true",
-        help="upload to pephub",
-    )
+@app.command(help="Initialize the new, sample configuration file")
+def init_config(
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+):
 
-    # bed_qc
-    sub_qc.add_argument(
-        "--bedfile",
-        help="a full path to bed file to process [Required]",
-        required=True,
-    )
-    sub_qc.add_argument(
-        "--outfolder",
-        help="a full path to output log folder. [Required]",
-        required=True,
-    )
+    from bedboss.utils import save_example_bedbase_config
 
-    # bed_maker
+    save_example_bedbase_config(outfolder)
 
-    sub_make.add_argument(
-        "-f",
-        "--input-file",
-        required=True,
-        help="path to the input file [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "--outfolder",
-        required=True,
-        help="Pipeline output folder [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "-n",
-        "--narrowpeak",
-        help="whether it's a narrowpeak file",
-        action="store_true",
-    )
-    sub_make.add_argument(
-        "-t",
-        "--input-type",
-        required=True,
-        help="input file format (supported formats: bedGraph, bigBed, bigWig, wig) [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "-g",
-        "--genome",
-        required=True,
-        help="reference genome [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "-r",
-        "--rfg-config",
-        required=False,
-        default=None,
-        help="file path to the genome config file",
-        type=str,
-    )
-    sub_make.add_argument(
-        "-o",
-        "--output-bed",
-        required=True,
-        help="path to the output BED files [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "--output-bigbed",
-        required=True,
-        help="path to the folder of output bigBed files [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "-s",
-        "--sample-name",
-        required=True,
-        help="name of the sample used to systematically build the output name [Required]",
-        type=str,
-    )
-    sub_make.add_argument(
-        "--chrom-sizes",
-        help="A full path to the chrom.sizes required for the bedtobigbed conversion [optional]",
-        default=None,
-        type=str,
-        required=False,
-    )
-    sub_make.add_argument(
-        "--standardize",
-        help="Standardize bed files: remove non-standard chromosomes and headers if necessary Default: False",
-        action="store_true",
-    )
-    # bed_stat
-    sub_stat.add_argument(
-        "--bedfile", help="a full path to bed file to process [Required]", required=True
-    )
-    sub_stat.add_argument(
-        "--genome",
-        dest="genome",
-        type=str,
-        required=True,
-        help="genome assembly of the sample [Required]",
-    )
 
-    sub_stat.add_argument(
-        "--outfolder",
-        required=True,
-        help="Pipeline output folder [Required]",
-        type=str,
-    )
-    sub_stat.add_argument(
-        "--bigbed",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the bigbed files",
-    )
-    sub_stat.add_argument(
-        "--open-signal-matrix",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the openSignalMatrix required for the tissue "
-        "specificity plots",
-    )
+@app.command(help="Delete bed from the bedbase database")
+def delete_bed(
+    sample_id: str = typer.Option(..., help="Sample ID"),
+    config: str = typer.Option(..., help="Path to the bedbase config file"),
+):
+    from bbconf import BedBaseAgent
 
-    sub_stat.add_argument(
-        "--ensdb",
-        type=str,
-        required=False,
-        default=None,
-        help="a full path to the ensdb gtf file required for genomes not in GDdata ",
-    )
+    bbagent = BedBaseAgent(config)
+    bbagent.bed.delete(sample_id)
+    print(f"sample {sample_id} deleted from the bedbase database")
 
-    sub_bunch.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        required=True,
-        help="a path to the bedbase configuration file [Required]",
-    )
-    sub_bunch.add_argument(
-        "--bedset-name",
-        dest="bedset_name",
-        type=str,
-        required=True,
-        help="a name of the bedset [Required]",
-    )
 
-    sub_bunch.add_argument(
-        "--bedset-pep",
-        dest="bedset_pep",
-        type=str,
-        required=True,
-        help="bedset pep path or pephub registry path containing bedset pep [Required]",
-    )
-    sub_bunch.add_argument(
-        "--base-api",
-        dest="bedbase_api",
-        type=str,
-        default=f"{DEFAULT_BEDBASE_API_URL}",
-        required=False,
-        help=f"Bedbase API to use. Default is {DEFAULT_BEDBASE_API_URL}",
-    )
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"Bedboss version: {__version__}")
+        raise typer.Exit()
 
-    sub_bunch.add_argument(
-        "--cache-path",
-        dest="cache_path",
-        type=str,
-        default=f"{DEFAULT_BEDBASE_CACHE_PATH}",
-        required=False,
-        help=f"Path to the cache folder. Default is {DEFAULT_BEDBASE_CACHE_PATH}",
-    )
-    sub_bunch.add_argument(
-        "--heavy",
-        dest="heavy",
-        action="store_true",
-        help="whether to use heavy processing (Calculate and crate plots using R script). ",
-    )
 
-    sub_index.add_argument(
-        "--bedbase-config",
-        dest="bedbase_config",
-        type=str,
-        required=True,
-        help="a path to the bedbase configuration file [Required]",
-    )
+@app.command(help="Delete BedSet from the bedbase database")
+def delete_bedset(
+    identifier: str = typer.Option(..., help="BedSet ID"),
+    config: str = typer.Option(..., help="Path to the bedbase config file"),
+):
+    from bbconf import BedBaseAgent
 
-    sub_index.add_argument(
-        "--bedbase-api",
-        dest="bedbase_api",
-        type=str,
-        required=False,
-        default=DEFAULT_BEDBASE_API_URL,
-        help=f"URL of the Bedbase API [Default: {DEFAULT_BEDBASE_API_URL}]",
-    )
+    bbagent = BedBaseAgent(config)
+    bbagent.bedset.delete(identifier)
+    print(f"BedSet {identifier} deleted from the bedbase database")
 
-    for sub in [sub_all_pep, sub_all, sub_make, sub_stat, sub_qc]:
-        sub_all_pep = pypiper.add_pypiper_args(sub)
 
-    return logmuse.add_logging_options(parser)
+@app.callback()
+def common(
+    ctx: typer.Context,
+    version: bool = typer.Option(
+        None, "--version", "-v", callback=version_callback, help="App version"
+    ),
+):
+    pass

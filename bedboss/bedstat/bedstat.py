@@ -1,7 +1,6 @@
 from typing import Union
 import json
 import os
-import requests
 import pypiper
 import logging
 from geniml.io import RegionSet
@@ -17,7 +16,7 @@ from bedboss.const import (
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
 )
-from bedboss.utils import download_file, convert_unit
+from bedboss.utils import download_file
 from bedboss.exceptions import OpenSignalMatrixException
 
 
@@ -69,7 +68,6 @@ def bedstat(
     genome: str,
     outfolder: str,
     bed_digest: str = None,
-    bigbed: str = None,
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
@@ -80,9 +78,6 @@ def bedstat(
         and inserting them into the database
 
     :param str bedfile: the full path to the bed file to process
-    :param str bigbed: the full path to the bigbed file. Defaults to None.
-        (bigbed won't be created and some producing of some statistics will
-        be skipped.)
     :param str bed_digest: the digest of the bed file. Defaults to None.
     :param str open_signal_matrix: a full path to the openSignalMatrix
         required for the tissue specificity plots
@@ -94,9 +89,6 @@ def bedstat(
 
     :return: dict with statistics and plots metadata
     """
-    # TODO why are we no longer using bbconf to get the output path?
-    # outfolder_stats = bbc.get_bedstat_output_path()
-
     outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
     try:
         os.makedirs(outfolder_stats)
@@ -134,14 +126,6 @@ def bedstat(
     )
     json_plots_file_path = os.path.abspath(
         os.path.join(outfolder_stats_results, fileid + "_plots.json")
-    )
-    bed_relpath = os.path.relpath(
-        bedfile,
-        os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
-    )
-    bigbed_relpath = os.path.relpath(
-        os.path.join(bigbed, fileid + ".bigBed"),
-        os.path.abspath(os.path.join(outfolder_stats, os.pardir, os.pardir)),
     )
     if not just_db_commit:
         if not pm:
@@ -190,63 +174,16 @@ def bedstat(
     # length 1 and force keys to lower to correspond with the
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
-    data.update(
-        {
-            "bedfile": {
-                "path": bed_relpath,
-                "size": convert_unit(os.path.getsize(bedfile)),
-                "title": "Path to the BED file",
-            }
-        }
-    )
-
-    if os.path.exists(os.path.join(bigbed, fileid + ".bigBed")):
-        data.update(
-            {
-                "bigbedfile": {
-                    "path": bigbed_relpath,
-                    "size": convert_unit(
-                        os.path.getsize(os.path.join(bigbed, fileid + ".bigBed"))
-                    ),
-                    "title": "Path to the big BED file",
-                }
-            }
-        )
-
-        if not os.path.islink(os.path.join(bigbed, fileid + ".bigBed")):
-            digest = requests.get(
-                f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
-            ).text.strip('""')
-
-            data.update(
-                {
-                    "genome": {
-                        "alias": genome,
-                        "digest": digest,
-                    }
-                }
-            )
-    else:
-        data.update(
-            {
-                "genome": {
-                    "alias": genome,
-                    "digest": "",
-                }
-            }
-        )
 
     for plot in plots:
         plot_id = plot["name"]
-        del plot["name"]
         data.update({plot_id: plot})
 
-    # deleting md5sum, because it is record_identifier
     if "md5sum" in data:
         del data["md5sum"]
 
-    # add added_to_qdrant to the data
-    data["added_to_qdrant"] = False
+    if "name" in data:
+        del data["name"]
 
     if stop_pipeline:
         pm.stop_pipeline()
