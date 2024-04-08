@@ -1,10 +1,7 @@
 import os
-
-import pypiper
 import pytest
-from tempfile import TemporaryDirectory
 
-from bedboss.bedclassifier import BedClassifier, get_bed_type
+from bedboss.bedclassifier import get_bed_type
 
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -18,55 +15,42 @@ BED2 = f"{SIMPLE_EXAMPLES_DIR}/bed2.bed"
 BED3 = f"{SIMPLE_EXAMPLES_DIR}/bed3.bed"
 
 
-def test_classification():
-    with TemporaryDirectory() as d:
-        pm = pypiper.PipelineManager(
-            name="bedclassifier",
-            outfolder=d,
-            recover=True,
-            pipestat_sample_name="Generic_Digest",
-            multi=True,
-        )
-        bedclass = BedClassifier(input_file=FILE_PATH, output_dir=d, pm=pm)
-        pm.complete()
+class TestBedClassifier:
 
+    def test_classification(
+        self,
+    ):
+        bedclass = get_bed_type(bed=FILE_PATH)
 
-def test_get_bed_type():
-    bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
-    assert bedtype == ("bed6+3", "broadpeak")
+    def test_get_bed_type(
+        self,
+    ):
+        bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
+        assert bedtype == ("bed6+3", "broadpeak")
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            (BED1, ("bed6+4", "narrowpeak")),
+            (BED2, ("bed6+3", "broadpeak")),
+            (BED3, ("bed6+2", "bed")),
+        ],
+    )
+    def test_get_bed_types(self, values):
+        # bed1 is encode narrowpeak
+        # bed2 is encode broadpeak
+        # bed 3 is encode bed6+ (6+2)
 
-@pytest.mark.parametrize(
-    "values",
-    [
-        (BED1, ("bed6+4", "narrowpeak")),
-        (BED2, ("bed6+3", "broadpeak")),
-        (BED3, ("bed6+2", "bed")),
-    ],
-)
-def test_get_bed_types(values):
-    # bed1 is encode narrowpeak
-    # bed2 is encode broadpeak
-    # bed 3 is encode bed6+ (6+2)
+        bedclass = get_bed_type(bed=values[0])
+        assert bedclass == values[1]
 
-    with TemporaryDirectory() as d:
-        pm = pypiper.PipelineManager(
-            name="bedclassifier",
-            outfolder=d,
-            recover=True,
-            pipestat_sample_name="Generic_Digest",
-            multi=True,
-        )
-        bedclass = BedClassifier(input_file=values[0], output_dir=d, pm=pm)
-        pm.complete()
-        assert bedclass.bed_type == values[1]
-
-
-@pytest.mark.skip(reason="Not implemented")
-def test_from_PEPhub_beds():
-    """"""
-    # TODO implement testing from pephub
-    pass
+    @pytest.mark.skip(reason="Not implemented")
+    def test_from_PEPhub_beds(
+        self,
+    ):
+        """"""
+        # TODO implement testing from pephub
+        pass
 
 
 #

@@ -122,7 +122,7 @@ plotBoth <- function(plotId, g){
 getPlotReportDF <- function(plotId, title){
     pth = paste0(opt$outputfolder, "/", opt$id, "_", plotId)
     print(paste0("Writing: ", pth))
-    rel_pth = getRelativePath(pth, paste0(opt$outputfolder, "/../../../"))
+    rel_pth = getRelativePath(pth, paste0(opt$outputfolder, ""))
     print(paste0("Writing: ", rel_pth))
     newPlot = data.frame(
         "name"=plotId, 

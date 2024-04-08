@@ -1,1 +1,1 @@
-from bedboss.bedclassifier.bedclassifier import BedClassifier, get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_type

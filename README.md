@@ -19,8 +19,8 @@
 
 ---
 
-bedboss is a command-line pipeline that filters, standardizes, and calculates statistics for genomic interval data, 
-and enters the results into a BEDbase database. 
+BEDboss is a command-line management tool for BEDbase. It contains pipelines that filters, standardizes, and calculates statistics for genomic interval data, 
+functions that enters the results into a BEDbase database, deletes bed and bedsets from the database, and indexes the data to qdrant.
 
 ## Installation
 To install `bedboss` use this command: 
