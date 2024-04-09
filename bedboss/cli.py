@@ -414,6 +414,14 @@ def delete_bedset(
     print(f"BedSet {identifier} deleted from the bedbase database")
 
 
+@app.command(help="check installed R packages")
+def check_requirements():
+    from bedboss.bedboss import requirements_check
+
+    print("Checking piplines requirements...")
+    requirements_check()
+
+
 @app.callback()
 def common(
     ctx: typer.Context,
