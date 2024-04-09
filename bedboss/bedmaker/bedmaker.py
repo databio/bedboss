@@ -70,13 +70,14 @@ def make_bigbed(
         pm_clean = False
     _LOGGER.info(f"Generating bigBed files for: {bed_path}")
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    bigbed_output_folder = os.path.join(output_path, BIGBED_FILE_NAME)
+    if not os.path.exists(bigbed_output_folder):
+        os.makedirs(bigbed_output_folder)
 
     bedfile_name = os.path.split(bed_path)[1]
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     # Produce bigBed (big_narrow_peak) file from peak file
-    big_bed_path = os.path.join(output_path, BIGBED_FILE_NAME, fileid + ".bigBed")
+    big_bed_path = os.path.join(bigbed_output_folder, fileid + ".bigBed")
     if not chrom_sizes:
         try:
             chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
