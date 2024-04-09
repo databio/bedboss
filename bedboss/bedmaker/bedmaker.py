@@ -192,10 +192,13 @@ def make_bed(
 
     # creat cmd to run that convert non bed file to bed file
     if input_type == InputTypes.BED.value:
-        # If bed file was provided:
-        bbclient = BBClient()
-        bed_id = bbclient.add_bed_to_cache(input_file)
-        output_path = bbclient.seek(bed_id)
+        try:
+            # If bed file was provided:
+            bbclient = BBClient()
+            bed_id = bbclient.add_bed_to_cache(input_file)
+            output_path = bbclient.seek(bed_id)
+        except FileNotFoundError as e:
+            raise BedBossException(f"File not found: {input_file} Error: {e}")
 
     else:
         _LOGGER.info(f"Converting {input_file} to BED format")
