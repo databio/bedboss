@@ -13,7 +13,6 @@ from pephubclient.helpers import is_registry_path, MessageHandler as m
 from bbconf.bbagent import BedBaseAgent
 from bbconf.models.base_models import FileModel
 
-
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedbuncher import run_bedbuncher
@@ -231,6 +230,7 @@ def insert_pep(
     :param str output_folder: output statistics folder
     :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
     :param str bedset_id: bedset identifier
+    :param str bedset_name: bedset name
     :param str rfg_config: path to the genome config file (refgenie)
     :param bool create_bedset: whether to create bedset
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
@@ -263,6 +263,7 @@ def insert_pep(
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
     for i, pep_sample in enumerate(pep.samples):
+        m.print_success(f"Processing sample {i + 1}/{len(pep.samples)}")
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
         if pep_sample.get("file_type"):
             if pep_sample.get("file_type").lower() == "narrowpeak":
@@ -276,6 +277,7 @@ def insert_pep(
                 input_file=pep_sample.input_file,
                 input_type=pep_sample.input_type,
                 genome=pep_sample.genome,
+                name=pep_sample.sample_name,
                 bedbase_config=bbagent,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
