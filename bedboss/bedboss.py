@@ -312,6 +312,7 @@ def insert_pep(
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             no_fail=no_fail,
+            force_overwrite=force_overwrite,
         )
     else:
         _LOGGER.info(

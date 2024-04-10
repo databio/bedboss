@@ -161,6 +161,7 @@ def run_bedbuncher(
         plots=plots.model_dump(exclude_none=True, exclude_unset=True),
         local_path=output_folder,
         no_fail=no_fail,
+        overwrite=force_overwrite,
     )
 
 
