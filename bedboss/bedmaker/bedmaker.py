@@ -70,13 +70,14 @@ def make_bigbed(
         pm_clean = False
     _LOGGER.info(f"Generating bigBed files for: {bed_path}")
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    bigbed_output_folder = os.path.join(output_path, BIGBED_FILE_NAME)
+    if not os.path.exists(bigbed_output_folder):
+        os.makedirs(bigbed_output_folder)
 
     bedfile_name = os.path.split(bed_path)[1]
     fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     # Produce bigBed (big_narrow_peak) file from peak file
-    big_bed_path = os.path.join(output_path, BIGBED_FILE_NAME, fileid + ".bigBed")
+    big_bed_path = os.path.join(bigbed_output_folder, fileid + ".bigBed")
     if not chrom_sizes:
         try:
             chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
@@ -191,10 +192,13 @@ def make_bed(
 
     # creat cmd to run that convert non bed file to bed file
     if input_type == InputTypes.BED.value:
-        # If bed file was provided:
-        bbclient = BBClient()
-        bed_id = bbclient.add_bed_to_cache(input_file)
-        output_path = bbclient.seek(bed_id)
+        try:
+            # If bed file was provided:
+            bbclient = BBClient()
+            bed_id = bbclient.add_bed_to_cache(input_file)
+            output_path = bbclient.seek(bed_id)
+        except FileNotFoundError as e:
+            raise BedBossException(f"File not found: {input_file} Error: {e}")
 
     else:
         _LOGGER.info(f"Converting {input_file} to BED format")
