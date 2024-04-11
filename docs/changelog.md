@@ -4,7 +4,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 # [0.2.1] - 2024-04-09
 ## Changed
-- small name tweaks
+- small naming tweaks
+
+## Added
+- added requirement check to cli
 
 
 # [0.2.0] - 2024-04-08
