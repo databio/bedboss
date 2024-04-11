@@ -405,7 +405,7 @@ def make_all(
 
     return BedMakerOutput(
         bed_file=output_bed,
-        bigbed_file=output_bigbed,
+        bigbed_file=os.path.abspath(output_bigbed),
         bed_digest=RegionSet(output_bed).identifier,
         bed_type=bed_type,
         bed_format=bed_format,
