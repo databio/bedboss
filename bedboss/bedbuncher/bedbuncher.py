@@ -158,7 +158,7 @@ def run_bedbuncher(
         description=description,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
-        plots=plots.model_dump(exclude_none=True, exclude_unset=True),
+        plots=plots.model_dump(exclude_none=True, exclude_unset=True) if plots else {},
         local_path=output_folder,
         no_fail=no_fail,
         overwrite=force_overwrite,

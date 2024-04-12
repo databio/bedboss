@@ -17,7 +17,7 @@ from bedboss.const import (
     OPEN_SIGNAL_URL,
 )
 from bedboss.utils import download_file
-from bedboss.exceptions import OpenSignalMatrixException
+from bedboss.exceptions import OpenSignalMatrixException, BedBossException
 
 
 _LOGGER = logging.getLogger("bedboss")
@@ -158,7 +158,11 @@ def bedstat(
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
 
-        pm.run(cmd=command, target=json_file_path)
+        try:
+            pm.run(cmd=command, target=json_file_path)
+        except Exception as e:
+            _LOGGER.error(f"Pipeline failed: {e}")
+            raise BedBossException(f"Pipeline failed: {e}")
 
     data = {}
     if os.path.exists(json_file_path):

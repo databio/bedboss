@@ -122,7 +122,10 @@ def run_pep(
         file_okay=True,
         readable=True,
     ),
-    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
+    create_bedset: bool = typer.Option(False, help="Create a new bedset"),
+    bedset_heavy: bool = typer.Option(
+        False, help="Run the heavy version of the bedbuncher pipeline"
+    ),
     bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -152,6 +155,7 @@ def run_pep(
         bedset_id=bedset_id,
         rfg_config=rfg_config,
         create_bedset=create_bedset,
+        bedset_heavy=bedset_heavy,
         check_qc=check_qc,
         ensdb=ensdb,
         just_db_commit=just_db_commit,

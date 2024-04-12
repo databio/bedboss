@@ -211,7 +211,8 @@ def insert_pep(
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
-    create_bedset: bool = True,
+    create_bedset: bool = False,
+    bedset_heavy: bool = False,
     check_qc: bool = True,
     ensdb: str = None,
     just_db_commit: bool = False,
@@ -233,6 +234,7 @@ def insert_pep(
     :param str bedset_name: bedset name
     :param str rfg_config: path to the genome config file (refgenie)
     :param bool create_bedset: whether to create bedset
+    :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
@@ -308,7 +310,7 @@ def insert_pep(
             name=bedset_name or pep.name,
             output_folder=output_folder,
             description=pep.description,
-            heavy=True,
+            heavy=bedset_heavy,
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             no_fail=no_fail,
