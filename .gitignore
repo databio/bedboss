@@ -140,3 +140,5 @@ out2023/*
 
 # test data
 test/test_data/*
+/scripts/bedclassifier_tuning/results/
+/scripts/bedclassifier_tuning/data/
