@@ -8,6 +8,7 @@ import pypiper
 from typing import Optional
 
 from bedboss.bedclassifier import get_bed_type
+from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -53,6 +54,7 @@ class BedClassifier:
         )
         # Use existing Pipeline Manager or Construct New one
         # Want to use Pipeline Manager to log work AND cleanup unzipped gz files.
+        self.pm = pm
         # if pm is not None:
         #     self.pm = pm
         #     self.pm_created = False
@@ -86,9 +88,16 @@ class BedClassifier:
                 with open(unzipped_input_file, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             self.input_file = unzipped_input_file
-            # self.pm.clean_add(unzipped_input_file)
+            if self.pm:
+                self.pm.clean_add(unzipped_input_file)
 
-        self.bed_type, self.bed_type_named = get_bed_type(self.input_file)
+        try:
+            self.bed_type, self.bed_type_named = get_bed_type(self.input_file)
+        except BedTypeException as e:
+            _LOGGER.warning(msg=f"FAILED {bed_digest}  Exception {e}")
+            self.bed_type = "unknown_bedtype"
+            self.bed_type_named = "unknown_bedtype"
+
         # return f"bed{bedtype}+{n}", bed_type_named
 
         if self.input_type is not None:
@@ -126,8 +135,8 @@ class BedClassifier:
 
         # self.pm.report_result(key="bedtype", value=self.bed_type)
 
-        # if self.pm_created is True:
-        #     self.pm.stop_pipeline()
+        if self.pm:
+            self.pm.stop_pipeline()
 
 
 def main():
@@ -142,6 +151,14 @@ def main():
     #
     # gse_list = gse_obj.get_gse_all()
     # gse_obj.generate_file("data/output.txt", gse_list=gse_list)
+
+    logs_dir = os.path.join(os.path.abspath("results"), "logs")
+    pm = pypiper.PipelineManager(
+        name="bedclassifier",
+        outfolder=logs_dir,
+        recover=True,
+    )
+    pm.start_pipeline()
 
     # for geo in gse_list:
     geofetcher_obj = Geofetcher(
@@ -185,12 +202,11 @@ def main():
             output_dir=os.path.abspath("results"),
             input_type=bed_type_from_geo,
             psm=psm,
+            pm=pm,
             gsm=geo_accession,
         )
 
-    # Get list of Bed Files and Download them
-
-    # Open Bed Files, Classify them, Report them.
+    pm.stop_pipeline()
 
 
 if __name__ == "__main__":

@@ -57,6 +57,16 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                     raise BedTypeException(
                         reason=f"Bed type could not be determined due to CSV parse error {e}"
                     )
+        except UnicodeDecodeError as e:
+            if no_fail:
+                _LOGGER.warning(
+                    f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
+                )
+                return "unknown_bedtype", "unknown_bedtype"
+            else:
+                raise BedTypeException(
+                    reason=f"Bed type could not be determined due to CSV parse error {e}"
+                )
 
     if df is not None:
         df = df.dropna(axis=1)
