@@ -38,12 +38,39 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
 
     max_rows = 5
     row_count = 0
+
     while row_count <= max_rows:
         try:
             df = pd.read_csv(bed, sep="\t", header=None, nrows=4, skiprows=row_count)
             if row_count > 0:
                 _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
             break
+        except UnicodeDecodeError as e:
+            try:
+                df = pd.read_csv(
+                    bed,
+                    sep="\t",
+                    header=None,
+                    nrows=4,
+                    skiprows=row_count,
+                    encoding="utf-16",
+                )
+                if row_count > 0:
+                    _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
+                break
+            except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
+                if row_count <= max_rows:
+                    row_count += 1
+                else:
+                    if no_fail:
+                        _LOGGER.warning(
+                            f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
+                        )
+                        return "unknown_bedtype", "unknown_bedtype"
+                    else:
+                        raise BedTypeException(
+                            reason=f"Bed type could not be determined due to CSV parse error {e}"
+                        )
         except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
             if row_count <= max_rows:
                 row_count += 1
@@ -57,16 +84,6 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                     raise BedTypeException(
                         reason=f"Bed type could not be determined due to CSV parse error {e}"
                     )
-        except UnicodeDecodeError as e:
-            if no_fail:
-                _LOGGER.warning(
-                    f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
-                )
-                return "unknown_bedtype", "unknown_bedtype"
-            else:
-                raise BedTypeException(
-                    reason=f"Bed type could not be determined due to CSV parse error {e}"
-                )
 
     if df is not None:
         df = df.dropna(axis=1)
