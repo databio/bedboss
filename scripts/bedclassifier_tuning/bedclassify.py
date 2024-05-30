@@ -19,10 +19,6 @@ class BedClassifier:
     """
     This will take the input of either a .bed or a .bed.gz and classify the type of BED file.
 
-    Types:
-    BED, BED2 - BED12, narrowPeak, broadPeak
-    UnknownType
-
     """
 
     def __init__(
@@ -52,29 +48,14 @@ class BedClassifier:
         self.output_dir = output_dir or os.path.join(
             os.path.dirname(self.abs_bed_path), "temp_processing"
         )
-        # Use existing Pipeline Manager or Construct New one
-        # Want to use Pipeline Manager to log work AND cleanup unzipped gz files.
+        # Use existing Pipeline Manager if it exists
         self.pm = pm
-        # if pm is not None:
-        #     self.pm = pm
-        #     self.pm_created = False
-        # else:
-        #     self.logs_dir = os.path.join(self.output_dir, "logs")
-        #     self.pm = pypiper.PipelineManager(
-        #         name="bedclassifier",
-        #         outfolder=self.logs_dir,
-        #         recover=True,
-        #         pipestat_sample_name=bed_digest,
-        #     )
-        #     self.pm.start_pipeline()
-        #     self.pm_created = True
 
         if psm is None:
             pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
             self.psm = pipestat.PipestatManager(
                 pephub_path=pephuburl, schema_path="bedclassifier_output_schema.yaml"
             )
-            # create piepstat manager
         else:
             self.psm = psm
 
@@ -97,8 +78,6 @@ class BedClassifier:
             _LOGGER.warning(msg=f"FAILED {bed_digest}  Exception {e}")
             self.bed_type = "unknown_bedtype"
             self.bed_type_named = "unknown_bedtype"
-
-        # return f"bed{bedtype}+{n}", bed_type_named
 
         if self.input_type is not None:
             if self.bed_type_named != self.input_type:
@@ -128,21 +107,21 @@ class BedClassifier:
 
         try:
             psm.report(record_identifier=bed_digest, values=all_values)
-            # psm.set_status(record_identifier=bed_digest, status_identifier="completed")
         except Exception as e:
             _LOGGER.warning(msg=f"FAILED {bed_digest}  Exception {e}")
-            # psm.set_status(record_identifier=bed_digest, status_identifier="failed")
-
-        # self.pm.report_result(key="bedtype", value=self.bed_type)
 
         if self.pm:
             self.pm.stop_pipeline()
 
 
 def main():
-    data_output_path = os.path.abspath("data")
+    # PEP for reporting all classification results
+    pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
 
-    from geofetch import Finder
+    # Place these external to pycharm folder!!!
+    data_output_path = os.path.abspath("data")
+    results_path = os.path.abspath("results")
+    logs_dir = os.path.join(results_path, "logs")
 
     gse_obj = Finder()
 
@@ -152,12 +131,12 @@ def main():
     # gse_list = gse_obj.get_gse_all()
     # gse_obj.generate_file("data/output.txt", gse_list=gse_list)
 
-    logs_dir = os.path.join(os.path.abspath("results"), "logs")
     pm = pypiper.PipelineManager(
         name="bedclassifier",
         outfolder=logs_dir,
         recover=True,
     )
+
     pm.start_pipeline()
 
     # for geo in gse_list:
@@ -165,8 +144,8 @@ def main():
         filter="\.(bed|narrowPeak|broadPeak)\.",
         filter_size="25MB",
         data_source="samples",
-        geo_folder=os.path.abspath("data"),
-        metadata_folder=os.path.abspath("data"),
+        geo_folder=data_output_path,
+        metadata_folder=data_output_path,
         processed=True,
         max_soft_size="20MB",
         discard_soft=True,
@@ -174,15 +153,11 @@ def main():
 
     # geofetcher_obj.fetch_all(input="data/output.txt", name="donald_test")
     geofetched = geofetcher_obj.get_projects(
-        input="data/output.txt", just_metadata=False
+        input=os.path.join(data_output_path, "output.txt"), just_metadata=False
     )
-    print(geofetched)
 
     samples = geofetched["output_samples"].samples
 
-    print(samples)
-
-    pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
     psm = pipestat.PipestatManager(
         pephub_path=pephuburl, schema_path="bedclassifier_output_schema.yaml"
     )
@@ -199,7 +174,7 @@ def main():
         bed = BedClassifier(
             input_file=bedfile,
             bed_digest=sample_name,  # TODO FIX THIS IT HOULD BE AN ACTUAL DIGEST
-            output_dir=os.path.abspath("results"),
+            output_dir=results_path,
             input_type=bed_type_from_geo,
             psm=psm,
             pm=pm,

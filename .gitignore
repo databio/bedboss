@@ -142,3 +142,12 @@ out2023/*
 test/test_data/*
 /scripts/bedclassifier_tuning/results/
 /scripts/bedclassifier_tuning/data/
+genome_config.yaml
+alias/hg19/fasta/default/hg19.chrom.sizes
+alias/hg19/fasta/default/hg19.fa
+alias/hg19/fasta/default/hg19.fa.fai
+data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c__ASDs.json
+data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/fasta/default/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c.chrom.sizes
+data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/fasta/default/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c.fa
+data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/fasta/default/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c.fa.fai
+test/Untitled.ipynb
