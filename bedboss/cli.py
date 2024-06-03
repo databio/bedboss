@@ -391,7 +391,6 @@ def make_bedset(
 def init_config(
     outfolder: str = typer.Option(..., help="Path to the output folder"),
 ):
-
     from bedboss.utils import save_example_bedbase_config
 
     save_example_bedbase_config(outfolder)
