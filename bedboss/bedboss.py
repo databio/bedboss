@@ -12,6 +12,7 @@ import pephubclient
 from pephubclient.helpers import is_registry_path, MessageHandler as m
 from bbconf.bbagent import BedBaseAgent
 from bbconf.models.base_models import FileModel
+from bbconf.const import DEFAULT_LICENSE
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import make_all
@@ -55,6 +56,7 @@ def run_all(
     genome: str,
     bedbase_config: Union[str, bbconf.BedBaseAgent],
     name: str = None,
+    license_id: str = DEFAULT_LICENSE,
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -78,6 +80,7 @@ def run_all(
     :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
     :param str name: name of the sample (human-readable name, e.g. "H3K27ac in liver") [optional]
     :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
+    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
     :param str rfg_config: file path to the genome config file [optional]
     :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
@@ -189,6 +192,7 @@ def run_all(
         plots=plots.model_dump(exclude_unset=True),
         files=files.model_dump(exclude_unset=True),
         classification=classification.model_dump(exclude_unset=True),
+        license_id=license_id,
         upload_qdrant=upload_qdrant,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
@@ -211,6 +215,7 @@ def insert_pep(
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
+    license_id: str = DEFAULT_LICENSE,
     create_bedset: bool = False,
     bedset_heavy: bool = False,
     check_qc: bool = True,
@@ -233,6 +238,8 @@ def insert_pep(
     :param str bedset_id: bedset identifier
     :param str bedset_name: bedset name
     :param str rfg_config: path to the genome config file (refgenie)
+    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
+        This license will be used for bedfiles where license is not provided in PEP file
     :param bool create_bedset: whether to create bedset
     :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
@@ -281,6 +288,7 @@ def insert_pep(
                 genome=pep_sample.genome,
                 name=pep_sample.sample_name,
                 bedbase_config=bbagent,
+                license_id=pep_sample.get("license_id") or license_id,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
                 open_signal_matrix=pep_sample.get("open_signal_matrix"),

@@ -2,6 +2,7 @@ import typer
 from typing import Union
 import os
 import pypiper
+from bbconf.const import DEFAULT_LICENSE
 
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
@@ -63,6 +64,11 @@ def run_all(
         file_okay=True,
         readable=True,
     ),
+    license_id: str = typer.Option(
+        DEFAULT_LICENSE,
+        help="License ID. If not provided for in PEP"
+        "for each bed file, this license will be used",
+    ),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -95,6 +101,7 @@ def run_all(
         outfolder=outfolder,
         genome=genome,
         bedbase_config=bedbase_config,
+        license_id=license_id,
         rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
@@ -138,6 +145,7 @@ def run_pep(
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
+    license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -160,6 +168,7 @@ def run_pep(
         ensdb=ensdb,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
+        license_id=license_id,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
