@@ -304,6 +304,12 @@ def insert_pep(
                 upload_pephub=upload_pephub,
                 pm=pm,
             )
+            if pep_sample.get("universe"):
+                bbagent.bed.add_universe(
+                    bed_id,
+                    bedset_id=pep_sample.get("universe_bedset"),
+                    construct_method=pep_sample.get("universe_method"),
+                )
             processed_ids.append(bed_id)
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")

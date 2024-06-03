@@ -84,6 +84,14 @@ def run_all(
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    # Universes
+    universe: bool = typer.Option(False, help="Create a universe"),
+    universe_method: str = typer.Option(
+        None, help="Method used to create the universe"
+    ),
+    universe_bedset: str = typer.Option(
+        None, help="Bedset used used to create the universe"
+    ),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -94,13 +102,16 @@ def run_all(
     Run the bedboss pipeline for a single bed file
     """
     from bedboss.bedboss import run_all as run_all_bedboss
+    from bbconf.bbagent import BedBaseAgent
 
-    run_all_bedboss(
+    agent = BedBaseAgent(bedbase_config)
+
+    bed_id = run_all_bedboss(
         input_file=input_file,
         input_type=input_type,
         outfolder=outfolder,
         genome=genome,
-        bedbase_config=bedbase_config,
+        bedbase_config=agent,
         license_id=license_id,
         rfg_config=rfg_config,
         narrowpeak=narrowpeak,
@@ -116,6 +127,13 @@ def run_all(
         upload_pephub=upload_pephub,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
+
+    if universe:
+        agent.bed.add_universe(
+            bedfile_id=bed_id,
+            bedset_id=universe_bedset,
+            construct_method=universe_method,
+        )
 
 
 @app.command(help="Run the all bedboss pipeline for a bed files in a PEP")
@@ -424,6 +442,31 @@ def delete_bedset(
     bbagent = BedBaseAgent(config)
     bbagent.bedset.delete(identifier)
     print(f"BedSet {identifier} deleted from the bedbase database")
+
+
+#
+# @app.command(help="Tokenize a bed file")
+# def tokenize_bed(
+#     bed_id: str = typer.Option(
+#         ...,
+#         help="Path to the bed file",
+#         exists=True,
+#         file_okay=True,
+#         readable=True,
+#     ),
+#     universe_id: str = typer.Option(
+#         None,
+#         help="Universe ID",
+#     ),
+#     bedbase_config: str = typer.Option(
+#         ...,
+#         help="Path to the bedbase config file",
+#         exists=True,
+#         file_okay=True,
+#         readable=True,
+#     ),
+#
+# )
 
 
 @app.command(help="check installed R packages")
