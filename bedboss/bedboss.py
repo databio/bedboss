@@ -69,6 +69,10 @@ def run_all(
     upload_qdrant: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
+    # Universes
+    universe: bool = False,
+    universe_method: str = None,
+    universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
 ) -> str:
     """
@@ -95,6 +99,10 @@ def run_all(
     :param bool upload_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
+
+    :param bool universe: whether to add the sample as the universe [Default: False]
+    :param str universe_method: method used to create the universe [Default: None]
+    :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
@@ -201,6 +209,13 @@ def run_all(
         nofail=True,
     )
 
+    if universe:
+        bbagent.bed.add_universe(
+            bedfile_id=bed_metadata.bed_digest,
+            bedset_id=universe_bedset,
+            construct_method=universe_method,
+        )
+
     if stop_pipeline:
         pm.stop_pipeline()
 
@@ -302,14 +317,12 @@ def insert_pep(
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
+                universe=pep_sample.get("universe"),
+                universe_method=pep_sample.get("universe_method"),
+                universe_bedset=pep_sample.get("universe_bedset"),
                 pm=pm,
             )
-            if pep_sample.get("universe"):
-                bbagent.bed.add_universe(
-                    bed_id,
-                    bedset_id=pep_sample.get("universe_bedset"),
-                    construct_method=pep_sample.get("universe_method"),
-                )
+
             processed_ids.append(bed_id)
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")

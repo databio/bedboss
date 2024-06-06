@@ -106,7 +106,7 @@ def run_all(
 
     agent = BedBaseAgent(bedbase_config)
 
-    bed_id = run_all_bedboss(
+    run_all_bedboss(
         input_file=input_file,
         input_type=input_type,
         outfolder=outfolder,
@@ -125,15 +125,11 @@ def run_all(
         upload_qdrant=upload_qdrant,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
+        universe=universe,
+        universe_method=universe_method,
+        universe_bedset=universe_bedset,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
-
-    if universe:
-        agent.bed.add_universe(
-            bedfile_id=bed_id,
-            bedset_id=universe_bedset,
-            construct_method=universe_method,
-        )
 
 
 @app.command(help="Run the all bedboss pipeline for a bed files in a PEP")
