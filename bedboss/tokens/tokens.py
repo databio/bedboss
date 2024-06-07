@@ -5,9 +5,6 @@ import os
 from bbconf.bbagent import BedBaseAgent
 from geniml.bbclient import BBClient
 from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
-from geniml.io import RegionSet
-
-# from genimtools.tokenizers import RegionSet
 
 from genimtools.tokenizers import TreeTokenizer
 
@@ -22,6 +19,7 @@ def tokenize_bed_file(
     cache_folder: Union[str, os.PathLike] = DEFAULT_CACHE_FOLDER,
     add_to_db: bool = False,
     config: str = None,
+    overwrite: bool = False,
 ) -> None:
     """
     Tokenize all bed file and add to the local cache
@@ -31,10 +29,11 @@ def tokenize_bed_file(
     :param cache_folder: path to the cache folder
     :param add_to_db: flag to add tokenized bed file to the bedbase database [config should be provided if True]
     :param config: path to the bedbase config file
+    :param overwrite: flag to overwrite the existing tokenized bed file
 
     :return: None
     """
-    bbc = BBClient(cache_folder=cache_folder)
+    bbc = BBClient(cache_folder=cache_folder or DEFAULT_CACHE_FOLDER)
 
     tokenizer = TreeTokenizer(bbc.seek(universe))
     rs = bbc.load_bed(bed)
@@ -54,7 +53,9 @@ def tokenize_bed_file(
             )
 
         bbagent = BedBaseAgent(config=config)
-        bbagent.bed.add_tokenized(bed_id=bed, universe_id=universe, token_vector=tokens)
+        bbagent.bed.add_tokenized(
+            bed_id=bed, universe_id=universe, token_vector=tokens, overwrite=overwrite
+        )
         _LOGGER.info(f"Tokenized bed file '{bed}' added to the database")
 
 

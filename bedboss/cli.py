@@ -440,29 +440,105 @@ def delete_bedset(
     print(f"BedSet {identifier} deleted from the bedbase database")
 
 
-#
-# @app.command(help="Tokenize a bed file")
-# def tokenize_bed(
-#     bed_id: str = typer.Option(
-#         ...,
-#         help="Path to the bed file",
-#         exists=True,
-#         file_okay=True,
-#         readable=True,
-#     ),
-#     universe_id: str = typer.Option(
-#         None,
-#         help="Universe ID",
-#     ),
-#     bedbase_config: str = typer.Option(
-#         ...,
-#         help="Path to the bedbase config file",
-#         exists=True,
-#         file_okay=True,
-#         readable=True,
-#     ),
-#
-# )
+@app.command(help="Tokenize a bedfile")
+def tokenize_bed(
+    bed_id: str = typer.Option(
+        ...,
+        help="Path to the bed file",
+    ),
+    universe_id: str = typer.Option(
+        ...,
+        help="Universe ID",
+    ),
+    cache_folder: str = typer.Option(
+        None,
+        help="Path to the cache folder",
+    ),
+    add_to_db: bool = typer.Option(
+        False,
+        help="Add the tokenized bed file to the bedbase database",
+    ),
+    bedbase_config: str = typer.Option(
+        None,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        help="Overwrite the existing tokenized bed file",
+    ),
+):
+    from bedboss.tokens.tokens import tokenize_bed_file
+
+    tokenize_bed_file(
+        universe=universe_id,
+        bed=bed_id,
+        cache_folder=cache_folder,
+        add_to_db=add_to_db,
+        config=bedbase_config,
+        overwrite=overwrite,
+    )
+
+
+@app.command(help="Delete tokenized bed file")
+def delete_tokenized(
+    universe_id: str = typer.Option(
+        ...,
+        help="Universe ID",
+    ),
+    bed_id: str = typer.Option(
+        ...,
+        help="Bed ID",
+    ),
+    config: str = typer.Option(
+        None,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bedboss.tokens.tokens import delete_tokenized
+
+    delete_tokenized(
+        universe=universe_id,
+        bed=bed_id,
+        config=config,
+    )
+
+
+@app.command(help="Convert bed file to universe")
+def convert_universe(
+    bed_id: str = typer.Option(
+        ...,
+        help="Path to the bed file",
+    ),
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    method: str = typer.Option(
+        None,
+        help="Method used to create the universe",
+    ),
+    bedset: str = typer.Option(
+        None,
+        help="Bedset used to create the universe",
+    ),
+):
+    from bbconf.bbagent import BedBaseAgent
+
+    bbagent = BedBaseAgent(config)
+    bbagent.bed.add_universe(
+        bedfile_id=bed_id,
+        bedset_id=bedset,
+        construct_method=method,
+    )
 
 
 @app.command(help="check installed R packages")
