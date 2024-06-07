@@ -541,7 +541,7 @@ def convert_universe(
     )
 
 
-@app.command(help="check installed R packages")
+@app.command(help="Check installed R packages")
 def check_requirements():
     from bedboss.bedboss import requirements_check
 
