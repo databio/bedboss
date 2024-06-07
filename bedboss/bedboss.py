@@ -12,6 +12,7 @@ import pephubclient
 from pephubclient.helpers import is_registry_path, MessageHandler as m
 from bbconf.bbagent import BedBaseAgent
 from bbconf.models.base_models import FileModel
+from bbconf.const import DEFAULT_LICENSE
 
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedmaker.bedmaker import make_all
@@ -55,6 +56,7 @@ def run_all(
     genome: str,
     bedbase_config: Union[str, bbconf.BedBaseAgent],
     name: str = None,
+    license_id: str = DEFAULT_LICENSE,
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
@@ -67,6 +69,10 @@ def run_all(
     upload_qdrant: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
+    # Universes
+    universe: bool = False,
+    universe_method: str = None,
+    universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
 ) -> str:
     """
@@ -78,6 +84,7 @@ def run_all(
     :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
     :param str name: name of the sample (human-readable name, e.g. "H3K27ac in liver") [optional]
     :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
+    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
     :param str rfg_config: file path to the genome config file [optional]
     :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
@@ -92,6 +99,10 @@ def run_all(
     :param bool upload_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
+
+    :param bool universe: whether to add the sample as the universe [Default: False]
+    :param str universe_method: method used to create the universe [Default: None]
+    :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
     :return str bed_digest: bed digest
     """
@@ -189,6 +200,7 @@ def run_all(
         plots=plots.model_dump(exclude_unset=True),
         files=files.model_dump(exclude_unset=True),
         classification=classification.model_dump(exclude_unset=True),
+        license_id=license_id,
         upload_qdrant=upload_qdrant,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
@@ -196,6 +208,13 @@ def run_all(
         overwrite=force_overwrite,
         nofail=True,
     )
+
+    if universe:
+        bbagent.bed.add_universe(
+            bedfile_id=bed_metadata.bed_digest,
+            bedset_id=universe_bedset,
+            construct_method=universe_method,
+        )
 
     if stop_pipeline:
         pm.stop_pipeline()
@@ -211,7 +230,9 @@ def insert_pep(
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
-    create_bedset: bool = True,
+    license_id: str = DEFAULT_LICENSE,
+    create_bedset: bool = False,
+    bedset_heavy: bool = False,
     check_qc: bool = True,
     ensdb: str = None,
     just_db_commit: bool = False,
@@ -232,7 +253,10 @@ def insert_pep(
     :param str bedset_id: bedset identifier
     :param str bedset_name: bedset name
     :param str rfg_config: path to the genome config file (refgenie)
+    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
+        This license will be used for bedfiles where license is not provided in PEP file
     :param bool create_bedset: whether to create bedset
+    :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
@@ -279,6 +303,7 @@ def insert_pep(
                 genome=pep_sample.genome,
                 name=pep_sample.sample_name,
                 bedbase_config=bbagent,
+                license_id=pep_sample.get("license_id") or license_id,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
                 open_signal_matrix=pep_sample.get("open_signal_matrix"),
@@ -292,8 +317,12 @@ def insert_pep(
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
+                universe=pep_sample.get("universe"),
+                universe_method=pep_sample.get("universe_method"),
+                universe_bedset=pep_sample.get("universe_bedset"),
                 pm=pm,
             )
+
             processed_ids.append(bed_id)
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
@@ -308,7 +337,7 @@ def insert_pep(
             name=bedset_name or pep.name,
             output_folder=output_folder,
             description=pep.description,
-            heavy=True,
+            heavy=bedset_heavy,
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             no_fail=no_fail,

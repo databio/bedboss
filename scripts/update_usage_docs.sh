@@ -2,7 +2,7 @@
 cp ../docs/templates/usage.template usage.template
 # bedboss --help > USAGE.temp 2>&1
 
-for cmd in "--help" "all --help" "insert --help" "make --help" "qc --help" "stat --help" "bunch --help" "index --help"  ; do
+for cmd in "--help" "check-requirements --help" "delete-bed --help" "delete-bedset --help" "init-config --help" "make-bed --help" "make-bedset --help" "make-bigbed --help" "reindex --help" "run-all --help" "run-pep --help" "run-qc --help" "run-stats --help"; do
 	echo $cmd
 	echo -e "## \`bedboss $cmd\`" > USAGE_header.temp
 	bedboss $cmd --help > USAGE.temp 2>&1

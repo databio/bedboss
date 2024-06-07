@@ -16,7 +16,6 @@ BED3 = f"{SIMPLE_EXAMPLES_DIR}/bed3.bed"
 
 
 class TestBedClassifier:
-
     def test_classification(
         self,
     ):
