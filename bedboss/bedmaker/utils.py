@@ -15,6 +15,7 @@ from refgenconf import (
 
 from bedboss.const import (
     REFGENIE_ENV_VAR,
+    DEFAULT_REFGENIE_PATH,
 )
 
 _LOGGER = logging.getLogger("bedboss")
@@ -66,7 +67,7 @@ def get_rgc(rfg_config: Union[str, Path] = None) -> RGC:
     """
     if not rfg_config:
         _LOGGER.info("Creating refgenie genome config file...")
-        cwd = os.getenv(REFGENIE_ENV_VAR, os.getcwd())
+        cwd = os.getenv(REFGENIE_ENV_VAR, DEFAULT_REFGENIE_PATH)
         rfg_config = os.path.join(cwd, "genome_config.yaml")
 
     # get path to the genome config; from arg or env var if arg not provided
