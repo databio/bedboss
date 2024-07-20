@@ -169,7 +169,7 @@ def make_bed(
     if input_type not in [member.value for member in InputTypes]:
         raise BedBossException(
             f"Invalid input type: {input_type}. "
-            f"Supported types: {', '.join(InputTypes.__members__.values())}"
+            f"Supported types: {', '.join([k.value for k in InputTypes])}"
         )
 
     if not pm:
