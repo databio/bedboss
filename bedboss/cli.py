@@ -1,24 +1,26 @@
 import typer
 from typing import Union
 import os
-import pypiper
-from bbconf.const import DEFAULT_LICENSE
-
-from bedboss.bedqc.bedqc import bedqc
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 from bedboss import __version__
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+
+# commented and made new const here, because it speeds up help function,
+# from bbconf.const import DEFAULT_LICENSE
+DEFAULT_LICENSE = "DUO:0000042"
 
 app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=False)
 
 
 def create_pm(
     outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
-) -> pypiper.PipelineManager:
+):
+    import pypiper
+
     pm_out_folder = outfolder
     pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
-    pm = pypiper.PipelineManager(
+    pm: pypiper.PipelineManager = pypiper.PipelineManager(
         name="bedboss-pipeline",
         outfolder=pm_out_folder,
         version=__version__,
@@ -303,6 +305,8 @@ def run_qc(
     recover: bool = typer.Option(True, help="Recover from previous run"),
     dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
+    from bedboss.bedqc.bedqc import bedqc
+
     bedqc(
         bedfile=bed_file,
         outfolder=outfolder,
