@@ -152,3 +152,5 @@ data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/fasta/default/baa91c8f6e27
 data/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c/fasta/default/baa91c8f6e2780cfd8fd1040ff37f51c379947a2a4820d6c.fa.fai
 test/Untitled.ipynb
 /scripts/ref_genome_validating/genome_folder/
+/scripts/ref_genome_validating/data/
+/scripts/ref_genome_validating/results/
