@@ -19,7 +19,7 @@ MAX_BEDFILES = 500
 RETRIEVE_BED_FILES = False  # get newer bedfiles?
 
 
-def main():
+def main(filter, species):
     """
     1. Pull ~ 1000 files for 3 different species for testing.
 
@@ -27,23 +27,27 @@ def main():
 
     """
 
-    print("Hello World")
-    # Make sure to have the IDE ignore these folders!!!!
+    if not filter or not species:
+        print("Must supply filter!")
 
-    data_output_path = os.path.abspath("data")
-    results_path = os.path.abspath("results")
-    logs_dir = os.path.join(results_path, "logs")
+    else:
+        print("Hello World")
+        # Make sure to have the IDE ignore these folders!!!!
 
-    # print(data_output_path,results_path, logs_dir)
+        data_output_path = os.path.abspath("data")
+        results_path = os.path.abspath("results")
+        logs_dir = os.path.join(results_path, "logs")
 
-    # Homo Sapiens
+        # print(data_output_path,results_path, logs_dir)
 
-    # filter = "\.(bed|narrowPeak|broadPeak)\."  #  regex filter
-    human_filter = "((bed) OR narrow peak) AND Homo sapiens[Organism]"
-    human_data_path = os.path.join(data_output_path, "homosapiens")
-    pull_1000_bedfiles(filter=human_filter, data_output_path=human_data_path)
+        # Homo Sapiens
 
-    pass
+        # filter = "\.(bed|narrowPeak|broadPeak)\."  #  regex filter
+        # human_filter = "((bed) OR narrow peak) AND Homo sapiens[Organism]"
+        # human_data_path = os.path.join(data_output_path, "homosapiens")
+        # pull_1000_bedfiles(filter=human_filter, data_output_path=human_data_path)
+        species_output_path = os.path.join(data_output_path, species)
+        pull_1000_bedfiles(filter=filter, data_output_path=species_output_path)
 
 
 def pull_1000_bedfiles(filter, data_output_path):
@@ -82,4 +86,8 @@ def pull_1000_bedfiles(filter, data_output_path):
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Pull 1000 bedfiles")
+    parser.add_argument("-f", "--filter", type=str, required=True, help="Filter string")
+    parser.add_argument("-s", "--species", type=str, required=True, help="species")
+    args = parser.parse_args()
+    main(args.filter, args.species)
