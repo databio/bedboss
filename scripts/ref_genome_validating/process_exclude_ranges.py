@@ -2,17 +2,20 @@
 # after building excluded ranges cache and an IGD database
 # look at overlaps amongst the bed files
 import argparse
+import gzip
 import os
+import shutil
 import subprocess
+import pipestat
 
 from geofetch import Geofetcher
 
 # Note many values are hardcoded for now
 # assumes user has built the igd database and has igd(c) installed locally
-IGD_DB_PATH = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/excludedranges/igd/EXCLUDED_RANGES_IGD_DATABASE.igd"
-IGD_TSV = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/excludedranges/igd/EXCLUDED_RANGES_IGD_DATABASE_index.tsv"
+IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
+IGD_TSV = "/home/drc/Downloads/igd_database_index.tsv"
 
-MAX_SAMPLES = 5
+MAX_SAMPLES = 500
 
 PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
 
@@ -35,30 +38,85 @@ def main(species):
         # command = f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {bedfilepath}"
         # returned_stdout = run_igd(command)
         # print(returned_stdout)
-        #
+        # #
         # data = parse_output(returned_stdout)
         #
         # print(data)
         # Note this assumes you've downloaed and cached species relevant bedfiles already and they are located in "bedfileslist.txt" under each species folder
 
+        psm = pipestat.PipestatManager(
+            pephub_path=PEP_URL,
+        )
         samples = get_samples(data_output_path=species_output_path)
 
         for sample in samples[:MAX_SAMPLES]:
+            all_values = {}
             if isinstance(sample.output_file_path, list):
                 bedfile = sample.output_file_path[0]
             else:
                 bedfile = sample.output_file_path
 
+            print(f"Processing bedfile {bedfile}")
             geo_accession = sample.sample_geo_accession
+            all_values.update({"geo_accession": geo_accession})
             sample_name = sample.sample_name
+            all_values.update({"sample_name": sample_name})
             bed_type_from_geo = sample.type.lower()
+            all_values.update({"bed_type_from_geo": bed_type_from_geo})
             reported_ref_genome = sample.ref_genome
+            all_values.update({"reported_ref_genome": reported_ref_genome})
             reported_genome_build = sample.genome_build
+            all_values.update({"reported_genome_build": reported_genome_build})
             reported_organism = sample.sample_organism_ch1
+            all_values.update({"reported_organism": reported_organism})
 
-            print(sample)
+            # process bedfile
+            file = unzip_bedfile(bedfile, results_path)
+
+            if file:
+                command = (
+                    f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {file}"
+                )
+                returned_stdout = run_igd(command)
+                # print(returned_stdout)
+                #
+                data = parse_output(returned_stdout)
+                for datum in data:
+                    if "file_name" in datum and "number_of_regions" in datum:
+                        all_values.update(
+                            {datum["file_name"]: datum["number_of_regions"]}
+                        )
+
+            else:
+                # just skip reporting if not the right file type
+                continue
+            # print("Reporting values")
+            psm.report(record_identifier=sample_name, values=all_values)
 
     pass
+
+
+def unzip_bedfile(input_file, output_dir):
+    abs_bed_path = os.path.abspath(input_file)
+    file_name = os.path.splitext(os.path.basename(abs_bed_path))[0]
+    file_extension = os.path.splitext(abs_bed_path)[-1]
+
+    # we need this only if unzipping a file
+    output_dir = output_dir or os.path.join(
+        os.path.dirname(abs_bed_path), "temp_processing"
+    )
+    if file_extension == ".gz":
+        unzipped_input_file = os.path.join(output_dir, file_name)
+
+        with gzip.open(input_file, "rb") as f_in:
+            with open(unzipped_input_file, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        input_file = unzipped_input_file
+        return input_file
+    elif file_extension == ".bed":
+        return input_file
+    else:
+        return None
 
 
 def parse_output(output_str):
@@ -76,7 +134,7 @@ def parse_output(output_str):
     for line in lines:
         if line.startswith("index"):
             continue  # Skip the header line
-        elif line == "Total: 8":
+        elif line.startswith("Total"):
             break  # Stop parsing after the "Total" line
         else:
             fields = line.split()
