@@ -15,7 +15,6 @@ class GenomeModel:
         genome_alias: Optional[str] = None,
         refgenomeconf: Optional[refgenconf.refgenconf.RefGenConf] = None,
     ):
-
         self.genome_alias = genome_alias
         self.rgc = refgenomeconf
         self.chrom_sizes = self.get_chrom_sizes()
@@ -25,7 +24,6 @@ class GenomeModel:
         pass
 
     def get_chrom_sizes(self):
-
         # read chromsizes file
 
         chrom_sizes_path = self.rgc.seek(
@@ -46,7 +44,6 @@ class GenomeModel:
         return chrom_sizes
 
     def get_excluded_ranges(self):
-
         # given an alias or digest, can we grab the excluded ranges files from BEDBASE?
 
         # return path or list of paths of IGD databases for this particular genome alias?

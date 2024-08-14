@@ -3,10 +3,18 @@
 # look at overlaps amongst the bed files
 import argparse
 import os
+import subprocess
+
 from geofetch import Geofetcher
 
+# Note many values are hardcoded for now
+# assumes user has built the igd database and has igd(c) installed locally
 IGD_DB_PATH = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/excludedranges/igd/EXCLUDED_RANGES_IGD_DATABASE.igd"
 IGD_TSV = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/excludedranges/igd/EXCLUDED_RANGES_IGD_DATABASE_index.tsv"
+
+MAX_SAMPLES = 5
+
+PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
 
 
 def main(species):
@@ -14,7 +22,7 @@ def main(species):
         print("Must supply species,e.g. mouse, homosapiens, rat, cow!")
 
     else:
-        print("Hello World")
+        # print("Hello World")
         # Make sure to have the IDE ignore these folders!!!!
 
         data_output_path = os.path.abspath("data")
@@ -23,10 +31,19 @@ def main(species):
 
         species_output_path = os.path.join(data_output_path, species)
 
+        # bedfilepath = '/home/drc/IGD_TEST_2/query_bed_file/igd_query_test.bed'
+        # command = f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {bedfilepath}"
+        # returned_stdout = run_igd(command)
+        # print(returned_stdout)
+        #
+        # data = parse_output(returned_stdout)
+        #
+        # print(data)
         # Note this assumes you've downloaed and cached species relevant bedfiles already and they are located in "bedfileslist.txt" under each species folder
+
         samples = get_samples(data_output_path=species_output_path)
 
-        for sample in samples:
+        for sample in samples[:MAX_SAMPLES]:
             if isinstance(sample.output_file_path, list):
                 bedfile = sample.output_file_path[0]
             else:
@@ -42,6 +59,45 @@ def main(species):
             print(sample)
 
     pass
+
+
+def parse_output(output_str):
+    """
+    Parses IGD output into a list of dicts
+    Args:
+      output_str: The output string from IGD
+
+    Returns:
+      A list of dictionaries, where each dictionary represents a record.
+    """
+
+    lines = output_str.splitlines()
+    data = []
+    for line in lines:
+        if line.startswith("index"):
+            continue  # Skip the header line
+        elif line == "Total: 8":
+            break  # Stop parsing after the "Total" line
+        else:
+            fields = line.split()
+            record = {
+                "index": int(fields[0]),
+                "number_of_regions": int(fields[1]),
+                "number_of_hits": int(fields[2]),
+                "file_name": fields[3],
+            }
+            data.append(record)
+    return data
+
+
+def run_igd(command):
+    """Run IGD, this is a temp workaround until Rust python bindings are finished."""
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if result.returncode == 0:
+        return result.stdout
+    else:
+        print(f"Error running command: {result.stderr}")
+        return None
 
 
 def get_samples(data_output_path):

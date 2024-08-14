@@ -15,7 +15,6 @@ class Validator:
     """
 
     def __init__(self, bedfiles, genome_models):
-
         # TODO ensure these are lists
         self.bedfiles = bedfiles
         self.genome_models = genome_models
