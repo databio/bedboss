@@ -1,6 +1,8 @@
 import copy
 
 import os
+
+import numpy as np
 import requests
 
 import pephubclient
@@ -57,6 +59,13 @@ def main():
             value = split_result[1]
             columns_translation.update({key: value.strip()})
 
+    # for col in df.columns:
+    #     if col in columns_translation:
+    #         print(columns_translation[col])
+    #         df = df.rename(columns={col,columns_translation[col]})
+
+    df = df.rename(columns=columns_translation)
+
     create_heatmap(df, columns_translation)
 
 
@@ -84,23 +93,45 @@ def create_heatmap(df, columns):
     """
     # Sort by 'reported organism'
     df = df.sort_values("reported_organism")
+
+    # Sort on specific species
+    df = df[
+        (df["reported_organism"] == "Homo sapiens")
+        | (df["reported_organism"] == "Mus musculus")
+        | (df["reported_organism"] == "Rattus norvegicus")
+    ]
     df = df.fillna(-1)
 
     # Select numeric columns
     # numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
-    desired_columns = list(columns.keys())
+    desired_columns = list(columns.values())
 
     processed_df = convert_and_fill(df, desired_columns)
 
-    cmap = mcolors.ListedColormap(
-        ["lightblue", "red", "green"]
-    )  # Adjust colors as needed
-    bounds = [-1, 0, 500]
+    # processed_df = processed_df.pivot_table(index='reported_organism', values=desired_columns)
+    processed_df.set_index(["reported_organism", processed_df.index], inplace=True)
+
+    # print(processed_df.head(n=1000))
+    #
+    # processed_df = processed_df.rename(columns=columns)
+
+    num_bins = 20
+
+    min_val = processed_df[desired_columns].min().min()
+    max_val = processed_df[desired_columns].max().max()
+    bounds = np.linspace(min_val, max_val, num_bins + 1)
+
+    # cmap = sns.color_palette("rocket_r", as_cmap=True)
+    colors = ["lightgray", *sns.color_palette("magma", num_bins)]  # Lightgray for -1
+    cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", colors)
+
     norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
     # Create the heatmap
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(processed_df[desired_columns], cmap=cmap, norm=norm, annot=False)
+    plt.figure(figsize=(40, 20))
+    plt.yticks(rotation=30, ha="right")
+
+    ax = sns.heatmap(processed_df[desired_columns], cmap=cmap, norm=norm, annot=False)
     plt.title("Heatmap of Numeric Columns by Reported Organism")
     plt.show()
 
