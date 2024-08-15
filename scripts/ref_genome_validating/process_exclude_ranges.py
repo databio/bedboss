@@ -47,51 +47,96 @@ def main(species):
         psm = pipestat.PipestatManager(
             pephub_path=PEP_URL,
         )
-        samples = get_samples(data_output_path=species_output_path)
 
-        for sample in samples[:MAX_SAMPLES]:
-            all_values = {}
-            if isinstance(sample.output_file_path, list):
-                bedfile = sample.output_file_path[0]
-            else:
-                bedfile = sample.output_file_path
+        bedfileslist = os.path.join(species_output_path, "bedfileslist.txt")
 
-            print(f"Processing bedfile {bedfile}")
-            geo_accession = sample.sample_geo_accession
-            all_values.update({"geo_accession": geo_accession})
-            sample_name = sample.sample_name
-            all_values.update({"sample_name": sample_name})
-            bed_type_from_geo = sample.type.lower()
-            all_values.update({"bed_type_from_geo": bed_type_from_geo})
-            reported_ref_genome = sample.ref_genome
-            all_values.update({"reported_ref_genome": reported_ref_genome})
-            reported_genome_build = sample.genome_build
-            all_values.update({"reported_genome_build": reported_genome_build})
-            reported_organism = sample.sample_organism_ch1
-            all_values.update({"reported_organism": reported_organism})
+        with open(bedfileslist, "r") as file:
+            lines = file.readlines()
+            lines = [
+                line.strip() for line in lines
+            ]  # Remove leading/trailing whitespace
 
-            # process bedfile
-            file = unzip_bedfile(bedfile, results_path)
-
-            if file:
-                command = (
-                    f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {file}"
+            for line in lines:
+                samples = get_samples(
+                    data_output_path=species_output_path, gse_number=line
                 )
-                returned_stdout = run_igd(command)
-                # print(returned_stdout)
-                #
-                data = parse_output(returned_stdout)
-                for datum in data:
-                    if "file_name" in datum and "number_of_regions" in datum:
+
+                if samples:
+                    for sample in samples[:MAX_SAMPLES]:
+                        all_values = {}
+                        if isinstance(sample.output_file_path, list):
+                            bedfile = sample.output_file_path[0]
+                        else:
+                            bedfile = sample.output_file_path
+
+                        print(f"Processing bedfile {bedfile}")
+
+                        gse = getattr(sample, "gse", None)
+                        all_values.update({"gse": gse})
+
+                        geo_accession = getattr(sample, "sample_geo_accession", None)
+                        all_values.update({"geo_accession": geo_accession})
+
+                        sample_name = getattr(sample, "sample_name", None)
+                        all_values.update({"sample_name": sample_name})
+
+                        bed_type_from_geo = getattr(sample, "type", None)
+                        if bed_type_from_geo:
+                            bed_type_from_geo = bed_type_from_geo.lower()
+                        all_values.update({"bed_type_from_geo": bed_type_from_geo})
+
+                        reported_ref_genome = getattr(sample, "ref_genome", None)
+                        all_values.update({"reported_ref_genome": reported_ref_genome})
+
+                        reported_genome_build = getattr(sample, "genome_build", None)
                         all_values.update(
-                            {datum["file_name"]: datum["number_of_regions"]}
+                            {"reported_genome_build": reported_genome_build}
                         )
 
-            else:
-                # just skip reporting if not the right file type
-                continue
-            # print("Reporting values")
-            psm.report(record_identifier=sample_name, values=all_values)
+                        reported_organism = getattr(
+                            sample, "sample_organism_ch1", None
+                        )  # sample_organism_ch1
+                        all_values.update({"reported_organism": reported_organism})
+
+                        reported_assembly = getattr(
+                            sample, "assembly", None
+                        )  # sample_organism_ch1
+                        all_values.update({"assembly": reported_organism})
+
+                        # process bedfile
+                        file = unzip_bedfile(bedfile, results_path)
+
+                        if file:
+                            command = f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {file}"
+                            returned_stdout = run_igd(command)
+                            # print(returned_stdout)
+                            #
+                            if returned_stdout:
+                                data = parse_output(returned_stdout)
+                                print("IGD Results: \n")
+                                print(returned_stdout)
+                                if data:
+                                    for datum in data:
+                                        if (
+                                            "file_name" in datum
+                                            and "number_of_regions" in datum
+                                        ):
+                                            all_values.update(
+                                                {
+                                                    datum["file_name"]: datum[
+                                                        "number_of_regions"
+                                                    ]
+                                                }
+                                            )
+                                else:
+                                    continue
+                            else:
+                                continue
+                        else:
+                            # just skip reporting if not the right file type
+                            continue
+                        # print("Reporting values")
+                        psm.report(record_identifier=sample_name, values=all_values)
 
     pass
 
@@ -129,23 +174,26 @@ def parse_output(output_str):
       A list of dictionaries, where each dictionary represents a record.
     """
 
-    lines = output_str.splitlines()
-    data = []
-    for line in lines:
-        if line.startswith("index"):
-            continue  # Skip the header line
-        elif line.startswith("Total"):
-            break  # Stop parsing after the "Total" line
-        else:
-            fields = line.split()
-            record = {
-                "index": int(fields[0]),
-                "number_of_regions": int(fields[1]),
-                "number_of_hits": int(fields[2]),
-                "file_name": fields[3],
-            }
-            data.append(record)
-    return data
+    try:
+        lines = output_str.splitlines()
+        data = []
+        for line in lines:
+            if line.startswith("index"):
+                continue  # Skip the header line
+            elif line.startswith("Total"):
+                break  # Stop parsing after the "Total" line
+            else:
+                fields = line.split()
+                record = {
+                    "index": int(fields[0]),
+                    "number_of_regions": int(fields[1]),
+                    "number_of_hits": int(fields[2]),
+                    "file_name": fields[3],
+                }
+                data.append(record)
+        return data
+    except Exception:
+        return None
 
 
 def run_igd(command):
@@ -158,7 +206,7 @@ def run_igd(command):
         return None
 
 
-def get_samples(data_output_path):
+def get_samples(data_output_path, gse_number):
     geofetcher_obj = Geofetcher(
         filter_size="25MB",
         data_source="samples",
@@ -169,13 +217,15 @@ def get_samples(data_output_path):
         discard_soft=True,
     )
 
-    geofetched = geofetcher_obj.get_projects(
-        input=os.path.join(data_output_path, "bedfileslist.txt"), just_metadata=True
-    )
+    geofetched = geofetcher_obj.get_projects(input=gse_number, just_metadata=True)
 
-    samples = geofetched["bedfileslist_samples"].samples
+    if geofetched:
+        if geofetched != {}:
+            key = gse_number + "_samples"
+            samples = geofetched[key].samples
+            return samples
 
-    return samples
+    return None
 
 
 def get_overlaps():
