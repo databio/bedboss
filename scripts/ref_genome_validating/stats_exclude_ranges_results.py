@@ -95,11 +95,17 @@ def create_heatmap(df, columns):
     df = df.sort_values("reported_organism")
 
     # Sort on specific species
+    # df = df[
+    #     (df["reported_organism"] == "Homo sapiens")
+    #     | (df["reported_organism"] == "Mus musculus")
+    #     | (df["reported_organism"] == "Rattus norvegicus")
+    # ]
+
     df = df[
         (df["reported_organism"] == "Homo sapiens")
         | (df["reported_organism"] == "Mus musculus")
-        | (df["reported_organism"] == "Rattus norvegicus")
     ]
+
     df = df.fillna(-1)
 
     # Select numeric columns
@@ -131,7 +137,13 @@ def create_heatmap(df, columns):
     plt.figure(figsize=(40, 20))
     plt.yticks(rotation=30, ha="right")
 
-    ax = sns.heatmap(processed_df[desired_columns], cmap=cmap, norm=norm, annot=False)
+    # ax = sns.heatmap(processed_df[desired_columns], cmap=cmap, norm=norm, annot=False)
+    ax = sns.heatmap(
+        processed_df[processed_df[desired_columns].mean().sort_values().index],
+        cmap=cmap,
+        norm=norm,
+        annot=False,
+    )
     plt.title("Heatmap of Numeric Columns by Reported Organism")
     plt.show()
 
