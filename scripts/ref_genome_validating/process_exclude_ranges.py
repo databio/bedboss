@@ -217,7 +217,10 @@ def get_samples(data_output_path, gse_number):
         discard_soft=True,
     )
 
-    geofetched = geofetcher_obj.get_projects(input=gse_number, just_metadata=True)
+    try:
+        geofetched = geofetcher_obj.get_projects(input=gse_number, just_metadata=False)
+    except Exception:
+        return None
 
     if geofetched:
         if geofetched != {}:

@@ -63,24 +63,24 @@ def pull_1000_bedfiles(filter, data_output_path):
     # Generate bed file list
     gse_obj = Finder(filters=filter, retmax=MAX_BEDFILES)
     gse_list = gse_obj.get_gse_by_date(
-        start_date="2020/08/01", end_date="2024/08/01"
+        start_date="2016/08/01", end_date="2020/08/01"
     )  #  1095 is three years worth
     text_file_path = os.path.join(data_output_path, "bedfileslist.txt")
     gse_obj.generate_file(text_file_path)
 
-    geofetcher_obj = Geofetcher(
-        filter_size="25MB",
-        data_source="samples",
-        geo_folder=data_output_path,
-        metadata_folder=data_output_path,
-        processed=True,
-        max_soft_size="20MB",
-        discard_soft=True,
-    )
-
-    geofetched = geofetcher_obj.get_projects(
-        input=os.path.join(data_output_path, "bedfileslist.txt"), just_metadata=False
-    )
+    # geofetcher_obj = Geofetcher(
+    #     filter_size="25MB",
+    #     data_source="samples",
+    #     geo_folder=data_output_path,
+    #     metadata_folder=data_output_path,
+    #     processed=True,
+    #     max_soft_size="20MB",
+    #     discard_soft=True,
+    # )
+    #
+    # geofetched = geofetcher_obj.get_projects(
+    #     input=os.path.join(data_output_path, "bedfileslist.txt"), just_metadata=False
+    # )
 
     print("done")
 
