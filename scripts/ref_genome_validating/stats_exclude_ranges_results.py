@@ -115,7 +115,7 @@ def create_heatmap(df, columns):
     #
     # processed_df = processed_df.rename(columns=columns)
 
-    num_bins = 20
+    num_bins = 255
 
     min_val = processed_df[desired_columns].min().min()
     max_val = processed_df[desired_columns].max().max()
