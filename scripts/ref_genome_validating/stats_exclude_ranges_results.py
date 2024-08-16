@@ -10,7 +10,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
+from scipy.cluster.hierarchy import linkage
 
 PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
 
@@ -68,6 +68,8 @@ def main():
 
     create_heatmap(df, columns_translation)
 
+    # create_clustermap(df, columns_translation)
+
 
 def convert_and_fill(df, columns):
     """Converts specified columns to numeric and fills nulls with -1.
@@ -87,12 +89,86 @@ def convert_and_fill(df, columns):
     return df_new
 
 
+def create_clustermap(df, columns):
+    """
+    Takes a dataframe, sorts and creates a clustermap
+    """
+    df = df.sort_values("reported_organism")
+
+    # Truncate names to make graph more readable
+    df.index = df.index.str[:20]
+
+    df = df[
+        (df["reported_organism"] == "Homo sapiens")
+        | (df["reported_organism"] == "Mus musculus")
+    ]
+
+    # Select numeric columns
+    desired_columns = list(columns.values())
+
+    processed_df = convert_and_fill(df, desired_columns)
+
+    # Create a MultiIndex
+    processed_df = processed_df.rename(columns={"sample_name": "sample_name_col"})
+    processed_df.set_index(["reported_organism", processed_df.index], inplace=True)
+
+    # Create a grouping column
+    df["group"] = df["reported_organism"].apply(
+        lambda x: "mouse" if "Mus musculus" in x else "human"
+    )
+
+    # Pivot the data
+    heatmap_data = df.pivot_table(
+        index=["reported_organism", "sample_name"],
+        columns="group",
+        values=desired_columns,
+    )
+
+    # Hierarchical clustering for rows and columns
+    row_linkage = linkage(heatmap_data.values, method="average")
+    col_linkage = linkage(heatmap_data.T.values, method="average")
+
+    num_bins = 255
+
+    min_val = processed_df[desired_columns].min().min()
+    max_val = processed_df[desired_columns].max().max()
+    bounds = np.linspace(min_val, max_val, num_bins + 1)
+
+    colors = ["lightgray", *sns.color_palette("magma", num_bins)]  # Lightgray for -1
+    cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", colors)
+
+    norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+    # Create the clustermap
+    plt.figure(figsize=(20, 12))
+    g = sns.clustermap(
+        heatmap_data,
+        cmap=cmap,
+        norm=norm,
+        method="complete",  # Complete linkage for the overall cluster
+        row_linkage=row_linkage,
+        col_linkage=col_linkage,
+        annot=False,
+    )
+
+    # Adjust tick labels (optional)
+    g.ax_heatmap.tick_params(axis="x", labelsize=7)
+    g.ax_heatmap.tick_params(axis="y", labelsize=7, rotation=45)
+
+    plt.title("Clustermap of Numeric Columns by Reported Organism")
+    plt.show()
+
+
 def create_heatmap(df, columns):
     """
     Takes a dataframe, sorts and creates a heatmap
     """
     # Sort by 'reported organism'
     df = df.sort_values("reported_organism")
+
+    # Truncate names to make graph more readable
+    df.index = df.index.str[:20]
+    # processed_df.columns = df.columns.str[:5]
 
     # Sort on specific species
     # df = df[
@@ -105,6 +181,10 @@ def create_heatmap(df, columns):
         (df["reported_organism"] == "Homo sapiens")
         | (df["reported_organism"] == "Mus musculus")
     ]
+
+    df["group"] = df["reported_organism"].apply(
+        lambda x: "mouse" if "Mus musculus" in x else "Homo sapiens"
+    )
 
     df = df.fillna(-1)
 
@@ -144,6 +224,8 @@ def create_heatmap(df, columns):
         norm=norm,
         annot=False,
     )
+    ax.tick_params(axis="x", labelsize=7)
+    ax.tick_params(axis="y", labelsize=7)
     plt.title("Heatmap of Numeric Columns by Reported Organism")
     plt.show()
 
