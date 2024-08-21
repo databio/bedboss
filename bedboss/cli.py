@@ -1,23 +1,26 @@
 import typer
 from typing import Union
 import os
-import pypiper
-
-from bedboss.bedqc.bedqc import bedqc
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 from bedboss import __version__
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+
+# commented and made new const here, because it speeds up help function,
+# from bbconf.const import DEFAULT_LICENSE
+DEFAULT_LICENSE = "DUO:0000042"
 
 app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=False)
 
 
 def create_pm(
     outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
-) -> pypiper.PipelineManager:
+):
+    import pypiper
+
     pm_out_folder = outfolder
     pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
-    pm = pypiper.PipelineManager(
+    pm: pypiper.PipelineManager = pypiper.PipelineManager(
         name="bedboss-pipeline",
         outfolder=pm_out_folder,
         version=__version__,
@@ -63,6 +66,11 @@ def run_all(
         file_okay=True,
         readable=True,
     ),
+    license_id: str = typer.Option(
+        DEFAULT_LICENSE,
+        help="License ID. If not provided for in PEP"
+        "for each bed file, this license will be used",
+    ),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -78,6 +86,14 @@ def run_all(
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    # Universes
+    universe: bool = typer.Option(False, help="Create a universe"),
+    universe_method: str = typer.Option(
+        None, help="Method used to create the universe"
+    ),
+    universe_bedset: str = typer.Option(
+        None, help="Bedset used used to create the universe"
+    ),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -88,13 +104,17 @@ def run_all(
     Run the bedboss pipeline for a single bed file
     """
     from bedboss.bedboss import run_all as run_all_bedboss
+    from bbconf.bbagent import BedBaseAgent
+
+    agent = BedBaseAgent(bedbase_config)
 
     run_all_bedboss(
         input_file=input_file,
         input_type=input_type,
         outfolder=outfolder,
         genome=genome,
-        bedbase_config=bedbase_config,
+        bedbase_config=agent,
+        license_id=license_id,
         rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
@@ -107,6 +127,9 @@ def run_all(
         upload_qdrant=upload_qdrant,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
+        universe=universe,
+        universe_method=universe_method,
+        universe_bedset=universe_bedset,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
@@ -122,7 +145,10 @@ def run_pep(
         file_okay=True,
         readable=True,
     ),
-    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
+    create_bedset: bool = typer.Option(False, help="Create a new bedset"),
+    bedset_heavy: bool = typer.Option(
+        False, help="Run the heavy version of the bedbuncher pipeline"
+    ),
     bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -135,6 +161,7 @@ def run_pep(
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
+    license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -152,10 +179,12 @@ def run_pep(
         bedset_id=bedset_id,
         rfg_config=rfg_config,
         create_bedset=create_bedset,
+        bedset_heavy=bedset_heavy,
         check_qc=check_qc,
         ensdb=ensdb,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
+        license_id=license_id,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
@@ -276,6 +305,8 @@ def run_qc(
     recover: bool = typer.Option(True, help="Recover from previous run"),
     dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
+    from bedboss.bedqc.bedqc import bedqc
+
     bedqc(
         bedfile=bed_file,
         outfolder=outfolder,
@@ -378,7 +409,6 @@ def make_bedset(
 def init_config(
     outfolder: str = typer.Option(..., help="Path to the output folder"),
 ):
-
     from bedboss.utils import save_example_bedbase_config
 
     save_example_bedbase_config(outfolder)
@@ -414,7 +444,108 @@ def delete_bedset(
     print(f"BedSet {identifier} deleted from the bedbase database")
 
 
-@app.command(help="check installed R packages")
+@app.command(help="Tokenize a bedfile")
+def tokenize_bed(
+    bed_id: str = typer.Option(
+        ...,
+        help="Path to the bed file",
+    ),
+    universe_id: str = typer.Option(
+        ...,
+        help="Universe ID",
+    ),
+    cache_folder: str = typer.Option(
+        None,
+        help="Path to the cache folder",
+    ),
+    add_to_db: bool = typer.Option(
+        False,
+        help="Add the tokenized bed file to the bedbase database",
+    ),
+    bedbase_config: str = typer.Option(
+        None,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    overwrite: bool = typer.Option(
+        False,
+        help="Overwrite the existing tokenized bed file",
+    ),
+):
+    from bedboss.tokens.tokens import tokenize_bed_file
+
+    tokenize_bed_file(
+        universe=universe_id,
+        bed=bed_id,
+        cache_folder=cache_folder,
+        add_to_db=add_to_db,
+        config=bedbase_config,
+        overwrite=overwrite,
+    )
+
+
+@app.command(help="Delete tokenized bed file")
+def delete_tokenized(
+    universe_id: str = typer.Option(
+        ...,
+        help="Universe ID",
+    ),
+    bed_id: str = typer.Option(
+        ...,
+        help="Bed ID",
+    ),
+    config: str = typer.Option(
+        None,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bedboss.tokens.tokens import delete_tokenized
+
+    delete_tokenized(
+        universe=universe_id,
+        bed=bed_id,
+        config=config,
+    )
+
+
+@app.command(help="Convert bed file to universe")
+def convert_universe(
+    bed_id: str = typer.Option(
+        ...,
+        help="Path to the bed file",
+    ),
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    method: str = typer.Option(
+        None,
+        help="Method used to create the universe",
+    ),
+    bedset: str = typer.Option(
+        None,
+        help="Bedset used to create the universe",
+    ),
+):
+    from bbconf.bbagent import BedBaseAgent
+
+    bbagent = BedBaseAgent(config)
+    bbagent.bed.add_universe(
+        bedfile_id=bed_id,
+        bedset_id=bedset,
+        construct_method=method,
+    )
+
+
+@app.command(help="Check installed R packages")
 def check_requirements():
     from bedboss.bedboss import requirements_check
 

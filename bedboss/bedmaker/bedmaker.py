@@ -169,7 +169,7 @@ def make_bed(
     if input_type not in [member.value for member in InputTypes]:
         raise BedBossException(
             f"Invalid input type: {input_type}. "
-            f"Supported types: {', '.join(InputTypes.__members__.values())}"
+            f"Supported types: {', '.join([k.value for k in InputTypes])}"
         )
 
     if not pm:
@@ -405,7 +405,7 @@ def make_all(
 
     return BedMakerOutput(
         bed_file=output_bed,
-        bigbed_file=output_bigbed,
+        bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
         bed_digest=RegionSet(output_bed).identifier,
         bed_type=bed_type,
         bed_format=bed_format,
