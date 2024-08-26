@@ -4,6 +4,7 @@ import os
 
 from bedboss import __version__
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+from bedboss.bbuploader.cli import app_bbuploader
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -561,3 +562,6 @@ def common(
     ),
 ):
     pass
+
+
+app.add_typer(app_bbuploader, name="geo")
