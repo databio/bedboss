@@ -1,22 +1,19 @@
-from geniml.io import BedSet
-from geniml.bbclient import BBClient
-
-import os
 import json
-import subprocess
-from typing import Union, List
-import peppy
-import pephubclient
-from pephubclient.helpers import is_registry_path
 import logging
+import os
+import subprocess
+from typing import List, Union
 
+import pephubclient
+import peppy
 from bbconf import BedBaseAgent
 from bbconf.models.base_models import FileModel
 from bbconf.models.bedset_models import BedSetPlots
-
+from geniml.bbclient import BBClient
+from geniml.io import BedSet
+from pephubclient.helpers import is_registry_path
 
 from bedboss.exceptions import BedBossException
-
 
 _LOGGER = logging.getLogger("bedboss")
 

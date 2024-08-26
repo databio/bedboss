@@ -1,8 +1,8 @@
 import logging
 from typing import Optional, Tuple
 
-import pandas.errors
 import pandas as pd
+import pandas.errors
 
 from bedboss.exceptions import BedTypeException
 

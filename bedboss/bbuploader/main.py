@@ -5,15 +5,10 @@ from typing import Literal, Union
 import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
-
 from pephubclient import PEPHubClient
 from pephubclient.models import SearchReturnModel
-
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
-from sqlalchemy import select, and_
-
-from bedboss.utils import standardize_genome_name
-from bedboss.exceptions import BedBossException
 
 from bedboss.bbuploader.constants import DEFAULT_GEO_TAG, PKG_NAME, STATUS
 from bedboss.bbuploader.models import (
@@ -21,9 +16,10 @@ from bedboss.bbuploader.models import (
     BedBossRequired,
     ProjectProcessingStatus,
 )
-
-from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.bedboss import run_all
+from bedboss.bedbuncher.bedbuncher import run_bedbuncher
+from bedboss.exceptions import BedBossException
+from bedboss.utils import standardize_genome_name
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)

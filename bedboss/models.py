@@ -1,16 +1,15 @@
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Dict
-
-from enum import Enum
-import pypiper
 import pathlib
-from typing import Union
+from enum import Enum
+from typing import Dict, Union
+
+import pypiper
 from bbconf.models.bed_models import (
-    BedStatsModel,
-    BedPlots,
-    BedFiles,
     BedClassification,
+    BedFiles,
+    BedPlots,
+    BedStatsModel,
 )
+from pydantic import BaseModel, ConfigDict, Field
 
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 

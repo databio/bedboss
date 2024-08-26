@@ -1,24 +1,23 @@
-from typing import Union
 import json
-import os
-import pypiper
 import logging
+import os
+from typing import Union
+
+import pypiper
 from geniml.io import RegionSet
 
-
 from bedboss.const import (
-    OUTPUT_FOLDER_NAME,
     BEDSTAT_OUTPUT,
-    OS_HG19,
-    OS_HG38,
-    OS_MM10,
     HOME_PATH,
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
+    OS_HG19,
+    OS_HG38,
+    OS_MM10,
+    OUTPUT_FOLDER_NAME,
 )
+from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
-from bedboss.exceptions import OpenSignalMatrixException, BedBossException
-
 
 _LOGGER = logging.getLogger("bedboss")
 

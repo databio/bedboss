@@ -1,10 +1,12 @@
-from bedboss.bedboss import main
-import bedboss
 import os
-import warnings
 import subprocess
+import warnings
+
 import pytest
 from bbconf import BedBaseConf
+
+import bedboss
+from bedboss.bedboss import main
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")

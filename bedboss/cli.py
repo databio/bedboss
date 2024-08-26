@@ -1,10 +1,11 @@
-import typer
-from typing import Union
 import os
+from typing import Union
+
+import typer
 
 from bedboss import __version__
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.bbuploader.cli import app_bbuploader
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -104,8 +105,9 @@ def run_all(
 
     Run the bedboss pipeline for a single bed file
     """
-    from bedboss.bedboss import run_all as run_all_bedboss
     from bbconf.bbagent import BedBaseAgent
+
+    from bedboss.bedboss import run_all as run_all_bedboss
 
     agent = BedBaseAgent(bedbase_config)
 

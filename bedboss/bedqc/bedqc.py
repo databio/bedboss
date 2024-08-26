@@ -1,12 +1,12 @@
 import logging
 import os
-import tempfile
-import pypiper
 import subprocess
+import tempfile
+
+import pypiper
 
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.exceptions import QualityException
-
 
 _LOGGER = logging.getLogger("bedboss")
 
