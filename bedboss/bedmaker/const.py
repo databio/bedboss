@@ -1,5 +1,3 @@
-from enum import Enum
-
 BED_TO_BIGBED_PROGRAM = "bedToBigBed"
 # BED_TO_BIGBED_PROGRAM = "/home/bnt4me/virginia/repos/bedbase_all/bedboss/bedToBigBed"
 BIGBED_TO_BED_PROGRAM = "bigBedToBed"

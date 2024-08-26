@@ -244,7 +244,7 @@ def make_bed(
     )
 
 
-@app.command(help=f"Create a bigbed files form a bed file")
+@app.command(help="Create a bigbed files form a bed file")
 def make_bigbed(
     bed_file: str = typer.Option(
         ...,

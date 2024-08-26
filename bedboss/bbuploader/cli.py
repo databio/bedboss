@@ -1,11 +1,11 @@
 import typer
+from bedboss._version import __version__
 
 app_bbuploader = typer.Typer(
     pretty_exceptions_short=False,
     pretty_exceptions_show_locals=False,
     help="Automatic BEDbase uploader for GEO data",
 )
-from bedboss._version import __version__
 
 
 @app_bbuploader.command(

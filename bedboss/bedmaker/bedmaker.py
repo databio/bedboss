@@ -78,7 +78,7 @@ def make_bigbed(
         try:
             chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
         except MissingGenomeError:
-            _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
+            _LOGGER.error("Could not find Genome in refgenie. Skipping...")
             chrom_sizes = ""
 
     temp = os.path.join(output_path, next(tempfile._get_candidate_names()))
@@ -391,7 +391,7 @@ def make_all(
             chrom_sizes=chrom_sizes,
             pm=pm,
         )
-    except BedBossException as e:
+    except BedBossException:
         output_bigbed = None
     if pm_clean:
         pm.stop_pipeline()

@@ -1,6 +1,6 @@
 import pathlib
 from enum import Enum
-from typing import Dict, Union
+from typing import Union
 
 import pypiper
 from bbconf.models.bed_models import (

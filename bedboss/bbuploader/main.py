@@ -96,7 +96,7 @@ def upload_all(
                     gse_status.status == STATUS.FAIL
                     or gse_status.status == STATUS.PROCESSING
                 ) and not run_failed:
-                    _LOGGER.info(f"Reprocessing of failed set to false, exiting.")
+                    _LOGGER.info("Reprocessing of failed set to false, exiting.")
                     continue
 
                 elif (
@@ -278,7 +278,7 @@ def upload_gse(
                 gse_status.status == STATUS.FAIL
                 or gse_status.status == STATUS.PROCESSING
             ) and not run_failed:
-                _LOGGER.info(f"Reprocessing of failed set to false, exiting.")
+                _LOGGER.info("Reprocessing of failed set to false, exiting.")
                 exit()
 
             elif (
