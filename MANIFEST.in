@@ -10,3 +10,4 @@ include bedboss/bedbuncher/*
 include bedboss/bedbuncher/tools/*
 include bedboss/bedclassifier/*
 include bedboss/tokens/*
+include bedboss/bbuploader/*

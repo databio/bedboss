@@ -1,4 +1,5 @@
 import logging
+
 from bbconf.bbagent import BedBaseAgent
 
 _LOGGER = logging.getLogger("bedboss")

@@ -1,22 +1,14 @@
-from yacman.exceptions import UndefinedAliasError
-from refgenconf import RefgenconfError
 import logging
-from typing import Union
-from pathlib import Path
-
 import os
-from refgenconf import (
-    RefGenConf as RGC,
-    select_genome_config,
-    RefgenconfError,
-    CFG_ENV_VARS,
-    CFG_FOLDER_KEY,
-)
+from pathlib import Path
+from typing import Union
 
-from bedboss.const import (
-    REFGENIE_ENV_VAR,
-    DEFAULT_REFGENIE_PATH,
-)
+from refgenconf import CFG_ENV_VARS, CFG_FOLDER_KEY
+from refgenconf import RefGenConf as RGC
+from refgenconf import RefgenconfError, select_genome_config
+from yacman.exceptions import UndefinedAliasError
+
+from bedboss.const import DEFAULT_REFGENIE_PATH, REFGENIE_ENV_VAR
 
 _LOGGER = logging.getLogger("bedboss")
 

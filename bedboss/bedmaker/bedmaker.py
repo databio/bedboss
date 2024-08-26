@@ -1,36 +1,32 @@
-from typing import Union
-import pypiper
-import os
-from pathlib import Path
-
-import logging
-import tempfile
 import gzip
+import logging
+import os
 import shutil
+import tempfile
+from pathlib import Path
+from typing import Union
 
-from refgenconf.exceptions import MissingGenomeError
-
-from ubiquerg import is_command_callable
-from geniml.io import RegionSet
-
+import pypiper
 from geniml.bbclient import BBClient
+from geniml.io import RegionSet
+from refgenconf.exceptions import MissingGenomeError
+from ubiquerg import is_command_callable
 
 from bedboss.bedclassifier import get_bed_type
-from bedboss.bedqc.bedqc import bedqc
-from bedboss.exceptions import RequirementsException, BedBossException
-
 from bedboss.bedmaker.const import (
-    BEDGRAPH_TEMPLATE,
-    BIGWIG_TEMPLATE,
-    BIGBED_TEMPLATE,
-    WIG_TEMPLATE,
     BED_TO_BIGBED_PROGRAM,
-    BIGBED_TO_BED_PROGRAM,
-    QC_FOLDER_NAME,
+    BEDGRAPH_TEMPLATE,
     BIGBED_FILE_NAME,
+    BIGBED_TEMPLATE,
+    BIGBED_TO_BED_PROGRAM,
+    BIGWIG_TEMPLATE,
+    QC_FOLDER_NAME,
+    WIG_TEMPLATE,
 )
+from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
-from bedboss.bedmaker.models import InputTypes, BedMakerOutput
+from bedboss.bedqc.bedqc import bedqc
+from bedboss.exceptions import BedBossException, RequirementsException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -82,7 +78,7 @@ def make_bigbed(
         try:
             chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
         except MissingGenomeError:
-            _LOGGER.error(f"Could not find Genome in refgenie. Skipping...")
+            _LOGGER.error("Could not find Genome in refgenie. Skipping...")
             chrom_sizes = ""
 
     temp = os.path.join(output_path, next(tempfile._get_candidate_names()))
@@ -395,7 +391,7 @@ def make_all(
             chrom_sizes=chrom_sizes,
             pm=pm,
         )
-    except BedBossException as e:
+    except BedBossException:
         output_bigbed = None
     if pm_clean:
         pm.stop_pipeline()

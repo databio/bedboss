@@ -1,8 +1,8 @@
 import os
+
 import pytest
 
 from bedboss.bedclassifier import get_bed_type
-
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")

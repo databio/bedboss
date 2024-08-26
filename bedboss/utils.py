@@ -1,9 +1,9 @@
-import os
 import logging
+import os
 import urllib.request
+
 import requests
 from pephubclient.files_manager import FilesManager
-
 
 _LOGGER = logging.getLogger("bedboss")
 

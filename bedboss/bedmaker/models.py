@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Union
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
+from typing import Union
+
+from pydantic import BaseModel, Field
 
 
 class InputTypes(Enum):
