@@ -556,6 +556,19 @@ def check_requirements():
     requirements_check()
 
 
+@app.command(help="Install R dependencies")
+def install_requirements():
+    import subprocess
+
+    r_path = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "installRdeps.R")
+    )
+
+    subprocess.run(
+        ["Rscript", r_path],
+    )
+
+
 @app.callback()
 def common(
     ctx: typer.Context,
