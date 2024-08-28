@@ -12,6 +12,7 @@
 .install_pkg("BiocManager")
 .install_pkg("optparse")
 .install_pkg("devtools")
+install.packages("https://cran.r-project.org/src/contrib/Archive/rjson/rjson_0.2.20.tar.gz", repos = NULL, type = "source")
 .install_pkg("GenomicRanges", bioc=TRUE)
 .install_pkg("GenomicFeatures", bioc=TRUE)
 .install_pkg("ensembldb", bioc=TRUE)
