@@ -124,7 +124,7 @@ def main(species):
                                             all_values.update(
                                                 {
                                                     datum["file_name"]: datum[
-                                                        "number_of_regions"
+                                                        "number_of_hits"
                                                     ]
                                                 }
                                             )
