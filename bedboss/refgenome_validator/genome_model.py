@@ -13,15 +13,15 @@ class GenomeModel:
     def __init__(
         self,
         genome_alias: Optional[str] = None,
+        common_aliases: Optional[List] = None,
         refgenomeconf: Optional[refgenconf.refgenconf.RefGenConf] = None,
+        exclude_ranges_names: Optional[List] = None,
     ):
         self.genome_alias = genome_alias
+        self.common_aliases = common_aliases  # What are the other names for the other this reference genomes
         self.rgc = refgenomeconf
         self.chrom_sizes = self.get_chrom_sizes()
-
-        self.excluded_ranges = self.get_excluded_ranges()
-
-        pass
+        self.excluded_ranges_names = exclude_ranges_names  # Which bed file digests from the excluded ranges are associated with this reference genome?
 
     def get_chrom_sizes(self):
         # read chromsizes file
@@ -43,9 +43,16 @@ class GenomeModel:
 
         return chrom_sizes
 
-    def get_excluded_ranges(self):
-        # given an alias or digest, can we grab the excluded ranges files from BEDBASE?
+    def filter_excluded_ranges(self, bed_list, igd_hit_matrix):
+        """
+        BED List of Excluded Ranges files associated with this reference genome.
+        These will be manually curated from the Excluded ranges BedSet on BedBase
 
-        # return path or list of paths of IGD databases for this particular genome alias?
+
+
+        """
+
+        # We will probably have a singular .igd database that we will simply compare the bed file to, so this should probably
+        # just filter results in a way to determine if there were any hits/not hits for this particular genome
 
         pass
