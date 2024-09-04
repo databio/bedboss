@@ -6,7 +6,7 @@ import refgenconf
 class GenomeModel:
     """
     Initialize genome model
-
+A class representing a reference genome. You feed it a reference genome. It retrieves chrom sizes (from refgenie), and then it provides some helper functions, intended for use with reference genome validation.
 
     """
 
