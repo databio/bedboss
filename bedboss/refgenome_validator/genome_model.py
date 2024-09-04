@@ -6,7 +6,8 @@ import refgenconf
 class GenomeModel:
     """
         Initialize genome model
-    A class representing a reference genome. You feed it a reference genome. It retrieves chrom sizes (from refgenie), and then it provides some helper functions, intended for use with reference genome validation.
+    A class representing a reference genome. You feed it a reference genome. It retrieves chrom sizes (from refgenie),
+    and then it provides some helper functions, intended for use with reference genome validation.
 
     """
 
@@ -23,8 +24,12 @@ class GenomeModel:
         self.chrom_sizes = self.get_chrom_sizes()
         self.excluded_ranges_names = exclude_ranges_names  # Which bed file digests from the excluded ranges are associated with this reference genome?
 
-    def get_chrom_sizes(self):
-        # read chromsizes file
+    def get_chrom_sizes(self) -> dict:
+        """
+        Obtains chrom sizes via refgenie (using a refgenconf.refgenconf.RefGenConf object)
+
+        :return dict: dictionary containing chroms(keys) and lengths(values)
+        """
 
         chrom_sizes_path = self.rgc.seek(
             genome_name=self.genome_alias,
@@ -32,7 +37,6 @@ class GenomeModel:
             tag_name="default",
             seek_key="chrom_sizes",
         )
-        print(chrom_sizes_path)
 
         chrom_sizes = {}
 

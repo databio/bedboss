@@ -41,7 +41,11 @@ def main():
 
     # validate each Bed file
 
-    validator = Validator(bedfiles=all_bed_files, genome_models=all_genome_models)
+    validator = Validator(genome_models=all_genome_models)
+
+    for bedfile in all_bed_files:
+        validator.determine_compatibility(bedfile)
+
     print(validator.compatibility_matrix.head())
 
     # output the results (dataframe -> csv?).
