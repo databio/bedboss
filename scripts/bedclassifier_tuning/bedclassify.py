@@ -2,10 +2,10 @@ import gzip
 import logging
 import os
 import shutil
+from typing import Optional
 
 import pipestat
 import pypiper
-from typing import Optional
 
 from bedboss.bedclassifier import get_bed_type
 from bedboss.exceptions import BedTypeException

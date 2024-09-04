@@ -1,4 +1,5 @@
 import sys
+
 import logmuse
 
 from bedboss.cli import app

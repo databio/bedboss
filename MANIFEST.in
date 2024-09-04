@@ -11,3 +11,5 @@ include bedboss/bedbuncher/tools/*
 include bedboss/bedclassifier/*
 include bedboss/refgenome_validator/*
 include bedboss/tokens/*
+include bedboss/tokens/*
+include bedboss/bbuploader/*

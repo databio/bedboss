@@ -1,12 +1,11 @@
 """ Package-level data """
 
-import logmuse
-import coloredlogs
 import logging
 
+import coloredlogs
+import logmuse
 
 from bedboss._version import __version__
-
 
 __package_name__ = "bedboss"
 

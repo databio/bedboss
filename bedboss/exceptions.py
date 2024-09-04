@@ -1,4 +1,4 @@
-class BedBossException(BaseException):
+class BedBossException(Exception):
     """Exception, when bedboss fails."""
 
     def __init__(self, reason: str = ""):
