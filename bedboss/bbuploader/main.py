@@ -77,7 +77,6 @@ def upload_all(
 
     count = 0
     for gse_pep in pep_annotation_list.results:
-
         with Session(bbagent.config.db_engine.engine) as session:
             _LOGGER.info(f"Processing: '{gse_pep.name}'")
 
@@ -376,7 +375,6 @@ def _upload_gse(
     gse_status_sa_model.number_of_files = len(project.samples)
     sa_session.commit()
     for project_sample in project.samples:
-
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
 
         required_metadata = process_pep_sample(
@@ -449,7 +447,6 @@ def _upload_gse(
         sa_session.commit()
 
     if create_bedset and uploaded_files:
-
         _LOGGER.info(f"Creating bedset for: '{gse}'")
         run_bedbuncher(
             bedbase_config=bedbase_config,
