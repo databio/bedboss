@@ -7,6 +7,7 @@ from bedboss.refgenome_validator import *
 
 
 def main():
+    # Simple script to testing that the Validator objects is working correctly.
     # Set up Ref Genie
     try:
         ref_genie_config_path = os.environ["REFGENIE"]
@@ -35,20 +36,29 @@ def main():
 
     # Get BED files
     # for now, hard code a couple
-    all_bed_files = [
-        "/home/drc/GITHUB/bedboss/bedboss/test/data/bed/hg19/correct/hg19_example1.bed"
-    ]
+
+    # all_bed_files = [
+    #     "/home/drc/GITHUB/bedboss/bedboss/test/data/bed/hg19/correct/hg19_example1.bed"
+    # ]
+    all_bed_files = []
+    for root, dirs, files in os.walk(
+        "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
+    ):
+        for file in files:
+            if file.endswith(".bed"):
+                # print(os.path.join(root, file))
+                all_bed_files.append(os.path.join(root, file))
 
     # validate each Bed file
-
     validator = Validator(genome_models=all_genome_models)
 
-    for bedfile in all_bed_files:
-        validator.determine_compatibility(bedfile)
+    for bedfile in all_bed_files[:20]:
+        compat_vector = validator.determine_compatibility(bedfile)
 
-    print(validator.compatibility_matrix.head())
+        # Debug printing
+        import pprint
 
-    # output the results (dataframe -> csv?).
+        pprint.pprint(compat_vector, depth=5)
 
     return
 

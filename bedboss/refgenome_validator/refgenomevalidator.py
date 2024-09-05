@@ -4,7 +4,7 @@ import pandas as pd
 import subprocess
 
 from bedboss.exceptions import ValidatorException
-from genome_model import GenomeModel
+from bedboss.refgenome_validator import GenomeModel
 
 try:
     IGD_LOCATION = os.environ["IGD_LOCATION"]
@@ -166,7 +166,7 @@ class Validator:
         return {"igd_stats": overlaps_dict}
 
     def determine_compatibility(
-        self, bedfile: str, ref_filter: list[str]
+        self, bedfile: str, ref_filter: Optional[list[str]] = None
     ) -> list[dict]:
         """
         Given a bedfile, determine compatibility with reference genomes (GenomeModels) created at Validator initialization.
@@ -180,7 +180,7 @@ class Validator:
         if ref_filter:
             # Before proceeding filter out unwanted reference genomes to assess
             for genome_model in self.genome_models:
-                if genome_model.alias in ref_filter:
+                if genome_model.genome_alias in ref_filter:
                     self.genome_models.remove(genome_model)
 
         bed_chrom_info = get_bed_chrom_info(
@@ -191,27 +191,31 @@ class Validator:
         final_compatibility_list = []
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.alias] = self.compare_chrom_names_lengths(
-                bed_chrom_info, genome_model.chrom_sizes
+            model_compat_stats[genome_model.genome_alias] = (
+                self.compare_chrom_names_lengths(
+                    bed_chrom_info, genome_model.chrom_sizes
+                )
             )
             # Third Layer is to run IGD but only if layer 1 and layer 2 have passed
             if (
-                model_compat_stats[genome_model.alias]["chrom_name_stats"][
+                model_compat_stats[genome_model.genome_alias]["chrom_name_stats"][
                     "passed_chrom_names"
                 ]
-                and not model_compat_stats[genome_model.alias]["chrom_length_stats"][
-                    "beyond_range"
-                ]
+                and not model_compat_stats[genome_model.genome_alias][
+                    "chrom_length_stats"
+                ]["beyond_range"]
             ):
-                model_compat_stats[genome_model.alias].update(
+                model_compat_stats[genome_model.genome_alias].update(
                     self.get_igd_overlaps(bedfile)
                 )
             else:
-                model_compat_stats[genome_model.alias].update({"igd_stats": None})
+                model_compat_stats[genome_model.genome_alias].update(
+                    {"igd_stats": None}
+                )
 
             # Once all stats are collected, process them and add compatibility rating
             processed_stats = self.process_compat_stats(
-                model_compat_stats[genome_model.alias], genome_model.alias
+                model_compat_stats[genome_model.genome_alias], genome_model.genome_alias
             )
 
             final_compatibility_list.append(processed_stats)
@@ -237,7 +241,8 @@ class Validator:
         # Set up processed stats dict, it will add an extra key to the original dict
         # with the final rating
         processed_stats = {}
-        processed_stats[genome_alias].update({})
+        processed_stats[genome_alias] = {}
+        processed_stats[genome_alias].update(compat_stats)
 
         # Currently will proceed with discrete buckets, however, we could do a point system in the future
         final_compat_rating = "Tier 1"
@@ -251,21 +256,12 @@ class Validator:
             # How many? If it's a lot, we should penalize and knock it down the tier list
             # use jaccard index to determine this
 
-            if (
-                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
-                >= 0.90
-            ):
+            if compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.90:
                 # Keep at current tier
                 pass
-            elif (
-                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
-                >= 0.60
-            ):
+            elif compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.60:
                 final_compat_rating = "Tier 3"
-            elif (
-                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
-                < 0.60
-            ):
+            elif compat_stats["chrom_name_stats"]["jaccard_index"] < 0.60:
                 final_compat_rating = "Tier 4"
         else:
             # if the bed file has passed the first layer, we should check the chrom lengths
