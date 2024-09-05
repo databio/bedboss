@@ -11,7 +11,7 @@ BEDFILE_DIRECTORY = (
     "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
 )
 
-PEP_URL = "donaldcampbelljr/refgenome_testing:default"
+PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
 
 
 def main():
@@ -72,14 +72,15 @@ def main():
 
         # Report to pephub
         rid = os.path.basename(bedfile)
+        all_vals = {}
         if compat_vector:
             for i in compat_vector:
                 if i is not None:
                     for key, values in i.items():
-                        psm.report(
-                            record_identifier=rid, values={key: values["Compatibility"]}
-                        )
-                        psm2.report(record_identifier=rid, values={key: values})
+                        all_vals.update({key: values})
+
+        psm.report(record_identifier=rid, values=all_vals)
+        psm2.report(record_identifier=rid, values=all_vals)
 
     return
 
