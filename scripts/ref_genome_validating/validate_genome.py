@@ -1,7 +1,8 @@
 # This script will be used to do standalone trials and tuning of the ref genome validator
-
+import json
 import os
 import refgenconf
+from pipestat import pipestat
 
 from bedboss.refgenome_validator import *
 
@@ -9,6 +10,8 @@ IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
 BEDFILE_DIRECTORY = (
     "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
 )
+
+PEP_URL = "donaldcampbelljr/refgenome_testing:default"
 
 
 def main():
@@ -55,13 +58,28 @@ def main():
     # validate each Bed file
     validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
 
+    # use pipestat to report to pephub and file backend
+    psm = pipestat.PipestatManager(
+        pephub_path=PEP_URL,
+    )
+    psm2 = pipestat.PipestatManager(results_file_path="stats_results/results.yaml")
+
     for bedfile in all_bed_files[:10]:
         compat_vector = validator.determine_compatibility(bedfile)
-
         # Debug printing
-        import pprint
+        # import pprint
+        # pprint.pprint(compat_vector, depth=5)
 
-        pprint.pprint(compat_vector, depth=5)
+        # Report to pephub
+        rid = os.path.basename(bedfile)
+        if compat_vector:
+            for i in compat_vector:
+                if i is not None:
+                    for key, values in i.items():
+                        psm.report(
+                            record_identifier=rid, values={key: values["Compatibility"]}
+                        )
+                        psm2.report(record_identifier=rid, values={key: values})
 
     return
 
