@@ -5,6 +5,11 @@ import refgenconf
 
 from bedboss.refgenome_validator import *
 
+IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
+BEDFILE_DIRECTORY = (
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
+)
+
 
 def main():
     # Simple script to testing that the Validator objects is working correctly.
@@ -41,18 +46,16 @@ def main():
     #     "/home/drc/GITHUB/bedboss/bedboss/test/data/bed/hg19/correct/hg19_example1.bed"
     # ]
     all_bed_files = []
-    for root, dirs, files in os.walk(
-        "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
-    ):
+    for root, dirs, files in os.walk(BEDFILE_DIRECTORY):
         for file in files:
             if file.endswith(".bed"):
                 # print(os.path.join(root, file))
                 all_bed_files.append(os.path.join(root, file))
 
     # validate each Bed file
-    validator = Validator(genome_models=all_genome_models)
+    validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
 
-    for bedfile in all_bed_files[:20]:
+    for bedfile in all_bed_files[:10]:
         compat_vector = validator.determine_compatibility(bedfile)
 
         # Debug printing

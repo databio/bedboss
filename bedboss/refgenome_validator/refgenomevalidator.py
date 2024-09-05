@@ -148,6 +148,8 @@ class Validator:
 
         returned_stdout = run_igd_command(igd_command)
 
+        # print(f"DEBUG: {returned_stdout}")
+
         if not returned_stdout:
             return {"igd_stats": None}
 
@@ -167,7 +169,7 @@ class Validator:
 
     def determine_compatibility(
         self, bedfile: str, ref_filter: Optional[list[str]] = None
-    ) -> list[dict]:
+    ) -> Union[list[dict], None]:
         """
         Given a bedfile, determine compatibility with reference genomes (GenomeModels) created at Validator initialization.
 
@@ -186,6 +188,10 @@ class Validator:
         bed_chrom_info = get_bed_chrom_info(
             bedfile
         )  # for this bed file determine the chromosome lengths
+
+        if not bed_chrom_info:
+            # if there is trouble parsing the bed file, return None
+            return None
 
         model_compat_stats = {}
         final_compatibility_list = []
@@ -327,7 +333,7 @@ class Validator:
 
 # ----------------------------
 # Helper Functions
-def get_bed_chrom_info(bed_file_path: str):
+def get_bed_chrom_info(bed_file_path: str) -> Union[dict, None]:
     """
     Given a path to a Bedfile. Attempt to open it and read it to find all of the chromosomes and the max length of each.
     """
@@ -336,12 +342,16 @@ def get_bed_chrom_info(bed_file_path: str):
 
     # Right now this assumes this is atleast a 3 column bedfile
     # This also assumes the bed file has been unzipped
-    df = pd.read_csv(bed_file_path, sep="\t", header=None)
 
-    max_end_for_each_chrom = df.groupby(0)[2].max()
+    try:
+        df = pd.read_csv(bed_file_path, sep="\t", header=None)
 
-    # return max end position for each chromosome
-    return max_end_for_each_chrom.to_dict()
+        max_end_for_each_chrom = df.groupby(0)[2].max()
+
+        # return max end position for each chromosome
+        return max_end_for_each_chrom.to_dict()
+    except Exception:
+        return None
 
 
 def run_igd_command(command):
