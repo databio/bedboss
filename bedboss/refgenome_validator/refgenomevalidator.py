@@ -82,6 +82,13 @@ class Validator:
             if key not in bed_chrom_sizes:
                 not_q_and_m += 1
 
+        # Calculate the Jaccard Index
+        bed_chrom_set = set(list(bed_chrom_sizes.keys()))
+        genome_chrom_set = set(list(genome_chrom_sizes.keys()))
+        chrom_intersection = bed_chrom_set.intersection(genome_chrom_set)
+        chrom_union = bed_chrom_set.union(chrom_intersection)
+        chrom_jaccard_index = len(chrom_intersection) / len(chrom_union)
+
         # What is our threshold for passing layer 1?
         if q_and_not_m > 1:
             passed_chrom_names = False
@@ -89,6 +96,7 @@ class Validator:
         name_stats["q_and_m"] = q_and_m
         name_stats["q_and_not_m"] = q_and_not_m
         name_stats["not_q_and_m"] = not_q_and_m
+        name_stats["jaccard_index"] = chrom_jaccard_index
         name_stats["passed_chrom_names"] = passed_chrom_names
 
         # Layer 2:  Check Lengths, but only if layer 1 is passing
@@ -106,6 +114,13 @@ class Validator:
 
             length_stats["beyond_range"] = chroms_beyond_range
             length_stats["num_of_chrm_beyond"] = num_of_chrm_beyond
+            length_stats["percentage_bed_chrm_beyond"] = num_of_chrm_beyond / len(
+                bed_chrom_set
+            )
+            length_stats["percentage_genome_chrm_beyond"] = num_of_chrm_beyond / len(
+                genome_chrom_set
+            )
+
         else:
             length_stats = {}
             length_stats["beyond_range"] = None
@@ -168,32 +183,150 @@ class Validator:
                 if genome_model.alias in ref_filter:
                     self.genome_models.remove(genome_model)
 
-        compatibility_list = []
-
         bed_chrom_info = get_bed_chrom_info(
             bedfile
         )  # for this bed file determine the chromosome lengths
 
+        model_compat_stats = {}
+        final_compatibility_list = []
         for genome_model in self.genome_models:
-            model_compat_info = {}
             # First and Second Layer of Compatibility
-            model_compat_info[genome_model.alias] = self.compare_chrom_names_lengths(
+            model_compat_stats[genome_model.alias] = self.compare_chrom_names_lengths(
                 bed_chrom_info, genome_model.chrom_sizes
             )
             # Third Layer is to run IGD but only if layer 1 and layer 2 have passed
             if (
-                model_compat_info[genome_model.alias]["chrom_name_stats"][
+                model_compat_stats[genome_model.alias]["chrom_name_stats"][
                     "passed_chrom_names"
                 ]
-                and not model_compat_info[genome_model.alias]["chrom_length_stats"][
+                and not model_compat_stats[genome_model.alias]["chrom_length_stats"][
                     "beyond_range"
                 ]
             ):
-                model_compat_info[genome_model.alias].update(
+                model_compat_stats[genome_model.alias].update(
                     self.get_igd_overlaps(bedfile)
                 )
             else:
-                model_compat_info[genome_model.alias].update({"igd_stats": None})
+                model_compat_stats[genome_model.alias].update({"igd_stats": None})
+
+            # Once all stats are collected, process them and add compatibility rating
+            processed_stats = self.process_compat_stats(
+                model_compat_stats[genome_model.alias], genome_model.alias
+            )
+
+            final_compatibility_list.append(processed_stats)
+
+        return final_compatibility_list
+
+    def process_compat_stats(self, compat_stats: dict, genome_alias: str) -> dict:
+        """
+        Given compatibility stats for a specific ref genome determine the compatibility tier
+
+        Tiers Definition ----
+
+        Tier1: Excellent compatibility
+        Tier2: Good compatibility, may need some processing
+        Tier3: Bed file needs processing to work (shifted hg38 to hg19?)
+        Tier4: Poor compatibility
+
+        :param dict compat_stats: dicitionary containing unprocessed compat stats
+        :param str genome_alias:
+        :return dict : containing both the original stats and the final compatibility rating for the reference genome
+        """
+
+        # Set up processed stats dict, it will add an extra key to the original dict
+        # with the final rating
+        processed_stats = {}
+        processed_stats[genome_alias].update({})
+
+        # Currently will proceed with discrete buckets, however, we could do a point system in the future
+        final_compat_rating = "Tier 1"
+
+        if not compat_stats["chrom_name_stats"]["passed_chrom_names"]:
+            # if the file did not pass the first layer, immediately bump it down a Tier
+            # this pass_chrom_names bool is determined via if q_and_not_m > 1
+
+            final_compat_rating = "Tier 2"
+            # Ok, there were some chroms in the bed file NOT in the chromsizes file
+            # How many? If it's a lot, we should penalize and knock it down the tier list
+            # use jaccard index to determine this
+
+            if (
+                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
+                >= 0.90
+            ):
+                # Keep at current tier
+                pass
+            elif (
+                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
+                >= 0.60
+            ):
+                final_compat_rating = "Tier 3"
+            elif (
+                compat_stats["chrom_name_stats"]["passed_chrom_names"]["jaccard_index"]
+                < 0.60
+            ):
+                final_compat_rating = "Tier 4"
+        else:
+            # if the bed file has passed the first layer, we should check the chrom lengths
+            # careful using jaccard index here for comparison as you could have a small bed file with one chr
+            # that is in both the ref and query but would still have a low jaccard index
+            if not compat_stats["chrom_length_stats"]["beyond_range"] == 0:
+                final_compat_rating = "Tier 2"
+                # Some chroms are beyond range. Determine how this should affect tier rating.
+                # We can assess  what percentage of the chroms in bed file extended beyond the chromsizes file
+                # and also compare to how many extended chroms are in the genome.
+                if (
+                    compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
+                    >= 0.50
+                ):
+                    if (
+                        compat_stats["chrom_length_stats"][
+                            "percentage_genome_chrm_beyond"
+                        ]
+                        >= 0.50
+                    ):
+                        final_compat_rating = "Tier 4"
+                    if (
+                        compat_stats["chrom_length_stats"][
+                            "percentage_genome_chrm_beyond"
+                        ]
+                        < 0.50
+                    ):
+                        final_compat_rating = "Tier 3"
+                if (
+                    compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
+                    <= 0.50
+                ):
+                    if (
+                        compat_stats["chrom_length_stats"][
+                            "percentage_genome_chrm_beyond"
+                        ]
+                        >= 0.30
+                    ):
+                        final_compat_rating = "Tier 4"
+                    if (
+                        compat_stats["chrom_length_stats"][
+                            "percentage_genome_chrm_beyond"
+                        ]
+                        < 0.30
+                    ):
+                        final_compat_rating = "Tier 3"
+
+            else:
+                # Keep at Tier 1 and run analysis igd_stats for layer 3 analysis
+                if compat_stats["igd_stats"] and compat_stats["igd_stats"] != {}:
+                    self.process_igd_stats(compat_stats["igd_stats"])
+
+        processed_stats[genome_alias].update({"Compatibility": final_compat_rating})
+
+        return processed_stats
+
+    def process_igd_stats(self, igd_stats: dict):
+        """
+        Placeholder to process IGD Stats and determine if it should impact tier rating
+        """
+        pass
 
 
 # ----------------------------
