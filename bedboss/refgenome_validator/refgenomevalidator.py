@@ -82,7 +82,7 @@ class Validator:
             if key not in bed_chrom_sizes:
                 not_q_and_m += 1
 
-        # Calculate the Jaccard Index
+        # Calculate the Jaccard Index for Chrom Names
         bed_chrom_set = set(list(bed_chrom_sizes.keys()))
         genome_chrom_set = set(list(genome_chrom_sizes.keys()))
         chrom_intersection = bed_chrom_set.intersection(genome_chrom_set)
@@ -92,6 +92,11 @@ class Validator:
         # What is our threshold for passing layer 1?
         if q_and_not_m > 1:
             passed_chrom_names = False
+
+        # Calculate sensitivity for chrom names
+        # defined as XS -> Extra Sequences
+        sensitivity = q_and_m / (q_and_m + q_and_not_m)
+        name_stats["XS"] = sensitivity
 
         name_stats["q_and_m"] = q_and_m
         name_stats["q_and_not_m"] = q_and_not_m
@@ -105,12 +110,22 @@ class Validator:
 
             chroms_beyond_range = False
             num_of_chrm_beyond = 0
+            num_chrm_within_bounds = 0
 
             for key in list(bed_chrom_sizes.keys()):
                 if key in genome_chrom_sizes:
                     if bed_chrom_sizes[key] > genome_chrom_sizes[key]:
                         num_of_chrm_beyond += 1
                         chroms_beyond_range = True
+                    else:
+                        num_chrm_within_bounds += 1
+
+            # Calculate sensitivity for chrom lengths
+            # defined as OOBR -> Out of Bounds Range
+            sensitivity = num_chrm_within_bounds / (
+                num_chrm_within_bounds + num_of_chrm_beyond
+            )
+            length_stats["OOBR"] = sensitivity
 
             length_stats["beyond_range"] = chroms_beyond_range
             length_stats["num_of_chrm_beyond"] = num_of_chrm_beyond
