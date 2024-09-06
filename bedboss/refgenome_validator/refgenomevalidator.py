@@ -249,10 +249,10 @@ class Validator:
 
         Tiers Definition ----
 
-        Tier1: Excellent compatibility
-        Tier2: Good compatibility, may need some processing
-        Tier3: Bed file needs processing to work (shifted hg38 to hg19?)
-        Tier4: Poor compatibility
+        Tier1: Excellent compatibility, 0 pts
+        Tier2: Good compatibility, may need some processing, 1-3 pts
+        Tier3: Bed file needs processing to work (shifted hg38 to hg19?), 3-6 pts
+        Tier4: Poor compatibility, 7-9 pts
 
         :param dict compat_stats: dicitionary containing unprocessed compat stats
         :param str genome_alias:
@@ -267,73 +267,103 @@ class Validator:
 
         # Currently will proceed with discrete buckets, however, we could do a point system in the future
         final_compat_rating = "Tier 1"
+        points_rating = 0  # we will add points increasing the level and then sort into various tiers at the end
 
-        if not compat_stats["chrom_name_stats"]["passed_chrom_names"]:
-            # if the file did not pass the first layer, immediately bump it down a Tier
-            # this pass_chrom_names bool is determined via if q_and_not_m > 1
+        # Check extra sequences sensitivity and assign points based on how sensitive the outcome is
+        # sensitivity = 1 is considered great and no points should be assigned
+        if compat_stats["chrom_name_stats"]["XS"] < 1:
+            points_rating += 3
+        if compat_stats["chrom_name_stats"]["XS"] < 0.7:
+            points_rating += 1
+        if compat_stats["chrom_name_stats"]["XS"] < 0.5:
+            points_rating += 1
+        if compat_stats["chrom_name_stats"]["XS"] < 0.3:
+            points_rating += 1
 
-            final_compat_rating = "Tier 2"
-            # Ok, there were some chroms in the bed file NOT in the chromsizes file
-            # How many? If it's a lot, we should penalize and knock it down the tier list
-            # use jaccard index to determine this
+        # Check OOBR and assign points based on sensitivity
+        if compat_stats["chrom_name_stats"]["OOBR"] < 1:
+            points_rating += 3
+        if compat_stats["chrom_name_stats"]["OOBR"] < 0.7:
+            points_rating += 1
+        if compat_stats["chrom_name_stats"]["OOBR"] < 0.5:
+            points_rating += 1
+        if compat_stats["chrom_name_stats"]["OOBR"] < 0.3:
+            points_rating += 1
 
-            if compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.90:
-                # Keep at current tier
-                pass
-            elif compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.60:
-                final_compat_rating = "Tier 3"
-            elif compat_stats["chrom_name_stats"]["jaccard_index"] < 0.60:
-                final_compat_rating = "Tier 4"
-        else:
-            # if the bed file has passed the first layer, we should check the chrom lengths
-            # careful using jaccard index here for comparison as you could have a small bed file with one chr
-            # that is in both the ref and query but would still have a low jaccard index
-            if not compat_stats["chrom_length_stats"]["beyond_range"] == 0:
-                final_compat_rating = "Tier 2"
-                # Some chroms are beyond range. Determine how this should affect tier rating.
-                # We can assess  what percentage of the chroms in bed file extended beyond the chromsizes file
-                # and also compare to how many extended chroms are in the genome.
-                if (
-                    compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
-                    >= 0.50
-                ):
-                    if (
-                        compat_stats["chrom_length_stats"][
-                            "percentage_genome_chrm_beyond"
-                        ]
-                        >= 0.50
-                    ):
-                        final_compat_rating = "Tier 4"
-                    if (
-                        compat_stats["chrom_length_stats"][
-                            "percentage_genome_chrm_beyond"
-                        ]
-                        < 0.50
-                    ):
-                        final_compat_rating = "Tier 3"
-                if (
-                    compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
-                    <= 0.50
-                ):
-                    if (
-                        compat_stats["chrom_length_stats"][
-                            "percentage_genome_chrm_beyond"
-                        ]
-                        >= 0.30
-                    ):
-                        final_compat_rating = "Tier 4"
-                    if (
-                        compat_stats["chrom_length_stats"][
-                            "percentage_genome_chrm_beyond"
-                        ]
-                        < 0.30
-                    ):
-                        final_compat_rating = "Tier 3"
+        # Check Sequence Fit - comparing lengths in queries vs lengths of queries in ref genome vs not in ref genome
+        # TODO
 
-            else:
-                # Keep at Tier 1 and run analysis igd_stats for layer 3 analysis
-                if compat_stats["igd_stats"] and compat_stats["igd_stats"] != {}:
-                    self.process_igd_stats(compat_stats["igd_stats"])
+        # if not compat_stats["chrom_name_stats"]["passed_chrom_names"]:
+        #     # if the file did not pass the first layer, immediately bump it down a Tier
+        #     # this pass_chrom_names bool is determined via if q_and_not_m > 1
+        #
+        #     final_compat_rating = "Tier 2"
+        #     # Ok, there were some chroms in the bed file NOT in the chromsizes file
+        #     # How many? If it's a lot, we should penalize and knock it down the tier list
+        #     # use jaccard index to determine this
+        #
+        #     if compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.90:
+        #         # Keep at current tier
+        #         pass
+        #     elif compat_stats["chrom_name_stats"]["jaccard_index"] >= 0.60:
+        #         final_compat_rating = "Tier 3"
+        #     elif compat_stats["chrom_name_stats"]["jaccard_index"] < 0.60:
+        #         final_compat_rating = "Tier 4"
+        # else:
+        #     # if the bed file has passed the first layer, we should check the chrom lengths
+        #     # careful using jaccard index here for comparison as you could have a small bed file with one chr
+        #     # that is in both the ref and query but would still have a low jaccard index
+        #     if not compat_stats["chrom_length_stats"]["beyond_range"] == 0:
+        #         final_compat_rating = "Tier 2"
+        #         # Some chroms are beyond range. Determine how this should affect tier rating.
+        #         # We can assess  what percentage of the chroms in bed file extended beyond the chromsizes file
+        #         # and also compare to how many extended chroms are in the genome.
+        #         if (
+        #             compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
+        #             >= 0.50
+        #         ):
+        #             if (
+        #                 compat_stats["chrom_length_stats"][
+        #                     "percentage_genome_chrm_beyond"
+        #                 ]
+        #                 >= 0.50
+        #             ):
+        #                 final_compat_rating = "Tier 4"
+        #             if (
+        #                 compat_stats["chrom_length_stats"][
+        #                     "percentage_genome_chrm_beyond"
+        #                 ]
+        #                 < 0.50
+        #             ):
+        #                 final_compat_rating = "Tier 3"
+        #         if (
+        #             compat_stats["chrom_length_stats"]["percentage_bed_chrm_beyond"]
+        #             <= 0.50
+        #         ):
+        #             if (
+        #                 compat_stats["chrom_length_stats"][
+        #                     "percentage_genome_chrm_beyond"
+        #                 ]
+        #                 >= 0.30
+        #             ):
+        #                 final_compat_rating = "Tier 4"
+        #             if (
+        #                 compat_stats["chrom_length_stats"][
+        #                     "percentage_genome_chrm_beyond"
+        #                 ]
+        #                 < 0.30
+        #             ):
+        #                 final_compat_rating = "Tier 3"
+        #
+        #     else:
+        #         # Keep at Tier 1 and run analysis igd_stats for layer 3 analysis
+        #         if compat_stats["igd_stats"] and compat_stats["igd_stats"] != {}:
+        #             self.process_igd_stats(compat_stats["igd_stats"])
+
+        # Run analysis igd_stats for layer 3 analysis
+        # WIP, currently only showing IGD stats for informational purposes
+        if compat_stats["igd_stats"] and compat_stats["igd_stats"] != {}:
+            self.process_igd_stats(compat_stats["igd_stats"])
 
         processed_stats[genome_alias].update({"Compatibility": final_compat_rating})
 
