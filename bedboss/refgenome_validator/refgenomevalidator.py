@@ -197,10 +197,10 @@ class Validator:
         final_compatibility_list = []
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[
-                genome_model.genome_alias
-            ] = self.compare_chrom_names_lengths(
-                bed_chrom_info, genome_model.chrom_sizes
+            model_compat_stats[genome_model.genome_alias] = (
+                self.compare_chrom_names_lengths(
+                    bed_chrom_info, genome_model.chrom_sizes
+                )
             )
             # Third Layer is to run IGD but only if layer 1 and layer 2 have passed
             if (
