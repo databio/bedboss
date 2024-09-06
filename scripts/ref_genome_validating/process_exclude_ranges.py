@@ -17,7 +17,8 @@ IGD_TSV = "/home/drc/Downloads/igd_database_index.tsv"
 
 MAX_SAMPLES = 500
 
-PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
+# PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
+PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
 
 
 def main(species):
@@ -216,6 +217,7 @@ def run_igd(command):
 
 def get_samples(data_output_path, gse_number):
     geofetcher_obj = Geofetcher(
+        filter="\.(bed)\.",
         filter_size="25MB",
         data_source="samples",
         geo_folder=data_output_path,

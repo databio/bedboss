@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from scipy.cluster.hierarchy import linkage
 
-PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
+# PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
+PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
+REGION_COUNTS_TSV = "/home/drc/Downloads/igd_database_index.tsv"
 
 
 def main():
@@ -59,16 +61,53 @@ def main():
             value = split_result[1]
             columns_translation.update({key: value.strip()})
 
-    # for col in df.columns:
-    #     if col in columns_translation:
-    #         print(columns_translation[col])
-    #         df = df.rename(columns={col,columns_translation[col]})
+    # Get Number of Regions from igd_tsv files, translate them to original file name
+    exclude_regions_counts = {}
+    df_regions = pd.read_csv(REGION_COUNTS_TSV, sep="\t")
+    df_regions["Number of Regions"] = (
+        df_regions["Number of Regions"].astype(str).str.strip()
+    )
+    temp_exclude_regions_counts = dict(
+        zip(df_regions["File"], df_regions["Number of Regions"])
+    )
+    for k, v in temp_exclude_regions_counts.items():
+        if k.strip() in columns_translation:
+            exclude_regions_counts.update(
+                {columns_translation[k.strip()]: temp_exclude_regions_counts[k]}
+            )
 
     df = df.rename(columns=columns_translation)
+
+    df = calculate_jaccard_index_within_df(df, exclude_regions_counts)
 
     create_heatmap(df, columns_translation)
 
     # create_clustermap(df, columns_translation)
+
+
+def calculate_jaccard_index_within_df(df, exclude_regions_counts):
+    # df = df.fillna(0)
+    list_of_columns = list(exclude_regions_counts.keys())
+
+    # path = "/home/drc/Downloads/test_1.csv"
+    # df.to_csv(path, index=False)
+    df = convert_and_fill(df, list_of_columns)
+    # path = "/home/drc/Downloads/test_2.csv"
+    # df.to_csv(path, index=False)
+
+    df["bed_region_count"] = pd.to_numeric(df["bed_region_count"])
+    # print(df.head)
+    for column in list_of_columns:
+        # Jaccard: number_hits/(regions_exc+regions_bed-number_hits)
+        # df[column] = pd.to_numeric(df[column])
+        # df[column] = eval(f"df['{column}'] / (df['bed_region_count'] + {exclude_regions_counts[column]} - df['{column}'])")
+        df[column] = df[column] / (
+            df["bed_region_count"] + int(exclude_regions_counts[column]) - df[column]
+        )
+    # print(df.head)
+    # path = "/home/drc/Downloads/test_3.csv"
+    # df.to_csv(path, index=False)
+    return df
 
 
 def convert_and_fill(df, columns):
@@ -85,7 +124,7 @@ def convert_and_fill(df, columns):
     df_new = df.copy()
     for col in columns:
         df_new[col] = pd.to_numeric(df[col], errors="coerce")
-        df_new[col].fillna(-1, inplace=True)
+        df_new[col].fillna(0, inplace=True)
     return df_new
 
 
@@ -186,13 +225,14 @@ def create_heatmap(df, columns):
         lambda x: "mouse" if "Mus musculus" in x else "Homo sapiens"
     )
 
-    df = df.fillna(-1)
+    # df = df.fillna(-1)
 
     # Select numeric columns
     # numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
     desired_columns = list(columns.values())
 
-    processed_df = convert_and_fill(df, desired_columns)
+    # processed_df = convert_and_fill(df, desired_columns)
+    processed_df = df
 
     # processed_df = processed_df.pivot_table(index='reported_organism', values=desired_columns)
     processed_df.set_index(["reported_organism", processed_df.index], inplace=True)
@@ -203,8 +243,10 @@ def create_heatmap(df, columns):
 
     num_bins = 255
 
-    min_val = processed_df[desired_columns].min().min()
-    max_val = processed_df[desired_columns].max().max()
+    # min_val = processed_df[desired_columns].min().min()
+    # max_val = processed_df[desired_columns].max().max()
+    min_val = 0
+    max_val = 1
     bounds = np.linspace(min_val, max_val, num_bins + 1)
 
     # cmap = sns.color_palette("rocket_r", as_cmap=True)
