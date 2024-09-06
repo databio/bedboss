@@ -71,6 +71,8 @@ def main(species):
 
                         print(f"Processing bedfile {bedfile}")
 
+                        all_values.update({"file_name": os.path.basename(bedfile)})
+
                         gse = getattr(sample, "gse", None)
                         all_values.update({"gse": gse})
 
@@ -107,6 +109,12 @@ def main(species):
                         file = unzip_bedfile(bedfile, results_path)
 
                         if file:
+                            # Count regions
+                            with open(file, "r") as f:
+                                region_count = len(f.readlines())
+
+                            all_values.update({"bed_region_count": region_count})
+
                             command = f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {file}"
                             returned_stdout = run_igd(command)
                             # print(returned_stdout)
@@ -119,7 +127,7 @@ def main(species):
                                     for datum in data:
                                         if (
                                             "file_name" in datum
-                                            and "number_of_regions" in datum
+                                            and "number_of_hits" in datum
                                         ):
                                             all_values.update(
                                                 {

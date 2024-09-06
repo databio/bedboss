@@ -162,7 +162,7 @@ class Validator:
         else:
             overlaps_dict = {}
             for datum in igd_overlap_data:
-                if "file_name" in datum and "number_of_regions" in datum:
+                if "file_name" in datum and "number_of_hits" in datum:
                     overlaps_dict.update({datum["file_name"]: datum["number_of_hits"]})
 
         return {"igd_stats": overlaps_dict}
