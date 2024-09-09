@@ -6,6 +6,9 @@ from pipestat import pipestat
 
 from bedboss.refgenome_validator import *
 
+# helper utils
+from process_exclude_ranges import unzip_bedfile, get_samples, MAX_SAMPLES
+
 try:
     IGD_DB_PATH = os.environ["IGD_DB_PATH"]
 except:
@@ -25,6 +28,10 @@ try:
 except:
     # if you wish to report results to pephub
     PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
+
+# Where to get Bedfiles?
+LOCAL = False
+GEOFETCH = True
 
 
 def main():
@@ -55,50 +62,110 @@ def main():
         new_genome_model = GenomeModel(genome_alias=reference_genome, refgenomeconf=rgc)
         all_genome_models.append(new_genome_model)
 
-    # Get BED files
-    # for now, hard code a couple
-
-    # all_bed_files = [
-    #     "/home/drc/GITHUB/bedboss/bedboss/test/data/bed/hg19/correct/hg19_example1.bed"
-    # ]
-    all_bed_files = []
-    for root, dirs, files in os.walk(BEDFILE_DIRECTORY):
-        for file in files:
-            if file.endswith(".bed"):
-                # print(os.path.join(root, file))
-                all_bed_files.append(os.path.join(root, file))
-
-    # validate each Bed file
+    # Create Validator Object
     validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
 
-    # use pipestat to report to pephub and file backend
-    psm = pipestat.PipestatManager(
-        pephub_path=PEP_URL,
-    )
-    psm2 = pipestat.PipestatManager(results_file_path="stats_results/results.yaml")
+    # Get BED files
+    # LOCAL
+    if LOCAL:
+        print("Obtaining Bed files locally")
+        all_bed_files = []
+        for root, dirs, files in os.walk(BEDFILE_DIRECTORY):
+            for file in files:
+                if file.endswith(".bed"):
+                    # print(os.path.join(root, file))
+                    all_bed_files.append(os.path.join(root, file))
 
-    for bedfile in all_bed_files[:10]:
-        compat_vector = validator.determine_compatibility(bedfile)
-        # Debug printing
-        # import pprint
-        # pprint.pprint(compat_vector, depth=5)
+        for bedfile in all_bed_files[:10]:
+            compat_vector = validator.determine_compatibility(bedfile)
+            rid = os.path.basename(bedfile)
+            all_vals = {}
+            if compat_vector:
+                for i in compat_vector:
+                    if i is not None:
+                        for key, values in i.items():
+                            all_vals.update({key: values})
 
-        # Report to pephub
-        rid = os.path.basename(bedfile)
-        all_vals = {}
-        if compat_vector:
-            for i in compat_vector:
-                if i is not None:
-                    for key, values in i.items():
-                        all_vals.update({key: values})
+            # use pipestat to report to pephub and file backend
+            psm = pipestat.PipestatManager(
+                pephub_path=PEP_URL,
+            )
+            psm2 = pipestat.PipestatManager(
+                results_file_path="stats_results/results.yaml"
+            )
 
-        # Report to file backend
-        psm2.report(record_identifier=rid, values=all_vals)
+            # Report to file backend
+            psm2.report(record_identifier=rid, values=all_vals)
 
-        # Convert to json string before reporting to pephub
-        for key, value in all_vals.items():
-            all_vals[key] = str(json.dumps(value))
-        psm.report(record_identifier=rid, values=all_vals)
+            # Convert to json string before reporting to pephub
+            for key, value in all_vals.items():
+                all_vals[key] = str(json.dumps(value))
+            psm.report(record_identifier=rid, values=all_vals)
+
+    # # USE GEOFETCH TO OBTAIN BED FILES
+    if GEOFETCH:
+        print("Obtaining Bed files using Geofetch")
+        species = "homosapiens"
+        data_output_path = os.path.abspath("data")
+        species_output_path = os.path.join(data_output_path, species)
+        bedfileslist = os.path.join(species_output_path, "bedfileslist.txt")
+        results_path = os.path.abspath("results")
+
+        with open(bedfileslist, "r") as file:
+            lines = file.readlines()
+            lines = [
+                line.strip() for line in lines
+            ]  # Remove leading/trailing whitespace
+
+            for line in lines:
+                samples = get_samples(
+                    data_output_path=species_output_path, gse_number=line
+                )
+
+                if samples:
+                    for sample in samples[:MAX_SAMPLES]:
+                        all_vals = {}
+                        if isinstance(sample.output_file_path, list):
+                            bedfile = sample.output_file_path[0]
+                        else:
+                            bedfile = sample.output_file_path
+                        reported_ref_genome = getattr(sample, "ref_genome", None)
+                        all_vals.update({"reported_ref_genome": reported_ref_genome})
+
+                        file = unzip_bedfile(bedfile, results_path)
+
+                        if file:
+                            compat_vector = validator.determine_compatibility(bedfile)
+                            rid = os.path.basename(bedfile)
+                            tier = {
+                                "tier_rating": {}
+                            }  # add this to a column to make comparisons easier for human eyes on pephub
+                            if compat_vector:
+                                for i in compat_vector:
+                                    if i is not None:
+                                        for key, values in i.items():
+                                            all_vals.update({key: values})
+                                            if "compatibility" in values:
+                                                tier["tier_rating"].update(
+                                                    {key: values["compatibility"]}
+                                                )
+                            all_vals.update(tier)
+
+                            # use pipestat to report to pephub and file backend
+                            psm = pipestat.PipestatManager(
+                                pephub_path=PEP_URL,
+                            )
+                            psm2 = pipestat.PipestatManager(
+                                results_file_path="stats_results/results.yaml"
+                            )
+
+                            # Report to file backend
+                            psm2.report(record_identifier=rid, values=all_vals)
+
+                            # Convert to json string before reporting to pephub
+                            for key, value in all_vals.items():
+                                all_vals[key] = str(json.dumps(value))
+                            psm.report(record_identifier=rid, values=all_vals)
 
     return
 

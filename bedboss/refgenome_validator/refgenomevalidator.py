@@ -361,7 +361,7 @@ class Validator:
             )
             final_compat_rating["tier_ranking"] = 4
 
-        processed_stats[genome_alias].update({"Compatibility": final_compat_rating})
+        processed_stats[genome_alias].update({"compatibility": final_compat_rating})
 
         return processed_stats
 
@@ -379,13 +379,11 @@ def get_bed_chrom_info(bed_file_path: str) -> Union[dict, None]:
     Given a path to a Bedfile. Attempt to open it and read it to find all of the chromosomes and the max length of each.
     """
 
-    # TODO In bed classifier we skip a few rows just in case there is header information there...
-
     # Right now this assumes this is atleast a 3 column bedfile
     # This also assumes the bed file has been unzipped
 
     try:
-        df = pd.read_csv(bed_file_path, sep="\t", header=None)
+        df = pd.read_csv(bed_file_path, sep="\t", header=None, skiprows=5)
 
         max_end_for_each_chrom = df.groupby(0)[2].max()
 
