@@ -46,22 +46,22 @@ class Validator:
         # this will be a list of dictionary info with length of genome_models
         self.compatibility_list = []
 
-    def compare_chrom_names_lengths(
+    def calculate_chrom_stats(
         self, bed_chrom_sizes: dict, genome_chrom_sizes: dict
     ) -> dict:
         """
         Given two dicts of chroms (key) and their sizes (values)
-        determine overlap
+        determine overlap and sequence fit
+
+        Calculates Stats associated with comparison of chrom names, chrom lengths, and sequence fits
 
         :param dict bed_chrom_sizes: dict of a bedfile's chrom size
         :param dict genome_chrom_sizes: dict of a GenomeModel's chrom sizes
 
         return dict: returns a dictionary with information on Query vs Model, e.g. chrom names QueryvsModel
         """
-        # TODO perhaps make these two separate functions though they would have the same inputs...
 
-        # Layer 1: Check names
-        # Define Three separate counts
+        # Layer 1: Check names and Determine XS (Extra Sequences) via Calculation of Recall/Sensitivity
         # Q = Query, M = Model
         name_stats = {}
         q_and_m = 0  # how many chrom names are in the query and the genome model?
@@ -73,11 +73,13 @@ class Validator:
         )
         passed_chrom_names = True  # does this bed file pass the first layer of testing?
 
+        query_keys_present = []  # These keys are used for seq fit calculation
         for key in list(bed_chrom_sizes.keys()):
             if key not in genome_chrom_sizes:
                 q_and_not_m += 1
             if key in genome_chrom_sizes:
                 q_and_m += 1
+                query_keys_present.append(key)
         for key in list(genome_chrom_sizes.keys()):
             if key not in bed_chrom_sizes:
                 not_q_and_m += 1
@@ -89,6 +91,10 @@ class Validator:
         chrom_union = bed_chrom_set.union(chrom_intersection)
         chrom_jaccard_index = len(chrom_intersection) / len(chrom_union)
 
+        # Alternative Method for Calculating Jaccard_index for binary classification
+        # JI = TP/(TP+FP+FN)
+        jaccard_binary = q_and_m / (q_and_m + not_q_and_m + q_and_not_m)
+
         # What is our threshold for passing layer 1?
         if q_and_not_m > 1:
             passed_chrom_names = False
@@ -96,12 +102,14 @@ class Validator:
         # Calculate sensitivity for chrom names
         # defined as XS -> Extra Sequences
         sensitivity = q_and_m / (q_and_m + q_and_not_m)
-        name_stats["XS"] = sensitivity
 
+        # Assign Stats
+        name_stats["XS"] = sensitivity
         name_stats["q_and_m"] = q_and_m
         name_stats["q_and_not_m"] = q_and_not_m
         name_stats["not_q_and_m"] = not_q_and_m
         name_stats["jaccard_index"] = chrom_jaccard_index
+        name_stats["jaccard_index_binary"] = jaccard_binary
         name_stats["passed_chrom_names"] = passed_chrom_names
 
         # Layer 2:  Check Lengths, but only if layer 1 is passing
@@ -120,7 +128,7 @@ class Validator:
                     else:
                         num_chrm_within_bounds += 1
 
-            # Calculate sensitivity for chrom lengths
+            # Calculate recall/sensitivity for chrom lengths
             # defined as OOBR -> Out of Bounds Range
             sensitivity = num_chrm_within_bounds / (
                 num_chrm_within_bounds + num_of_chrm_beyond
@@ -129,11 +137,13 @@ class Validator:
 
             length_stats["beyond_range"] = chroms_beyond_range
             length_stats["num_of_chrm_beyond"] = num_of_chrm_beyond
-            length_stats["percentage_bed_chrm_beyond"] = num_of_chrm_beyond / len(
-                bed_chrom_set
+
+            # Naive calculation, seq fit (below) may be better metric
+            length_stats["percentage_bed_chrm_beyond"] = (
+                100 * num_of_chrm_beyond / len(bed_chrom_set)
             )
-            length_stats["percentage_genome_chrm_beyond"] = num_of_chrm_beyond / len(
-                genome_chrom_set
+            length_stats["percentage_genome_chrm_beyond"] = (
+                100 * num_of_chrm_beyond / len(genome_chrom_set)
             )
 
         else:
@@ -141,7 +151,28 @@ class Validator:
             length_stats["beyond_range"] = None
             length_stats["num_of_chrm_beyond"] = None
 
-        return {"chrom_name_stats": name_stats, "chrom_length_stats": length_stats}
+        # Layer 3 Calculate Sequence Fit
+
+        if len(query_keys_present) > 0:
+            seq_fit_stats = {}
+            bed_sum = 0
+            ref_genome_sum = 0
+            for chr in query_keys_present:
+                bed_sum += int(genome_chrom_sizes[chr])
+            for chr in genome_chrom_sizes:
+                ref_genome_sum += int(genome_chrom_sizes[chr])
+
+            sequence_fit = bed_sum / ref_genome_sum
+            seq_fit_stats["sequence_fit"] = sequence_fit
+        else:
+            seq_fit_stats = {}
+            seq_fit_stats["sequence_fit"] = None
+
+        return {
+            "chrom_name_stats": name_stats,
+            "chrom_length_stats": length_stats,
+            "seq_fit_stats": seq_fit_stats,
+        }
 
     def get_igd_overlaps(self, bedfile: str) -> Union[dict[str, dict], dict[str, None]]:
         """
@@ -212,10 +243,8 @@ class Validator:
         final_compatibility_list = []
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.genome_alias] = (
-                self.compare_chrom_names_lengths(
-                    bed_chrom_info, genome_model.chrom_sizes
-                )
+            model_compat_stats[genome_model.genome_alias] = self.calculate_chrom_stats(
+                bed_chrom_info, genome_model.chrom_sizes
             )
             # Third Layer is to run IGD but only if layer 1 and layer 2 have passed
             if (
