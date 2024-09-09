@@ -92,8 +92,13 @@ def main():
                     for key, values in i.items():
                         all_vals.update({key: values})
 
-        psm.report(record_identifier=rid, values=all_vals)
+        # Report to file backend
         psm2.report(record_identifier=rid, values=all_vals)
+
+        # Convert to json string before reporting to pephub
+        for key, value in all_vals.items():
+            all_vals[key] = str(json.dumps(value))
+        psm.report(record_identifier=rid, values=all_vals)
 
     return
 
