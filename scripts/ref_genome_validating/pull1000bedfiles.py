@@ -1,16 +1,8 @@
-import gzip
 import argparse
 import logging
 import os
-import shutil
 
-import pipestat
-import pypiper
-from typing import Optional
-
-from bedboss.bedclassifier import get_bed_type
-from bedboss.exceptions import BedTypeException
-from geofetch import Finder, Geofetcher
+from geofetch import Finder
 
 _LOGGER = logging.getLogger("bedboss")
 

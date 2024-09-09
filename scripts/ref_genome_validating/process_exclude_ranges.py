@@ -10,15 +10,29 @@ import pipestat
 
 from geofetch import Geofetcher
 
-# Note many values are hardcoded for now
 # assumes user has built the igd database and has igd(c) installed locally
-IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
-IGD_TSV = "/home/drc/Downloads/igd_database_index.tsv"
-
+# IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
+# IGD_TSV = "/home/drc/Downloads/igd_database_index.tsv"
+# PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
+# PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
 MAX_SAMPLES = 500
 
-# PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
-PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
+try:
+    IGD_DB_PATH = os.environ["IGD_DB_PATH"]
+except:
+    IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
+
+try:
+    IGD_TSV = os.environ["IGD_TSV"]
+except:
+    # region counts as created by igd creation
+    IGD_TSV = "/home/drc/Downloads/igd_database_index.tsv"
+
+try:
+    PEP_URL = os.environ["PEP_URL"]
+except:
+    # pep url
+    PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
 
 
 def main(species):
@@ -26,24 +40,15 @@ def main(species):
         print("Must supply species,e.g. mouse, homosapiens, rat, cow!")
 
     else:
-        # print("Hello World")
-        # Make sure to have the IDE ignore these folders!!!!
 
+        # Make sure to have the IDE ignore these folders!!!!
         data_output_path = os.path.abspath("data")
         results_path = os.path.abspath("results")
         logs_dir = os.path.join(results_path, "logs")
 
         species_output_path = os.path.join(data_output_path, species)
 
-        # bedfilepath = '/home/drc/IGD_TEST_2/query_bed_file/igd_query_test.bed'
-        # command = f"/home/drc/GITHUB/igd/IGD/bin/igd search {IGD_DB_PATH} -q {bedfilepath}"
-        # returned_stdout = run_igd(command)
-        # print(returned_stdout)
-        # #
-        # data = parse_output(returned_stdout)
-        #
-        # print(data)
-        # Note this assumes you've downloaed and cached species relevant bedfiles already and they are located in "bedfileslist.txt" under each species folder
+        # Note this assumes you've downloaed and cached species relevant gse already and they are located in "bedfileslist.txt" under each species folder
 
         psm = pipestat.PipestatManager(
             pephub_path=PEP_URL,

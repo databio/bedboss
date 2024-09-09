@@ -13,8 +13,19 @@ import matplotlib.colors as mcolors
 from scipy.cluster.hierarchy import linkage
 
 # PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"
-PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
-REGION_COUNTS_TSV = "/home/drc/Downloads/igd_database_index.tsv"
+# PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
+# REGION_COUNTS_TSV = "/home/drc/Downloads/igd_database_index.tsv"
+try:
+    PEP_URL = os.environ["PEP_URL"]
+except:
+    # pep url
+    PEP_URL = "donaldcampbelljr/excluded_ranges_species_exp2:default"
+
+try:
+    REGION_COUNTS_TSV = os.environ["REGION_COUNTS_TSV"]
+except:
+    # region counts as created by igd creation
+    REGION_COUNTS_TSV = "/home/drc/Downloads/igd_database_index.tsv"
 
 
 def main():
@@ -24,11 +35,7 @@ def main():
 
     peppyproject = project.load_project(project_registry_path=PEP_URL)
 
-    # print(peppyproject)
-
     df = copy.deepcopy(peppyproject.sample_table)
-
-    # print(df.columns)
 
     columns_translation = {}  # which bed file is from which genome?
     filename = os.path.join(results_path, "columns_translation.txt")

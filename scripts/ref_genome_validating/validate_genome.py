@@ -6,12 +6,25 @@ from pipestat import pipestat
 
 from bedboss.refgenome_validator import *
 
-IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
-BEDFILE_DIRECTORY = (
-    "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
-)
+try:
+    IGD_DB_PATH = os.environ["IGD_DB_PATH"]
+except:
+    # Local IGD file
+    IGD_DB_PATH = "/home/drc/Downloads/igd_database.igd"
 
-PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
+try:
+    BEDFILE_DIRECTORY = os.environ["BEDFILE_DIRECTORY"]
+except:
+    # where bedfiles for testing live (unzipped!)
+    BEDFILE_DIRECTORY = (
+        "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
+    )
+
+try:
+    PEP_URL = os.environ["PEP_URL"]
+except:
+    # if you wish to report results to pephub
+    PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
 
 
 def main():
