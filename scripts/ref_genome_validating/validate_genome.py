@@ -32,6 +32,7 @@ except:
 # Where to get Bedfiles?
 LOCAL = False
 GEOFETCH = True
+SPECIES = "homosapiens"
 
 
 def main():
@@ -48,6 +49,7 @@ def main():
     rgc = refgenconf.RefGenConf(filepath=ref_genie_config_path)
     rgc.pull(genome="hg38", asset="fasta", tag="default", force=False)
     rgc.pull(genome="hg19", asset="fasta", tag="default", force=False)
+    rgc.pull(genome="mm10", asset="fasta", tag="default", force=False)
 
     genome_list = rgc.list()
 
@@ -105,9 +107,8 @@ def main():
     # # USE GEOFETCH TO OBTAIN BED FILES
     if GEOFETCH:
         print("Obtaining Bed files using Geofetch")
-        species = "homosapiens"
         data_output_path = os.path.abspath("data")
-        species_output_path = os.path.join(data_output_path, species)
+        species_output_path = os.path.join(data_output_path, SPECIES)
         bedfileslist = os.path.join(species_output_path, "bedfileslist.txt")
         results_path = os.path.abspath("results")
 
