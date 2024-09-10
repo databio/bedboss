@@ -25,12 +25,12 @@ def main():
 
     # reported_ref_genome column should have one of these values
     human_keys = [
-        " GRCh38",
-        " hg38",
-        " hg19",
-        " GRCh38/hg38",
-        " grch38",
-        " grch38/hg38",
+        "GRCh38",
+        "hg38",
+        "hg19",
+        "GRCh38/hg38",
+        "grch38",
+        "grch38/hg38",
     ]
     mouse_keys = [" mm10"]
 
@@ -38,18 +38,30 @@ def main():
     project = pephubclient.PEPHubClient()
     peppyproject = project.load_project(project_registry_path=PEP_URL)
     df = copy.deepcopy(peppyproject.sample_table)
+    import re
 
-    df["reported_ref_genome"] = df["reported_ref_genome"].replace(
-        {" GRCh38": "human"}, inplace=True
+    df["reported_ref_genome"] = (
+        df["reported_ref_genome"].astype(str).str.strip().str.upper()
     )
-
+    df["reported_ref_genome"] = (
+        df["reported_ref_genome"].astype(str).str.replace(r"\s+", "", regex=True)
+    )  # remove the leading character, it causes issues
+    # df["reported_ref_genome"] = df["reported_ref_genome"].astype(str).str.replace(
+    #     "GRCH38", "human"
+    # )
     # Standardize the human data
-    # for human_designator in human_keys:
+    for human_designator in human_keys:
+        df["reported_ref_genome"] = (
+            df["reported_ref_genome"]
+            .astype(str)
+            .str.replace(human_designator.upper(), "human")
+        )
     #     df['reported_ref_genome'] = df['reported_ref_genome'].replace({" GRCh38": 'human'})
     # df['reported_ref_genome'] = df['reported_ref_genome'].apply(lambda x: 'human' if x in human_keys else x)
     # df['reported_ref_genome'] = df['reported_ref_genome'].str.lower().replace({human_designator: 'human'})
 
     print(df["reported_ref_genome"].head())
+    # df.to_csv("/home/drc/Downloads/export_test.csv")
 
 
 if __name__ == "__main__":
