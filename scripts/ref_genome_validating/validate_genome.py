@@ -30,11 +30,13 @@ except:
     # if you wish to report results to pephub
     # PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
     PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    # PEP_URL ="donaldcampbelljr/ref_genome_dros_only:default"
 
 # Where to get Bedfiles?
 LOCAL = True
 GEOFETCH = False
-SPECIES = "homosapiens"
+# SPECIES = "homosapiens"
+SPECIES = "fly"
 
 
 def main():
@@ -57,7 +59,7 @@ def main():
         genome="hg19", asset="fasta", tag="default", force=False
     )  # GRCh37 reference sequence from UCSC
     rgc.pull(genome="mm10", asset="fasta", tag="default", force=False)
-    rgc.pull(genome="dm6", asset="fasta", tag="default", force=False)
+    # rgc.pull(genome="dm6", asset="fasta", tag="default", force=False) #the ncbi chromosomes
 
     genome_list = rgc.list()
 
@@ -81,8 +83,15 @@ def main():
         genome_alias="ucsc_pantro6",
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_panTro6.chrom.sizes",
     )
+
+    ucsc_dm6 = GenomeModel(
+        genome_alias="ucsc_dm6",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/UCSC_dm6.chrom.sizes",
+    )
+
     all_genome_models.append(ucsc_hg38)
     all_genome_models.append(ucsc_pantro6)
+    all_genome_models.append(ucsc_dm6)
     # Create Validator Object
     validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
 
