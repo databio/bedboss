@@ -16,11 +16,13 @@ class GenomeModel:
         genome_alias: Optional[str] = None,
         common_aliases: Optional[List] = None,
         refgenomeconf: Optional[refgenconf.refgenconf.RefGenConf] = None,
+        chrom_sizes_file: Optional[str] = None,
         exclude_ranges_names: Optional[List] = None,
     ):
         self.genome_alias = genome_alias
         self.common_aliases = common_aliases  # What are the other names for the other this reference genomes
         self.rgc = refgenomeconf
+        self.chrom_sizes_file = chrom_sizes_file
         self.chrom_sizes = self.get_chrom_sizes()
         self.excluded_ranges_names = exclude_ranges_names  # Which bed file digests from the excluded ranges are associated with this reference genome?
 
@@ -31,12 +33,15 @@ class GenomeModel:
         :return dict: dictionary containing chroms(keys) and lengths(values)
         """
 
-        chrom_sizes_path = self.rgc.seek(
-            genome_name=self.genome_alias,
-            asset_name="fasta",
-            tag_name="default",
-            seek_key="chrom_sizes",
-        )
+        if self.rgc:
+            chrom_sizes_path = self.rgc.seek(
+                genome_name=self.genome_alias,
+                asset_name="fasta",
+                tag_name="default",
+                seek_key="chrom_sizes",
+            )
+        if self.chrom_sizes_file:
+            chrom_sizes_path = self.chrom_sizes_file
 
         chrom_sizes = {}
 

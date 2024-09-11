@@ -19,19 +19,21 @@ try:
     BEDFILE_DIRECTORY = os.environ["BEDFILE_DIRECTORY"]
 except:
     # where bedfiles for testing live (unzipped!)
-    BEDFILE_DIRECTORY = (
-        "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
-    )
+    # BEDFILE_DIRECTORY = (
+    #     "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
+    # )
+    BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/bed_small_subset"
 
 try:
     PEP_URL = os.environ["PEP_URL"]
 except:
     # if you wish to report results to pephub
-    PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
+    # PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
+    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
 
 # Where to get Bedfiles?
-LOCAL = False
-GEOFETCH = True
+LOCAL = True
+GEOFETCH = False
 SPECIES = "homosapiens"
 
 
@@ -47,9 +49,15 @@ def main():
 
     # Ensure refgenie assets are built based on the provided config module
     rgc = refgenconf.RefGenConf(filepath=ref_genie_config_path)
-    rgc.pull(genome="hg38", asset="fasta", tag="default", force=False)
-    rgc.pull(genome="hg19", asset="fasta", tag="default", force=False)
+    rgc.pull(
+        genome="hg38", asset="fasta", tag="default", force=False
+    )  # GCA_000001405.15 GRCh38_no_alt_analysis_set from NCBI
+    # rgc.pull(genome="hg38_primary", asset="fasta", tag="default", force=False) # UCSC primary chromosomes only
+    rgc.pull(
+        genome="hg19", asset="fasta", tag="default", force=False
+    )  # GRCh37 reference sequence from UCSC
     rgc.pull(genome="mm10", asset="fasta", tag="default", force=False)
+    rgc.pull(genome="dm6", asset="fasta", tag="default", force=False)
 
     genome_list = rgc.list()
 
@@ -64,6 +72,17 @@ def main():
         new_genome_model = GenomeModel(genome_alias=reference_genome, refgenomeconf=rgc)
         all_genome_models.append(new_genome_model)
 
+    # Manually create more genome models not found in ref genie
+    ucsc_hg38 = GenomeModel(
+        genome_alias="ucsc_hg38",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_hg38.chrom.sizes",
+    )
+    ucsc_pantro6 = GenomeModel(
+        genome_alias="ucsc_pantro6",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_panTro6.chrom.sizes",
+    )
+    all_genome_models.append(ucsc_hg38)
+    all_genome_models.append(ucsc_pantro6)
     # Create Validator Object
     validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
 
@@ -81,12 +100,20 @@ def main():
         for bedfile in all_bed_files[:10]:
             compat_vector = validator.determine_compatibility(bedfile)
             rid = os.path.basename(bedfile)
+            tier = {
+                "tier_rating": {}
+            }  # add this to a column to make comparisons easier for human eyes on pephub
             all_vals = {}
             if compat_vector:
                 for i in compat_vector:
                     if i is not None:
                         for key, values in i.items():
                             all_vals.update({key: values})
+                            if "compatibility" in values:
+                                tier["tier_rating"].update(
+                                    {key: values["compatibility"]}
+                                )
+            all_vals.update(tier)
 
             # use pipestat to report to pephub and file backend
             psm = pipestat.PipestatManager(
