@@ -79,6 +79,17 @@ def main():
         genome_alias="ucsc_hg38",
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_hg38.chrom.sizes",
     )
+
+    ncbi_hg38 = GenomeModel(
+        genome_alias="ncbi_hg38",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ncbi_hg38.chrom.sizes",
+    )
+
+    ensembl_hg38 = GenomeModel(
+        genome_alias="ensembl_hg38",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ensembl_hg38.chrom.sizes",
+    )
+
     ucsc_pantro6 = GenomeModel(
         genome_alias="ucsc_pantro6",
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_panTro6.chrom.sizes",
@@ -86,10 +97,12 @@ def main():
 
     ucsc_dm6 = GenomeModel(
         genome_alias="ucsc_dm6",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/UCSC_dm6.chrom.sizes",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_dm6.chrom.sizes",
     )
 
     all_genome_models.append(ucsc_hg38)
+    all_genome_models.append(ncbi_hg38)
+    all_genome_models.append(ensembl_hg38)
     all_genome_models.append(ucsc_pantro6)
     all_genome_models.append(ucsc_dm6)
     # Create Validator Object

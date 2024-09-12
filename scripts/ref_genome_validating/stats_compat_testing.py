@@ -109,25 +109,28 @@ def extract_tier_ratings(df):
     # df_tiers = df[["sample_name", "tier_rating"]]
 
     mm10_values = []
-    hg38_values = []
+    ncbi_hg38_values = []
     hg19_values = []
     dm6_values = []
     ucsc_hg38_values = []
+    ensembl_hg38_values = []
     ucsc_pantro6_values = []
     for index, row in df.iterrows():
         (
             mm10_tier,
-            hg38_tier,
+            ncbi_hg38_tier,
             hg19_tier,
             ucsc_dm6_tier,
             ucsc_hg38_tier,
             ucsc_pantro6_tier,
+            ensembl_hg38_tier,
         ) = extract_values(row["tier_rating"])
         mm10_values.append(mm10_tier)
-        hg38_values.append(hg38_tier)
+        ncbi_hg38_values.append(ncbi_hg38_tier)
         hg19_values.append(hg19_tier)
         dm6_values.append(ucsc_dm6_tier)
         ucsc_hg38_values.append(ucsc_hg38_tier)
+        ensembl_hg38_values.append(ensembl_hg38_tier)
         ucsc_pantro6_values.append(ucsc_pantro6_tier)
 
     # df_tiers.rename(columns={0: 'tier_rating'}, inplace=True)
@@ -140,7 +143,8 @@ def extract_tier_ratings(df):
 
     df2 = pd.DataFrame().assign(sample_name=df["sample_name"])
 
-    df2["hg38_ncbi_rating"] = hg38_values
+    df2["hg38_ncbi_rating"] = ncbi_hg38_values
+    df2["hg38_ensembl_rating"] = ensembl_hg38_values
     df2["hg38_ucsc_rating"] = ucsc_hg38_values
     df2["hg19_ucsc_rating"] = hg19_values
     df2["pantro6_ucsc_rating"] = ucsc_pantro6_values
@@ -163,19 +167,21 @@ def extract_values(dictionary):
     dictionary = json.loads(dictionary)
 
     mm10_tier = dictionary["mm10"]["tier_ranking"]
-    hg38_tier = dictionary["hg38"]["tier_ranking"]
+    ncbi_hg38_tier = dictionary["ncbi_hg38"]["tier_ranking"]
     hg19_tier = dictionary["hg19"]["tier_ranking"]
     ucsc_dm6_tier = dictionary["ucsc_dm6"]["tier_ranking"]
     ucsc_hg38_tier = dictionary["ucsc_hg38"]["tier_ranking"]
+    ensembl_hg38_tier = dictionary["ensembl_hg38"]["tier_ranking"]
     ucsc_pantro6_tier = dictionary["ucsc_pantro6"]["tier_ranking"]
 
     return (
         mm10_tier,
-        hg38_tier,
+        ncbi_hg38_tier,
         hg19_tier,
         ucsc_dm6_tier,
         ucsc_hg38_tier,
         ucsc_pantro6_tier,
+        ensembl_hg38_tier,
     )
 
 
