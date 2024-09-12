@@ -1,8 +1,10 @@
-import typer
-from typing import Union
 import os
+from typing import Union
+
+import typer
 
 from bedboss import __version__
+from bedboss.bbuploader.cli import app_bbuploader
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 # commented and made new const here, because it speeds up help function,
@@ -103,8 +105,9 @@ def run_all(
 
     Run the bedboss pipeline for a single bed file
     """
-    from bedboss.bedboss import run_all as run_all_bedboss
     from bbconf.bbagent import BedBaseAgent
+
+    from bedboss.bedboss import run_all as run_all_bedboss
 
     agent = BedBaseAgent(bedbase_config)
 
@@ -243,7 +246,7 @@ def make_bed(
     )
 
 
-@app.command(help=f"Create a bigbed files form a bed file")
+@app.command(help="Create a bigbed files form a bed file")
 def make_bigbed(
     bed_file: str = typer.Option(
         ...,
@@ -555,6 +558,19 @@ def check_requirements():
     requirements_check()
 
 
+@app.command(help="Install R dependencies")
+def install_requirements():
+    import subprocess
+
+    r_path = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "installRdeps.R")
+    )
+
+    subprocess.run(
+        ["Rscript", r_path],
+    )
+
+
 @app.callback()
 def common(
     ctx: typer.Context,
@@ -563,3 +579,6 @@ def common(
     ),
 ):
     pass
+
+
+app.add_typer(app_bbuploader, name="geo")

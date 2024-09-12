@@ -1,32 +1,32 @@
 import logging
 import os
+import subprocess
 from typing import Union
 
-import pypiper
-import peppy
-from eido import validate_project
 import bbconf
-import subprocess
-
 import pephubclient
-from pephubclient.helpers import is_registry_path, MessageHandler as m
+import peppy
+import pypiper
 from bbconf.bbagent import BedBaseAgent
-from bbconf.models.base_models import FileModel
 from bbconf.const import DEFAULT_LICENSE
+from bbconf.models.base_models import FileModel
+from eido import validate_project
+from pephubclient.helpers import MessageHandler as m
+from pephubclient.helpers import is_registry_path
 
-from bedboss.bedstat.bedstat import bedstat
-from bedboss.bedmaker.bedmaker import make_all
+from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
-from bedboss.const import (
-    BEDBOSS_PEP_SCHEMA_PATH,
-    PKG_NAME,
-)
+from bedboss.bedmaker.bedmaker import make_all
+from bedboss.bedstat.bedstat import bedstat
+from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
+from bedboss.exceptions import BedBossException
 from bedboss.models import (
-    StatsUpload,
-    PlotsUpload,
-    FilesUpload,
     BedClassificationUpload,
+    FilesUpload,
+    PlotsUpload,
+    StatsUpload,
 )
+
 from bedboss.utils import (
     standardize_genome_name,
     get_genome_digest,
@@ -34,6 +34,7 @@ from bedboss.utils import (
 )
 from bedboss.exceptions import BedBossException
 from bedboss._version import __version__
+
 
 _LOGGER = logging.getLogger(PKG_NAME)
 

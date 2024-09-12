@@ -1,8 +1,8 @@
 import logging
 from typing import Optional, Tuple
 
-import pandas.errors
 import pandas as pd
+import pandas.errors
 
 from bedboss.exceptions import BedTypeException
 
@@ -45,7 +45,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
             if row_count > 0:
                 _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
             break
-        except UnicodeDecodeError as e:
+        except UnicodeDecodeError:
             try:
                 df = pd.read_csv(
                     bed,

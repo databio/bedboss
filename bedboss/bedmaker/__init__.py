@@ -1,3 +1,3 @@
-from .bedmaker import make_bigbed, make_all, make_bed
+from .bedmaker import make_all, make_bed, make_bigbed
 
 __all__ = ["make_bed", "make_bigbed", "make_all"]

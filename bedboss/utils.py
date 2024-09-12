@@ -1,12 +1,12 @@
-import os
 import logging
+import os
 import urllib.request
+
 import requests
 from pephubclient.files_manager import FilesManager
 import peppy
 from peppy.const import SAMPLE_RAW_DICT_KEY
 from attribute_standardizer import AttrStandardizer
-
 
 _LOGGER = logging.getLogger("bedboss")
 

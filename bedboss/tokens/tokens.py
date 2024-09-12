@@ -1,11 +1,11 @@
 # functions for tokenization of bed files
 import logging
-from typing import Union
 import os
+from typing import Union
+
 from bbconf.bbagent import BedBaseAgent
 from geniml.bbclient import BBClient
 from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
-
 from genimtools.tokenizers import TreeTokenizer
 
 from bedboss.exceptions import BedBossException
