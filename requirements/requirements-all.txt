@@ -9,5 +9,6 @@ bbconf>=0.7.0
 refgenconf>=0.12.2
 pandas>=2.0.0
 ubiquerg>=0.6.2
+bedmess>=0.1.0
 pephubclient>=0.4.4
 geniml>=0.4.0

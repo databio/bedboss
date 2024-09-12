@@ -26,7 +26,15 @@ from bedboss.models import (
     PlotsUpload,
     StatsUpload,
 )
-from bedboss.utils import get_genome_digest, standardize_genome_name
+
+from bedboss.utils import (
+    standardize_genome_name,
+    get_genome_digest,
+    standardize_pep as pep_standardizer,
+)
+from bedboss.exceptions import BedBossException
+from bedboss._version import __version__
+
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -235,6 +243,7 @@ def insert_pep(
     upload_pephub: bool = False,
     upload_qdrant: bool = False,
     no_fail: bool = False,
+    standardize_pep: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
@@ -260,6 +269,7 @@ def insert_pep(
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
+    :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -275,6 +285,9 @@ def insert_pep(
             pep = peppy.Project(pep)
     else:
         raise BedBossException("Incorrect pep type. Exiting...")
+
+    if standardize_pep:
+        pep = pep_standardizer(pep)
 
     bbagent = BedBaseAgent(bedbase_config)
 
