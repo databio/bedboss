@@ -19,7 +19,7 @@ from bedboss.bbuploader.models import (
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
-from bedboss.utils import standardize_genome_name
+from bedboss.utils import standardize_genome_name, standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -36,8 +36,9 @@ def upload_all(
     genome: str = None,
     create_bedset: bool = True,
     rerun: bool = False,
-    run_skipped=False,
-    run_failed=True,
+    run_skipped: bool = False,
+    run_failed: bool = True,
+    standardize_pep: bool = False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -54,6 +55,7 @@ def upload_all(
     :param rerun: rerun processing of the series
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
+    :param standardize_pep: standardize pep metadata using BEDMS
     """
 
     phc = PEPHubClient()
@@ -122,6 +124,7 @@ def upload_all(
                     genome=genome,
                     sa_session=session,
                     gse_status_sa_model=gse_status,
+                    standardize_pep=standardize_pep,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -244,8 +247,9 @@ def upload_gse(
     create_bedset: bool = True,
     genome: str = None,
     rerun: bool = False,
-    run_skipped=False,
-    run_failed=True,
+    run_skipped: bool = False,
+    run_failed: bool = True,
+    standardize_pep: bool = False,
 ):
     """
     Upload bed files from GEO series to BedBase
@@ -258,6 +262,7 @@ def upload_gse(
     :param rerun: rerun processing of the series
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
+    :param standardize_pep: standardize pep metadata using BEDMS
 
     :return: None
     """
@@ -302,6 +307,7 @@ def upload_gse(
                 genome=genome,
                 sa_session=session,
                 gse_status_sa_model=gse_status,
+                standardize_pep=standardize_pep,
             )
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
@@ -347,6 +353,7 @@ def _upload_gse(
     genome: str = None,
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
+    standardize_pep: bool = False,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -358,6 +365,7 @@ def _upload_gse(
     :param genome: reference genome to upload to database. If None, all genomes will be processed
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
+    :param standardize_pep: standardize pep metadata using BEDMS
 
     :return: None
     """
@@ -370,6 +378,9 @@ def _upload_gse(
     os.makedirs(outfolder, exist_ok=True)
 
     project = phc.load_project(f"bedbase/{gse}:{DEFAULT_GEO_TAG}")
+
+    if standardize_pep:
+        project = pep_standardizer(project)
 
     project_status = ProjectProcessingStatus(number_of_samples=len(project.samples))
     uploaded_files = []
