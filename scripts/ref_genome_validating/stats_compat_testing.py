@@ -143,13 +143,13 @@ def extract_tier_ratings(df):
 
     df2 = pd.DataFrame().assign(sample_name=df["sample_name"])
 
-    df2["hg38_ncbi_rating"] = ncbi_hg38_values
-    df2["hg38_ensembl_rating"] = ensembl_hg38_values
-    df2["hg38_ucsc_rating"] = ucsc_hg38_values
-    df2["hg19_ucsc_rating"] = hg19_values
-    df2["pantro6_ucsc_rating"] = ucsc_pantro6_values
-    df2["mm10_ncbi_rating"] = mm10_values
-    df2["dm6_ucsc_rating"] = dm6_values
+    df2["hg38 NCBI"] = ncbi_hg38_values
+    df2["hg38 Ensembl"] = ensembl_hg38_values
+    df2["hg38 UCSC"] = ucsc_hg38_values
+    df2["hg19 UCSC"] = hg19_values
+    df2["panTro6 UCSC"] = ucsc_pantro6_values
+    df2["mm10 NCBI"] = mm10_values
+    df2["dm6_UCSC"] = dm6_values
 
     print(df2)
     df2.to_csv("/home/drc/Downloads/export_test.csv")
@@ -186,15 +186,19 @@ def extract_values(dictionary):
 
 
 def create_heatmap(df):
-    num_bins = 4
-    min_val = 1
-    max_val = 4
-    bounds = np.linspace(min_val, max_val, 15)
-    colors = [*sns.color_palette("mako_r", num_bins)]  # Lightgray for -1
-    cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", colors)
-    norm = mcolors.BoundaryNorm(bounds, cmap.N)
+    # num_bins = 4
+    # min_val = 1
+    # max_val = 4
+    # bounds = np.linspace(min_val, max_val, 15)
+    # #bounds = [0,1,2,3,4,5]
+    # colors = [*sns.color_palette("mako_r", num_bins)]  # Lightgray for -1
+    # cmap = mcolors.LinearSegmentedColormap.from_list("mycmap", colors)
+    # norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-    # df_pivoted = df.pivot(index='sample_name', columns="hg38_ncbi_rating")
+    # Minimal colors from mako color map
+    myColors = ["#60ceacff", "#389ba9ff", "#395997ff", "#382a54ff"]
+    custom_labels = ["Tier 1", "Tier 2", "Tier 3", "Tier 4"]
+    cmap = mcolors.LinearSegmentedColormap.from_list("Custom", myColors, len(myColors))
 
     df["sample_name"] = [
         "Homosapiens (hg38)",
@@ -206,20 +210,25 @@ def create_heatmap(df):
 
     df.set_index(["sample_name", df.index], inplace=True)
     # Create the heatmap
-    plt.figure(figsize=(50, 30))
+    plt.figure(figsize=(12, 7))
     # plt.yticks(rotation=30, ha="right")
     ax = sns.heatmap(
         df,
         cmap=cmap,
-        norm=norm,
+        # norm=norm,
         annot=False,
         linewidths=2,
     )
 
-    ax.tick_params(axis="x", labelsize=10)
-    ax.tick_params(axis="y", labelsize=10)
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
-    ax.set_yticklabels(ax.get_yticklabels(), rotation=30)
+    ax.tick_params(axis="x", labelsize=12)
+    ax.tick_params(axis="y", labelsize=12)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
+    ax.set_yticklabels(ax.get_yticklabels(), rotation=0)
+    # Manually specify colorbar labelling after it's been generated
+    colorbar = ax.collections[0].colorbar
+    colorbar.set_ticks([1.4, 2.2, 3.0, 3.8])
+    colorbar.set_ticklabels(custom_labels)
+    # plt.colorbar(ticks=4, label='Custom Label', ticklabels=custom_labels)
     plt.title("Tier Rating: Bed File vs Ref Genome")
     plt.xlabel("Reference Genomes", fontsize=12)
     plt.ylabel("Query Bed Files", fontsize=12)
