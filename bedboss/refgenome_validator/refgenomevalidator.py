@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 import os
 import pandas as pd
 import subprocess
@@ -13,7 +13,7 @@ except:
     IGD_LOCATION = f"/home/drc/GITHUB/igd/IGD/bin/igd"
 
 
-class Validator:
+class RefValidator:
     """
 
     This is primary class for creating a compatibility vector
@@ -22,13 +22,13 @@ class Validator:
     """
 
     def __init__(
-        self, genome_models: list[GenomeModel], igd_path: Optional[str] = None
+        self, genome_models: List[GenomeModel], igd_path: Optional[str] = None
     ):
         """
         Initialization method
 
         :param list[GenomeModels] genome_models: this is a list of GenomeModels that will be checked against a bed file
-        :param str igd_path: path to a local IGD file containing ALL excluded ranges intervals
+        :param str igd_path: path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment, if not provided these metrics are not computed.
 
         """
 
@@ -104,6 +104,7 @@ class Validator:
         sensitivity = q_and_m / (q_and_m + q_and_not_m)
 
         # Assign Stats
+        # TODO maybe use pydantic in the future
         name_stats["XS"] = sensitivity
         name_stats["q_and_m"] = q_and_m
         name_stats["q_and_not_m"] = q_and_not_m
@@ -148,6 +149,7 @@ class Validator:
 
         else:
             length_stats = {}
+            length_stats["OOBR"] = None
             length_stats["beyond_range"] = None
             length_stats["num_of_chrm_beyond"] = None
 
@@ -187,7 +189,8 @@ class Validator:
         https://bedbase.org/bedset/excluderanges
 
         """
-
+        if not self.igd_path:
+            return {"igd_stats": None}
         # Construct an IGD command to run as subprocess
         igd_command = IGD_LOCATION + f" search {self.igd_path} -q {bedfile}"
 
@@ -213,12 +216,15 @@ class Validator:
         return {"igd_stats": overlaps_dict}
 
     def determine_compatibility(
-        self, bedfile: str, ref_filter: Optional[list[str]] = None
-    ) -> Union[list[dict], None]:
+        self,
+        bedfile: str,
+        ref_filter: Optional[List[str]] = None,
+        concise: Optional[bool] = False,
+    ) -> Union[List[dict], None]:
         """
         Given a bedfile, determine compatibility with reference genomes (GenomeModels) created at Validator initialization.
 
-        :param str bedfile: path to bedfile on disk
+        :param str bedfile: path to bedfile on disk, .bed
         :param list[str] ref_filter: list of ref genome aliases to filter on.
         :return list[dict]: a list of dictionaries where each element of the array represents a compatibility dictionary
                             for each refgenome model.
@@ -268,6 +274,10 @@ class Validator:
             )
 
             final_compatibility_list.append(processed_stats)
+
+        if concise:
+            # TODO just return XS, OOBR, SEQ FIT, COMPAT TIER
+            return final_compatibility_list
 
         return final_compatibility_list
 
@@ -377,10 +387,14 @@ class Validator:
 def get_bed_chrom_info(bed_file_path: str) -> Union[dict, None]:
     """
     Given a path to a Bedfile. Attempt to open it and read it to find all of the chromosomes and the max length of each.
+
+    returns dict: returns dictionary where keys are chrom names and values are the max end position of that chromosome.
     """
 
     # Right now this assumes this is atleast a 3 column bedfile
     # This also assumes the bed file has been unzipped
+
+    # TODO This code is overlapping with geniml io code and should be refactored in the future, ie move opening bed files to helper utils.
 
     try:
         df = pd.read_csv(bed_file_path, sep="\t", header=None, skiprows=5)
@@ -404,7 +418,7 @@ def run_igd_command(command):
         return None
 
 
-def parse_IGD_output(output_str) -> Union[None, list[dict]]:
+def parse_IGD_output(output_str) -> Union[None, List[dict]]:
     """
     Parses IGD terminal output into a list of dicts
     Args:

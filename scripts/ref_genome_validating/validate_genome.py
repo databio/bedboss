@@ -4,7 +4,7 @@ import os
 import refgenconf
 from pipestat import pipestat
 
-from bedboss.refgenome_validator import *
+from bedboss.refgenome_validator.refgenomevalidator import RefValidator, GenomeModel
 
 # helper utils
 from process_exclude_ranges import unzip_bedfile, get_samples, MAX_SAMPLES
@@ -70,9 +70,9 @@ def main():
 
     all_genome_models = []
 
-    for reference_genome in rgc.list():
-        new_genome_model = GenomeModel(genome_alias=reference_genome, refgenomeconf=rgc)
-        all_genome_models.append(new_genome_model)
+    # for reference_genome in rgc.list():
+    #     new_genome_model = GenomeModel(genome_alias=reference_genome, refgenomeconf=rgc)
+    #     all_genome_models.append(new_genome_model)
 
     # Manually create more genome models not found in ref genie
     ucsc_hg38 = GenomeModel(
@@ -106,7 +106,7 @@ def main():
     all_genome_models.append(ucsc_pantro6)
     all_genome_models.append(ucsc_dm6)
     # Create Validator Object
-    validator = Validator(genome_models=all_genome_models, igd_path=IGD_DB_PATH)
+    validator = RefValidator(genome_models=all_genome_models)
 
     # Get BED files
     # LOCAL
