@@ -22,7 +22,9 @@ class RefValidator:
     """
 
     def __init__(
-        self, genome_models: List[GenomeModel], igd_path: Optional[str] = None
+        self,
+        genome_models: Optional[List[GenomeModel]] = None,
+        igd_path: Optional[str] = None,
     ):
         """
         Initialization method
@@ -31,6 +33,8 @@ class RefValidator:
         :param str igd_path: path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment, if not provided these metrics are not computed.
 
         """
+        if not genome_models:
+            genome_models = self.build_default_models()
 
         if isinstance(genome_models, str):
             genome_models = list(genome_models)
@@ -380,6 +384,32 @@ class RefValidator:
         Placeholder to process IGD Stats and determine if it should impact tier rating
         """
         pass
+
+    def build_default_models(self):
+        """
+        Builds a default list of GenomeModels from the chrom.sizes folder.
+        Uses file names as genome alias.
+
+        return list[GenomeModel]
+        """
+
+        chrm_sizes_directory = os.path.join(
+            os.path.curdir, os.path.abspath("./chrom_sizes")
+        )
+        all_genome_models = []
+        for root, dirs, files in os.walk(chrm_sizes_directory):
+            for file in files:
+                if file.endswith(".sizes"):
+                    # print(os.path.join(root, file))
+                    # Get file name
+                    name = os.path.basename(file)
+
+                    curr_genome_model = GenomeModel(
+                        genome_alias=name, chrom_sizes_file=file
+                    )
+                    all_genome_models.append(curr_genome_model)
+
+        return all_genome_models
 
 
 # ----------------------------
