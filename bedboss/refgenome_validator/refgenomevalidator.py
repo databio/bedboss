@@ -4,7 +4,15 @@ import pandas as pd
 import subprocess
 
 from bedboss.exceptions import ValidatorException
-from bedboss.refgenome_validator import GenomeModel
+from bedboss.refgenome_validator.genome_model import GenomeModel
+from bedboss.refgenome_validator.models import (
+    ChromNameStats,
+    ChromLengthStats,
+    SequenceFitStats,
+    CompatibilityStats,
+    RatingModel,
+    CompatibilityConcise,
+)
 
 try:
     IGD_LOCATION = os.environ["IGD_LOCATION"]
@@ -13,12 +21,10 @@ except:
     IGD_LOCATION = f"/home/drc/GITHUB/igd/IGD/bin/igd"
 
 
-class RefValidator:
+class ReferenceValidator:
     """
-
     This is primary class for creating a compatibility vector
     An object of this class is to be created once and then used for the entirety of a pipeline,e.g. Bedboss.
-
     """
 
     def __init__(
@@ -29,30 +35,26 @@ class RefValidator:
         """
         Initialization method
 
-        :param list[GenomeModels] genome_models: this is a list of GenomeModels that will be checked against a bed file
-        :param str igd_path: path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment, if not provided these metrics are not computed.
-
+        :param genome_models: this is a list of GenomeModels that will be checked against a bed file
+        :param igd_path: path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment, if not provided these metrics are not computed.
         """
-        if not genome_models:
-            genome_models = self.build_default_models()
 
-        if isinstance(genome_models, str):
+        if not genome_models:
+            genome_models = self._build_default_models()
+        elif isinstance(genome_models, str):
             genome_models = list(genome_models)
-        if not isinstance(genome_models, list):
+        elif not isinstance(genome_models, list):
             raise ValidatorException(
                 reason="A list of GenomeModels must be provided to initialize the Validator class"
             )
 
-        self.genome_models = genome_models
-
+        self.genome_models: List[GenomeModel] = genome_models
         self.igd_path = igd_path
 
-        # this will be a list of dictionary info with length of genome_models
-        self.compatibility_list = []
-
+    @staticmethod
     def calculate_chrom_stats(
-        self, bed_chrom_sizes: dict, genome_chrom_sizes: dict
-    ) -> dict:
+        bed_chrom_sizes: dict, genome_chrom_sizes: dict
+    ) -> CompatibilityStats:
         """
         Given two dicts of chroms (key) and their sizes (values)
         determine overlap and sequence fit
@@ -67,7 +69,6 @@ class RefValidator:
 
         # Layer 1: Check names and Determine XS (Extra Sequences) via Calculation of Recall/Sensitivity
         # Q = Query, M = Model
-        name_stats = {}
         q_and_m = 0  # how many chrom names are in the query and the genome model?
         q_and_not_m = (
             0  # how many chrom names are in the query but not in the genome model?
@@ -108,76 +109,69 @@ class RefValidator:
         sensitivity = q_and_m / (q_and_m + q_and_not_m)
 
         # Assign Stats
-        # TODO maybe use pydantic in the future
-        name_stats["XS"] = sensitivity
-        name_stats["q_and_m"] = q_and_m
-        name_stats["q_and_not_m"] = q_and_not_m
-        name_stats["not_q_and_m"] = not_q_and_m
-        name_stats["jaccard_index"] = chrom_jaccard_index
-        name_stats["jaccard_index_binary"] = jaccard_binary
-        name_stats["passed_chrom_names"] = passed_chrom_names
+        name_stats = ChromNameStats(
+            xs=sensitivity,
+            q_and_m=q_and_m,
+            q_and_not_m=q_and_not_m,
+            not_q_and_m=not_q_and_m,
+            jaccard_index=chrom_jaccard_index,
+            jaccard_index_binary=jaccard_binary,
+            passed_chrom_names=passed_chrom_names,
+        )
 
         # Layer 2:  Check Lengths, but only if layer 1 is passing
         if passed_chrom_names:
-            length_stats = {}
-
             chroms_beyond_range = False
-            num_of_chrm_beyond = 0
-            num_chrm_within_bounds = 0
+            num_of_chrom_beyond = 0
+            num_chrom_within_bounds = 0
 
             for key in list(bed_chrom_sizes.keys()):
                 if key in genome_chrom_sizes:
                     if bed_chrom_sizes[key] > genome_chrom_sizes[key]:
-                        num_of_chrm_beyond += 1
+                        num_of_chrom_beyond += 1
                         chroms_beyond_range = True
                     else:
-                        num_chrm_within_bounds += 1
+                        num_chrom_within_bounds += 1
 
             # Calculate recall/sensitivity for chrom lengths
             # defined as OOBR -> Out of Bounds Range
-            sensitivity = num_chrm_within_bounds / (
-                num_chrm_within_bounds + num_of_chrm_beyond
+            sensitivity = num_chrom_within_bounds / (
+                    num_chrom_within_bounds + num_of_chrom_beyond
             )
-            length_stats["OOBR"] = sensitivity
-
-            length_stats["beyond_range"] = chroms_beyond_range
-            length_stats["num_of_chrm_beyond"] = num_of_chrm_beyond
-
-            # Naive calculation, seq fit (below) may be better metric
-            length_stats["percentage_bed_chrm_beyond"] = (
-                100 * num_of_chrm_beyond / len(bed_chrom_set)
-            )
-            length_stats["percentage_genome_chrm_beyond"] = (
-                100 * num_of_chrm_beyond / len(genome_chrom_set)
+            length_stats = ChromLengthStats(
+                oobr=sensitivity,
+                beyond_range=chroms_beyond_range,
+                num_of_chrm_beyond=num_of_chrom_beyond,
+                percentage_bed_chrom_beyond=(
+                        100 * num_of_chrom_beyond / len(bed_chrom_set)
+                ),
+                percentage_genome_chrom_beyond=(
+                        100 * num_of_chrom_beyond / len(genome_chrom_set)
+                ),
             )
 
         else:
-            length_stats = {}
-            length_stats["OOBR"] = None
-            length_stats["beyond_range"] = None
-            length_stats["num_of_chrm_beyond"] = None
+            length_stats = ChromLengthStats()
 
         # Layer 3 Calculate Sequence Fit if any query chrom names were present
         if len(query_keys_present) > 0:
-            seq_fit_stats = {}
             bed_sum = 0
             ref_genome_sum = 0
-            for chr in query_keys_present:
-                bed_sum += int(genome_chrom_sizes[chr])
-            for chr in genome_chrom_sizes:
-                ref_genome_sum += int(genome_chrom_sizes[chr])
+            for q_chr in query_keys_present:
+                bed_sum += int(genome_chrom_sizes[q_chr])
+            for g_chr in genome_chrom_sizes:
+                ref_genome_sum += int(genome_chrom_sizes[g_chr])
 
-            sequence_fit = bed_sum / ref_genome_sum
-            seq_fit_stats["sequence_fit"] = sequence_fit
+            seq_fit_stats = SequenceFitStats(sequence_fit=bed_sum / ref_genome_sum)
+
         else:
-            seq_fit_stats = {}
-            seq_fit_stats["sequence_fit"] = None
+            seq_fit_stats = SequenceFitStats(sequence_fit=None)
 
-        return {
-            "chrom_name_stats": name_stats,
-            "chrom_length_stats": length_stats,
-            "seq_fit_stats": seq_fit_stats,
-        }
+        return CompatibilityStats(
+            chrom_name_stats=name_stats,
+            chrom_length_stats=length_stats,
+            chrom_sequence_fit_stats=seq_fit_stats,
+        )
 
     def get_igd_overlaps(self, bedfile: str) -> Union[dict[str, dict], dict[str, None]]:
         """
@@ -217,19 +211,20 @@ class RefValidator:
                 if "file_name" in datum and "number_of_hits" in datum:
                     overlaps_dict.update({datum["file_name"]: datum["number_of_hits"]})
 
-        return {"igd_stats": overlaps_dict}
+        return overlaps_dict
 
     def determine_compatibility(
         self,
         bedfile: str,
         ref_filter: Optional[List[str]] = None,
         concise: Optional[bool] = False,
-    ) -> Union[List[dict], None]:
+    ) -> Union[List[CompatibilityStats], List[CompatibilityConcise]]:
         """
         Given a bedfile, determine compatibility with reference genomes (GenomeModels) created at Validator initialization.
 
         :param str bedfile: path to bedfile on disk, .bed
         :param list[str] ref_filter: list of ref genome aliases to filter on.
+        :param bool concise: if True, only return a concise list of compatibility stats
         :return list[dict]: a list of dictionaries where each element of the array represents a compatibility dictionary
                             for each refgenome model.
         """
@@ -252,40 +247,36 @@ class RefValidator:
         final_compatibility_list = []
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.genome_alias] = self.calculate_chrom_stats(
-                bed_chrom_info, genome_model.chrom_sizes
+            model_compat_stats[genome_model.genome_alias]: CompatibilityStats = (
+                self.calculate_chrom_stats(bed_chrom_info, genome_model.chrom_sizes)
             )
             # Fourth Layer is to run IGD but only if layer 1 and layer 2 have passed
             if (
-                model_compat_stats[genome_model.genome_alias]["chrom_name_stats"][
-                    "passed_chrom_names"
-                ]
-                and not model_compat_stats[genome_model.genome_alias][
-                    "chrom_length_stats"
-                ]["beyond_range"]
+                model_compat_stats[
+                    genome_model.genome_alias
+                ].chrom_name_stats.passed_chrom_names
+                and not model_compat_stats[
+                    genome_model.genome_alias
+                ].chrom_length_stats.beyond_range
             ):
-                model_compat_stats[genome_model.genome_alias].update(
+                model_compat_stats[genome_model.genome_alias].igd_stats = (
                     self.get_igd_overlaps(bedfile)
-                )
-            else:
-                model_compat_stats[genome_model.genome_alias].update(
-                    {"igd_stats": None}
                 )
 
             # Once all stats are collected, process them and add compatibility rating
-            processed_stats = self.process_compat_stats(
-                model_compat_stats[genome_model.genome_alias], genome_model.genome_alias
-            )
+            model_compat_stats[genome_model.genome_alias].compatibility = self.calculate_rating(model_compat_stats[genome_model.genome_alias])
 
-            final_compatibility_list.append(processed_stats)
+            if concise:
+                ...
 
-        if concise:
-            # TODO just return XS, OOBR, SEQ FIT, COMPAT TIER
-            return final_compatibility_list
+        return model_compat_stats
+        # if concise:
+        #     # TODO just return XS, OOBR, SEQ FIT, COMPAT TIER
+        #     return final_compatibility_list
+        #
+        # return final_compatibility_list
 
-        return final_compatibility_list
-
-    def process_compat_stats(self, compat_stats: dict, genome_alias: str) -> dict:
+    def calculate_rating(self, compat_stats: CompatibilityStats) -> RatingModel:
         """
         Given compatibility stats for a specific ref genome determine the compatibility tier
 
@@ -296,56 +287,53 @@ class RefValidator:
         Tier3: Bed file needs processing to work (shifted hg38 to hg19?), 4-6 pts
         Tier4: Poor compatibility, 7-9 pts
 
-        :param dict compat_stats: dicitionary containing unprocessed compat stats
-        :param str genome_alias:
+        :param CompatibilityStats compat_stats: dicitionary containing unprocessed compat stats
         :return dict : containing both the original stats and the final compatibility rating for the reference genome
         """
 
-        # Set up processed stats dict, it will add an extra key to the original dict
-        # with the final rating
-        processed_stats = {}
-        processed_stats[genome_alias] = {}
-        processed_stats[genome_alias].update(compat_stats)
+        points_rating = 0
 
-        # Currently will proceed with discrete buckets, however, we could do a point system in the future
-        final_compat_rating = {"tier_ranking": 1, "assigned_points": 0}
-        points_rating = 0  # we will add points increasing the level and then sort into various tiers at the end
-
-        # Check extra sequences sensitivity and assign points based on how sensitive the outcome is
+        # 1. Check extra sequences sensitivity and assign points based on how sensitive the outcome is
         # sensitivity = 1 is considered great and no points should be assigned
-        if compat_stats["chrom_name_stats"]["XS"] < 1:
+        xs = compat_stats.chrom_name_stats.xs
+        if xs < 0.3:
+            points_rating += 6  # 3 + 1 + 1 + 1
+        elif xs < 0.5:
+            points_rating += 5  # 3 + 1 + 1
+        elif xs < 0.7:
+            points_rating += 4  # 3 + 1
+        elif xs < 1:
             points_rating += 3
-        if compat_stats["chrom_name_stats"]["XS"] < 0.7:
-            points_rating += 1
-        if compat_stats["chrom_name_stats"]["XS"] < 0.5:
-            points_rating += 1
-        if compat_stats["chrom_name_stats"]["XS"] < 0.3:
-            points_rating += 1
+        else:
+            pass
 
-        if compat_stats["chrom_name_stats"]["passed_chrom_names"]:
-            # Check OOBR and assign points based on sensitivity
-            # only assessed if no extra chroms in query bed file
-            if compat_stats["chrom_length_stats"]["OOBR"] < 1:
+        # 2. Check OOBR and assign points based on sensitivity
+        # only assessed if no extra chroms in query bed file
+        if compat_stats.chrom_name_stats.passed_chrom_names:
+            oobr = compat_stats.chrom_length_stats.oobr
+
+            if oobr < 0.3:
+                points_rating += 6  # 3 + 1 + 1 + 1
+            elif oobr < 0.5:
+                points_rating += 5  # 3 + 1 + 1
+            elif oobr < 0.7:
+                points_rating += 4  # 3 + 1
+            elif oobr < 1:
                 points_rating += 3
-            if compat_stats["chrom_length_stats"]["OOBR"] < 0.7:
-                points_rating += 1
-            if compat_stats["chrom_length_stats"]["OOBR"] < 0.5:
-                points_rating += 1
-            if compat_stats["chrom_length_stats"]["OOBR"] < 0.3:
-                points_rating += 1
         else:
             # Do nothing here, points have already been added when Assessing XS if it is not == 1
             pass
 
         # Check Sequence Fit - comparing lengths in queries vs lengths of queries in ref genome vs not in ref genome
-        if compat_stats["seq_fit_stats"]["sequence_fit"]:
+        sequence_fit = compat_stats.chrom_sequence_fit_stats.sequence_fit
+        if sequence_fit:
             # since this is only on keys present in both, ratio should always be less than 1
             # Should files be penalized here or actually awarded but only if the fit is really good?
-            if compat_stats["seq_fit_stats"]["sequence_fit"] < 0.90:
+            if sequence_fit < 0.90:
                 points_rating += 1
-            if compat_stats["seq_fit_stats"]["sequence_fit"] < 0.60:
+            if sequence_fit < 0.60:
                 points_rating += 1
-            if compat_stats["seq_fit_stats"]["sequence_fit"] < 0.60:
+            if sequence_fit < 0.60:
                 points_rating += 1
 
         else:
@@ -354,30 +342,29 @@ class RefValidator:
 
         # Run analysis on igd_stats
         # WIP, currently only showing IGD stats for informational purposes
-        if compat_stats["igd_stats"] and compat_stats["igd_stats"] != {}:
-            self.process_igd_stats(compat_stats["igd_stats"])
+        if compat_stats.igd_stats and compat_stats.igd_stats != {}:
+            self.process_igd_stats(compat_stats.igd_stats)
 
-        final_compat_rating["assigned_points"] = points_rating
 
-        # Now Assign Tier Based on Points
-
+        tier_ranking = 0
         if points_rating == 0:
-            final_compat_rating["tier_ranking"] = 1
+            tier_ranking = 1
         elif 1 <= points_rating <= 3:
-            final_compat_rating["tier_ranking"] = 2
+            tier_ranking = 2
         elif 4 <= points_rating <= 6:
-            final_compat_rating["tier_ranking"] = 3
+            tier_ranking = 3
         elif 7 <= points_rating:
-            final_compat_rating["tier_ranking"] = 4
+            tier_ranking = 4
         else:
             print(
                 f"Catching points discrepancy,points = {points_rating}, assigning to Tier 4"
             )
-            final_compat_rating["tier_ranking"] = 4
+            tier_ranking = 4
 
-        processed_stats[genome_alias].update({"compatibility": final_compat_rating})
+        return RatingModel(
+            assigned_points=points_rating, tier_ranking=tier_ranking
+        )
 
-        return processed_stats
 
     def process_igd_stats(self, igd_stats: dict):
         """
@@ -385,27 +372,24 @@ class RefValidator:
         """
         pass
 
-    def build_default_models(self):
+    @staticmethod
+    def _build_default_models() -> list[GenomeModel]:
         """
         Builds a default list of GenomeModels from the chrom.sizes folder.
         Uses file names as genome alias.
 
         return list[GenomeModel]
         """
+        dir_path = os.path.dirname(os.path.realpath(__file__))
 
-        chrm_sizes_directory = os.path.join(
-            os.path.curdir, os.path.abspath("./chrom_sizes")
-        )
+        chrm_sizes_directory = os.path.join(dir_path, "chrom_sizes")
+
         all_genome_models = []
         for root, dirs, files in os.walk(chrm_sizes_directory):
             for file in files:
                 if file.endswith(".sizes"):
-                    # print(os.path.join(root, file))
-                    # Get file name
-                    name = os.path.basename(file)
-
                     curr_genome_model = GenomeModel(
-                        genome_alias=name, chrom_sizes_file=file
+                        genome_alias=file, chrom_sizes_file=os.path.join(root, file)
                     )
                     all_genome_models.append(curr_genome_model)
 
