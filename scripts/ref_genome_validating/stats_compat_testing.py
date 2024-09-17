@@ -116,6 +116,7 @@ def extract_tier_ratings(df):
     ucsc_hg38_values = []
     ensembl_hg38_values = []
     ucsc_pantro6_values = []
+    ucsc_mm39_values = []
     for index, row in df.iterrows():
         (
             mm10_tier,
@@ -125,6 +126,7 @@ def extract_tier_ratings(df):
             ucsc_hg38_tier,
             ucsc_pantro6_tier,
             ensembl_hg38_tier,
+            ucsc_mm39_tier,
         ) = extract_values(row["tier_rating"])
         mm10_values.append(mm10_tier)
         ncbi_hg38_values.append(ncbi_hg38_tier)
@@ -133,6 +135,7 @@ def extract_tier_ratings(df):
         ucsc_hg38_values.append(ucsc_hg38_tier)
         ensembl_hg38_values.append(ensembl_hg38_tier)
         ucsc_pantro6_values.append(ucsc_pantro6_tier)
+        ucsc_mm39_values.append(ucsc_mm39_tier)
 
     # df_tiers.rename(columns={0: 'tier_rating'}, inplace=True)
     # df_tiers['mm10_tier'] = None
@@ -151,6 +154,7 @@ def extract_tier_ratings(df):
     df2["panTro6 UCSC"] = ucsc_pantro6_values
     df2["mm10 NCBI"] = mm10_values
     df2["dm6_UCSC"] = dm6_values
+    df2["ucsc_mm39"] = ucsc_mm39_values
 
     print(df2)
     df2.to_csv("/home/drc/Downloads/export_test.csv")
@@ -174,6 +178,7 @@ def extract_values(dictionary):
     ucsc_hg38_tier = dictionary["ucsc_hg38"]["tier_ranking"]
     ensembl_hg38_tier = dictionary["ensembl_hg38"]["tier_ranking"]
     ucsc_pantro6_tier = dictionary["ucsc_pantro6"]["tier_ranking"]
+    ucsc_mm39_tier = dictionary["ucsc_mm39"]["tier_ranking"]
 
     return (
         mm10_tier,
@@ -183,6 +188,7 @@ def extract_values(dictionary):
         ucsc_hg38_tier,
         ucsc_pantro6_tier,
         ensembl_hg38_tier,
+        ucsc_mm39_tier,
     )
 
 
@@ -207,6 +213,7 @@ def create_heatmap(df):
         "Pan troglodytes (panTro6)",
         "Mus Musculus (mm10)",
         "Drosophila melanogaster (dm6)",
+        "Mus Musculus (mm39)",
     ]
 
     df.set_index(["sample_name", df.index], inplace=True)
