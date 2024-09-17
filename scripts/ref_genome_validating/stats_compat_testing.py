@@ -15,7 +15,8 @@ try:
     PEP_URL = os.environ["PEP_URL"]
 except:
     # pep url
-    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
 
 
 def main():
@@ -166,9 +167,9 @@ def extract_values(dictionary):
 
     dictionary = json.loads(dictionary)
 
-    mm10_tier = dictionary["mm10"]["tier_ranking"]
+    mm10_tier = dictionary["ucsc_mm10"]["tier_ranking"]
     ncbi_hg38_tier = dictionary["ncbi_hg38"]["tier_ranking"]
-    hg19_tier = dictionary["hg19"]["tier_ranking"]
+    hg19_tier = dictionary["ucsc_hg19"]["tier_ranking"]
     ucsc_dm6_tier = dictionary["ucsc_dm6"]["tier_ranking"]
     ucsc_hg38_tier = dictionary["ucsc_hg38"]["tier_ranking"]
     ensembl_hg38_tier = dictionary["ensembl_hg38"]["tier_ranking"]
@@ -230,8 +231,8 @@ def create_heatmap(df):
     colorbar.set_ticklabels(custom_labels)
     # plt.colorbar(ticks=4, label='Custom Label', ticklabels=custom_labels)
     plt.title("Tier Rating: Bed File vs Ref Genome")
-    plt.xlabel("Reference Genomes", fontsize=12)
-    plt.ylabel("Query Bed Files", fontsize=12)
+    plt.xlabel("Reference Genomes", fontsize=8)
+    plt.ylabel("Query Bed Files", fontsize=8)
     # plt.grid(True)
     plt.show()
 

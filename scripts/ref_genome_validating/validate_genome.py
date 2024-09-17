@@ -4,7 +4,10 @@ import os
 import refgenconf
 from pipestat import pipestat
 
-from bedboss.refgenome_validator.refgenomevalidator import RefValidator, GenomeModel
+from bedboss.refgenome_validator.refgenomevalidator import (
+    ReferenceValidator,
+    GenomeModel,
+)
 
 # helper utils
 from process_exclude_ranges import unzip_bedfile, get_samples, MAX_SAMPLES
@@ -29,8 +32,9 @@ try:
 except:
     # if you wish to report results to pephub
     # PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
-    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
     # PEP_URL ="donaldcampbelljr/ref_genome_dros_only:default"
+    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
 
 # Where to get Bedfiles?
 LOCAL = True
@@ -77,36 +81,48 @@ def main():
     # Manually create more genome models not found in ref genie
     ucsc_hg38 = GenomeModel(
         genome_alias="ucsc_hg38",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_hg38.chrom.sizes",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_hg38.chrom.sizes",
     )
 
     ncbi_hg38 = GenomeModel(
         genome_alias="ncbi_hg38",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ncbi_hg38.chrom.sizes",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ncbi_hg38.chrom.sizes",
     )
 
     ensembl_hg38 = GenomeModel(
         genome_alias="ensembl_hg38",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ensembl_hg38.chrom.sizes",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ensembl_hg38.chrom.sizes",
     )
 
-    ucsc_pantro6 = GenomeModel(
-        genome_alias="ucsc_pantro6",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_panTro6.chrom.sizes",
+    ucsc_hg19 = GenomeModel(
+        genome_alias="ucsc_hg19",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_hg19.chrom.sizes",
     )
 
     ucsc_dm6 = GenomeModel(
         genome_alias="ucsc_dm6",
-        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ucsc_dm6.chrom.sizes",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_dm6.chrom.sizes",
+    )
+
+    ucsc_mm10 = GenomeModel(
+        genome_alias="ucsc_mm10",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_mm10.chrom.sizes",
+    )
+
+    ucsc_pantro6 = GenomeModel(
+        genome_alias="ucsc_pantro6",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_panTro6.chrom.sizes",
     )
 
     all_genome_models.append(ucsc_hg38)
     all_genome_models.append(ncbi_hg38)
+    all_genome_models.append(ucsc_mm10)
+    all_genome_models.append(ucsc_hg19)
     all_genome_models.append(ensembl_hg38)
     all_genome_models.append(ucsc_pantro6)
     all_genome_models.append(ucsc_dm6)
     # Create Validator Object
-    validator = RefValidator(genome_models=all_genome_models)
+    validator = ReferenceValidator(genome_models=all_genome_models)
 
     # Get BED files
     # LOCAL
@@ -127,14 +143,15 @@ def main():
             }  # add this to a column to make comparisons easier for human eyes on pephub
             all_vals = {}
             if compat_vector:
-                for i in compat_vector:
+                for i in compat_vector.keys():
                     if i is not None:
-                        for key, values in i.items():
-                            all_vals.update({key: values})
-                            if "compatibility" in values:
-                                tier["tier_rating"].update(
-                                    {key: values["compatibility"]}
-                                )
+                        all_vals.update({i: compat_vector[i].model_dump()})
+                        dict_to_check = compat_vector[i].model_dump()
+                        if "compatibility" in dict_to_check:
+                            tier["tier_rating"].update(
+                                {i: dict_to_check["compatibility"]}
+                            )
+
             all_vals.update(tier)
 
             # use pipestat to report to pephub and file backend
