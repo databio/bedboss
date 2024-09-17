@@ -3,6 +3,7 @@ import pandas as pd
 from geniml.io.utils import is_gzipped
 import logging
 
+from bedboss.exceptions import BedBossException
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -67,7 +68,7 @@ def _read_file_pd(*args, **kwargs) -> pd.DataFrame:
         except (pd.errors.ParserError, pd.errors.EmptyDataError) as _:
             if row_count <= max_rows:
                 row_count += 1
-    return _read_gzipped_file(*args)
+    raise BedfileReadException(reason="Cannot read bed file.")
 
 
 def get_bed_chrom_info(bedfile: str) -> dict:
@@ -84,3 +85,15 @@ def get_bed_chrom_info(bedfile: str) -> dict:
 
     max_end_for_each_chrom = df.groupby(0)[2].max()
     return max_end_for_each_chrom.to_dict()
+
+
+class BedfileReadException(BedBossException):
+    """Exception when there is an exception during refgenome validation"""
+
+    def __init__(self, reason: str = ""):
+        """
+        Optionally provide explanation for exceptional condition.
+
+        :param str reason: some context why error occurred
+        """
+        super(BedfileReadException, self).__init__(reason)

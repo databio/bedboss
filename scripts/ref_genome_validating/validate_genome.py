@@ -25,7 +25,8 @@ except:
     # BEDFILE_DIRECTORY = (
     #     "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
     # )
-    BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/bed_small_subset"
+    # BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/bed_small_subset"
+    BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/test_singles"
 
 try:
     PEP_URL = os.environ["PEP_URL"]
@@ -71,6 +72,11 @@ def main():
 
     # build genome models
     # for each reference genome in the user's config file, build a genome model
+
+    # from geniml.io import RegionSet
+    #
+    # ff =RegionSet("/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/test_singles/GSM8196564_435_RUNX3_KO_H3K27AC_v_435_ctrl_IgG_seacr.relaxed.bed")
+    # ff
 
     all_genome_models = []
 
@@ -213,7 +219,6 @@ def main():
                             tier = {
                                 "tier_rating": {}
                             }  # add this to a column to make comparisons easier for human eyes on pephub
-                            all_vals = {}
                             if compat_vector:
                                 for i in compat_vector.keys():
                                     if i is not None:
