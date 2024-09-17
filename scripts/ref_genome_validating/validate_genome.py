@@ -109,6 +109,11 @@ def main():
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_mm10.chrom.sizes",
     )
 
+    ucsc_mm39 = GenomeModel(
+        genome_alias="ucsc_mm10",
+        chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_mm39.chrom.sizes",
+    )
+
     ucsc_pantro6 = GenomeModel(
         genome_alias="ucsc_pantro6",
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_panTro6.chrom.sizes",
@@ -117,6 +122,7 @@ def main():
     all_genome_models.append(ucsc_hg38)
     all_genome_models.append(ncbi_hg38)
     all_genome_models.append(ucsc_mm10)
+    all_genome_models.append(ucsc_mm39)
     all_genome_models.append(ucsc_hg19)
     all_genome_models.append(ensembl_hg38)
     all_genome_models.append(ucsc_pantro6)

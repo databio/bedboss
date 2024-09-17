@@ -41,11 +41,32 @@ def _read_file_pd(*args, **kwargs) -> pd.DataFrame:
                     f"Skipped {row_count} rows while standardization. File: '{args}'"
                 )
             df = df.dropna(axis=1)
-            return df
+            for index, row in df.iterrows():
+                if (
+                    isinstance(row[0], str)
+                    and isinstance(row[1], int)
+                    and isinstance(row[2], int)
+                ):
+                    return df
+                else:
+                    if isinstance(row[1], str):
+                        try:
+                            _ = int(row[1])
+                            df[1] = pd.to_numeric(df[1])
+                        except Exception:
+                            row_count += 1
+                            break
+                    if isinstance(row[2], str):
+                        try:
+                            _ = int(row[2])
+                            df[2] = pd.to_numeric(df[2])
+                        except Exception:
+                            row_count += 1
+                            break
+                    return df
         except (pd.errors.ParserError, pd.errors.EmptyDataError) as _:
             if row_count <= max_rows:
                 row_count += 1
-        # if can't open file after 5 attempts try to open it with gzip
     return _read_gzipped_file(*args)
 
 
