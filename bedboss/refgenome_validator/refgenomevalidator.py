@@ -101,7 +101,7 @@ class ReferenceValidator:
         jaccard_binary = q_and_m / (q_and_m + not_q_and_m + q_and_not_m)
 
         # What is our threshold for passing layer 1?
-        if q_and_not_m > 1:
+        if q_and_not_m > 0:
             passed_chrom_names = False
 
         # Calculate sensitivity for chrom names

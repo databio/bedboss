@@ -46,28 +46,28 @@ SPECIES = "fly"
 def main():
     # Simple script to testing that the Validator objects is working correctly.
     # Set up Ref Genie
-    try:
-        ref_genie_config_path = os.environ["REFGENIE"]
-    except:
-        print("Ref genie environment variable not found")
-        # hard code for testing for now
-        ref_genie_config_path = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/genome_folder/genome_config.yaml"
-
-    # Ensure refgenie assets are built based on the provided config module
-    rgc = refgenconf.RefGenConf(filepath=ref_genie_config_path)
-    rgc.pull(
-        genome="hg38", asset="fasta", tag="default", force=False
-    )  # GCA_000001405.15 GRCh38_no_alt_analysis_set from NCBI
-    # rgc.pull(genome="hg38_primary", asset="fasta", tag="default", force=False) # UCSC primary chromosomes only
-    rgc.pull(
-        genome="hg19", asset="fasta", tag="default", force=False
-    )  # GRCh37 reference sequence from UCSC
-    rgc.pull(genome="mm10", asset="fasta", tag="default", force=False)
-    # rgc.pull(genome="dm6", asset="fasta", tag="default", force=False) #the ncbi chromosomes
-
-    genome_list = rgc.list()
-
-    print(genome_list)
+    # try:
+    #     ref_genie_config_path = os.environ["REFGENIE"]
+    # except:
+    #     print("Ref genie environment variable not found")
+    #     # hard code for testing for now
+    #     ref_genie_config_path = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/genome_folder/genome_config.yaml"
+    #
+    # # Ensure refgenie assets are built based on the provided config module
+    # rgc = refgenconf.RefGenConf(filepath=ref_genie_config_path)
+    # rgc.pull(
+    #     genome="hg38", asset="fasta", tag="default", force=False
+    # )  # GCA_000001405.15 GRCh38_no_alt_analysis_set from NCBI
+    # # rgc.pull(genome="hg38_primary", asset="fasta", tag="default", force=False) # UCSC primary chromosomes only
+    # rgc.pull(
+    #     genome="hg19", asset="fasta", tag="default", force=False
+    # )  # GRCh37 reference sequence from UCSC
+    # rgc.pull(genome="mm10", asset="fasta", tag="default", force=False)
+    # # rgc.pull(genome="dm6", asset="fasta", tag="default", force=False) #the ncbi chromosomes
+    #
+    # genome_list = rgc.list()
+    #
+    # print(genome_list)
 
     # build genome models
     # for each reference genome in the user's config file, build a genome model
@@ -110,7 +110,7 @@ def main():
     )
 
     ucsc_mm39 = GenomeModel(
-        genome_alias="ucsc_mm10",
+        genome_alias="ucsc_mm39",
         chrom_sizes_file="/home/drc/GITHUB/bedboss/bedboss/bedboss/refgenome_validator/chrom_sizes/ucsc_mm39.chrom.sizes",
     )
 
