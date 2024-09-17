@@ -1,6 +1,5 @@
 from typing import Optional, Union, List, Dict
 import os
-import pandas as pd
 import subprocess
 
 from bedboss.exceptions import ValidatorException
@@ -13,6 +12,7 @@ from bedboss.refgenome_validator.models import (
     RatingModel,
     CompatibilityConcise,
 )
+from bedboss.refgenome_validator.utils import get_bed_chrom_info
 
 try:
     IGD_LOCATION = os.environ["IGD_LOCATION"]
@@ -244,7 +244,7 @@ class ReferenceValidator:
             raise ValidatorException
 
         model_compat_stats = {}
-        final_compatibility_list = []
+
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
             model_compat_stats[genome_model.genome_alias]: CompatibilityStats = (
@@ -401,31 +401,6 @@ class ReferenceValidator:
             assigned_points=output.compatibility.assigned_points,
             tier_ranking=output.compatibility.tier_ranking,
         )
-
-
-# ----------------------------
-# Helper Functions
-def get_bed_chrom_info(bed_file_path: str) -> Union[dict, None]:
-    """
-    Given a path to a Bedfile. Attempt to open it and read it to find all of the chromosomes and the max length of each.
-
-    returns dict: returns dictionary where keys are chrom names and values are the max end position of that chromosome.
-    """
-
-    # Right now this assumes this is atleast a 3 column bedfile
-    # This also assumes the bed file has been unzipped
-
-    # TODO This code is overlapping with geniml io code and should be refactored in the future, ie move opening bed files to helper utils.
-
-    try:
-        df = pd.read_csv(bed_file_path, sep="\t", header=None, skiprows=5)
-
-        max_end_for_each_chrom = df.groupby(0)[2].max()
-
-        # return max end position for each chromosome
-        return max_end_for_each_chrom.to_dict()
-    except Exception:
-        return None
 
 
 def run_igd_command(command):
