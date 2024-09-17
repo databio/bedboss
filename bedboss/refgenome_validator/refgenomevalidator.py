@@ -1,4 +1,4 @@
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict
 import os
 import pandas as pd
 import subprocess
@@ -136,17 +136,17 @@ class ReferenceValidator:
             # Calculate recall/sensitivity for chrom lengths
             # defined as OOBR -> Out of Bounds Range
             sensitivity = num_chrom_within_bounds / (
-                    num_chrom_within_bounds + num_of_chrom_beyond
+                num_chrom_within_bounds + num_of_chrom_beyond
             )
             length_stats = ChromLengthStats(
                 oobr=sensitivity,
                 beyond_range=chroms_beyond_range,
-                num_of_chrm_beyond=num_of_chrom_beyond,
+                num_of_chrom_beyond=num_of_chrom_beyond,
                 percentage_bed_chrom_beyond=(
-                        100 * num_of_chrom_beyond / len(bed_chrom_set)
+                    100 * num_of_chrom_beyond / len(bed_chrom_set)
                 ),
                 percentage_genome_chrom_beyond=(
-                        100 * num_of_chrom_beyond / len(genome_chrom_set)
+                    100 * num_of_chrom_beyond / len(genome_chrom_set)
                 ),
             )
 
@@ -218,7 +218,7 @@ class ReferenceValidator:
         bedfile: str,
         ref_filter: Optional[List[str]] = None,
         concise: Optional[bool] = False,
-    ) -> Union[List[CompatibilityStats], List[CompatibilityConcise]]:
+    ) -> Union[Dict[str, CompatibilityStats], Dict[str, CompatibilityConcise]]:
         """
         Given a bedfile, determine compatibility with reference genomes (GenomeModels) created at Validator initialization.
 
@@ -241,7 +241,7 @@ class ReferenceValidator:
 
         if not bed_chrom_info:
             # if there is trouble parsing the bed file, return None
-            return None
+            raise ValidatorException
 
         model_compat_stats = {}
         final_compatibility_list = []
@@ -264,17 +264,18 @@ class ReferenceValidator:
                 )
 
             # Once all stats are collected, process them and add compatibility rating
-            model_compat_stats[genome_model.genome_alias].compatibility = self.calculate_rating(model_compat_stats[genome_model.genome_alias])
+            model_compat_stats[genome_model.genome_alias].compatibility = (
+                self.calculate_rating(model_compat_stats[genome_model.genome_alias])
+            )
 
-            if concise:
-                ...
+        if concise:
+            concise_dict = {}
+            for name, stats in model_compat_stats.items():
+                concise_dict[name] = self._create_concise_output(stats)
+
+            return concise_dict
 
         return model_compat_stats
-        # if concise:
-        #     # TODO just return XS, OOBR, SEQ FIT, COMPAT TIER
-        #     return final_compatibility_list
-        #
-        # return final_compatibility_list
 
     def calculate_rating(self, compat_stats: CompatibilityStats) -> RatingModel:
         """
@@ -345,7 +346,6 @@ class ReferenceValidator:
         if compat_stats.igd_stats and compat_stats.igd_stats != {}:
             self.process_igd_stats(compat_stats.igd_stats)
 
-
         tier_ranking = 0
         if points_rating == 0:
             tier_ranking = 1
@@ -361,10 +361,7 @@ class ReferenceValidator:
             )
             tier_ranking = 4
 
-        return RatingModel(
-            assigned_points=points_rating, tier_ranking=tier_ranking
-        )
-
+        return RatingModel(assigned_points=points_rating, tier_ranking=tier_ranking)
 
     def process_igd_stats(self, igd_stats: dict):
         """
@@ -394,6 +391,16 @@ class ReferenceValidator:
                     all_genome_models.append(curr_genome_model)
 
         return all_genome_models
+
+    @staticmethod
+    def _create_concise_output(output: CompatibilityStats) -> CompatibilityConcise:
+        return CompatibilityConcise(
+            xs=output.chrom_name_stats.xs,
+            oobr=output.chrom_length_stats.oobr,
+            sequence_fit=output.chrom_sequence_fit_stats.sequence_fit,
+            assigned_points=output.compatibility.assigned_points,
+            tier_ranking=output.compatibility.tier_ranking,
+        )
 
 
 # ----------------------------

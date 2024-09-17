@@ -44,4 +44,5 @@ class CompatibilityConcise(BaseModel):
     xs: float = 0.0
     oobr: Union[float, None] = None
     sequence_fit: Union[float, None] = None
-    compatibility: Union[RatingModel, None] = None
+    assigned_points: int
+    tier_ranking: int
