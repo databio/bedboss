@@ -31,16 +31,16 @@ try:
     PEP_URL = os.environ["PEP_URL"]
 except:
     # if you wish to report results to pephub
-    # PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
+    PEP_URL = "donaldcampbelljr/refgenome_compat_testing:default"
     # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
     # PEP_URL ="donaldcampbelljr/ref_genome_dros_only:default"
-    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
+    # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
 
 # Where to get Bedfiles?
-LOCAL = True
-GEOFETCH = False
-# SPECIES = "homosapiens"
-SPECIES = "fly"
+LOCAL = False
+GEOFETCH = True
+SPECIES = "homosapiens"
+# SPECIES = "fly"
 
 
 def main():
@@ -213,15 +213,19 @@ def main():
                             tier = {
                                 "tier_rating": {}
                             }  # add this to a column to make comparisons easier for human eyes on pephub
+                            all_vals = {}
                             if compat_vector:
-                                for i in compat_vector:
+                                for i in compat_vector.keys():
                                     if i is not None:
-                                        for key, values in i.items():
-                                            all_vals.update({key: values})
-                                            if "compatibility" in values:
-                                                tier["tier_rating"].update(
-                                                    {key: values["compatibility"]}
-                                                )
+                                        all_vals.update(
+                                            {i: compat_vector[i].model_dump()}
+                                        )
+                                        dict_to_check = compat_vector[i].model_dump()
+                                        if "compatibility" in dict_to_check:
+                                            tier["tier_rating"].update(
+                                                {i: dict_to_check["compatibility"]}
+                                            )
+
                             all_vals.update(tier)
 
                             # use pipestat to report to pephub and file backend
