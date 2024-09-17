@@ -25,8 +25,8 @@ except:
     # BEDFILE_DIRECTORY = (
     #     "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/results"
     # )
-    # BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/bed_small_subset"
-    BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/test_singles"
+    BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/bed_small_subset"
+    # BEDFILE_DIRECTORY = "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/data/test_singles"
 
 try:
     PEP_URL = os.environ["PEP_URL"]
@@ -38,8 +38,8 @@ except:
     # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
 
 # Where to get Bedfiles?
-LOCAL = False
-GEOFETCH = True
+LOCAL = True
+GEOFETCH = False
 SPECIES = "homosapiens"
 # SPECIES = "fly"
 

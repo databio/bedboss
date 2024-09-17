@@ -54,14 +54,14 @@ def _read_file_pd(*args, **kwargs) -> pd.DataFrame:
                         try:
                             _ = int(row[1])
                             df[1] = pd.to_numeric(df[1])
-                        except Exception:
+                        except ValueError:
                             row_count += 1
                             break
                     if isinstance(row[2], str):
                         try:
                             _ = int(row[2])
                             df[2] = pd.to_numeric(df[2])
-                        except Exception:
+                        except ValueError:
                             row_count += 1
                             break
                     return df
