@@ -9,12 +9,9 @@ FILE_PATH = f"{HG19_CORRECT_DIR}/sample1.bed.gz"
 
 
 def test_main():
-    # ff = ReferenceValidator().determine_compatibility(
-    #     FILE_PATH,
-    #     concise=True,
-    # )
-    ff = ReferenceValidator().determine_compatibility(
-        "/home/bnt4me/.bbcache/bedfiles/3/2/GSE244926_mm39_LPx6_oligofile.bed.gz",
+    dict_result = ReferenceValidator().determine_compatibility(
+        FILE_PATH,
         concise=True,
     )
-    ff
+
+    assert dict_result
