@@ -4,7 +4,7 @@ import os
 import refgenconf
 from pipestat import pipestat
 
-from bedboss.refgenome_validator.refgenomevalidator import (
+from bedboss.refgenome_validator.main import (
     ReferenceValidator,
     GenomeModel,
 )
