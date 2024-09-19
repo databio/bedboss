@@ -1,7 +1,6 @@
 # This script will be used to do standalone trials and tuning of the ref genome validator
 import json
 import os
-import refgenconf
 from pipestat import pipestat
 
 from bedboss.refgenome_validator.main import (
