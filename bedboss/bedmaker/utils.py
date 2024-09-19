@@ -22,7 +22,7 @@ def get_chrom_sizes(genome: str, rfg_config: Union[str, Path]) -> str:
     """
 
     _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
-    # initalizing refginie config file
+    # initializing refginie config file
     rgc = get_rgc(rfg_config=rfg_config)
 
     try:

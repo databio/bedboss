@@ -552,7 +552,7 @@ def convert_universe(
 def check_requirements():
     from bedboss.bedboss import requirements_check
 
-    print("Checking piplines requirements...")
+    print("Checking pipelines requirements...")
     requirements_check()
 
 

@@ -67,7 +67,7 @@ if (is.null(opt$json)) {
 #'
 #' Calculates how many regionsets (bedfiles) overlap at least said percentage 
 #' of regions included in the universe. The universe is considered a union of 
-#' all regionsets (bedfiles) in the colection of 
+#' all regionsets (bedfiles) in the collection of 
 #' regionsets (bedset, or set of bedfiles)
 #'
 #' @param queryList GRangesList object with regionsets to be considered
