@@ -41,6 +41,9 @@ def upload_all(
         True, help="Run skipped projects. [Default: False]"
     ),
     run_failed: bool = typer.Option(True, help="Run failed projects. [Default: False]"),
+    standardize_pep: bool = typer.Option(
+        False, help="Standardize pep with BEDMESS. [Default: False]"
+    ),
 ):
     from .main import upload_all as upload_all_function
 
@@ -57,6 +60,7 @@ def upload_all(
         rerun=rerun,
         run_skipped=run_skipped,
         run_failed=run_failed,
+        standardize_pep=standardize_pep,
     )
 
 
@@ -79,6 +83,9 @@ def upload_gse(
         True, help="Run skipped projects. [Default: False]"
     ),
     run_failed: bool = typer.Option(True, help="Run failed projects. [Default: False]"),
+    standardize_pep: bool = typer.Option(
+        False, help="Standardize pep with BEDMESS. [Default: False]"
+    ),
 ):
     from .main import upload_gse as upload_gse_function
 
@@ -91,6 +98,7 @@ def upload_gse(
         rerun=rerun,
         run_skipped=run_skipped,
         run_failed=run_failed,
+        standardize_pep=standardize_pep,
     )
 
 
