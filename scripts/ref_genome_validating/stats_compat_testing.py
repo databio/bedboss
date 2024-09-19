@@ -15,7 +15,8 @@ try:
     PEP_URL = os.environ["PEP_URL"]
 except:
     # pep url
-    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    # PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_small:default"
+    PEP_URL = "donaldcampbelljr/ref_genome_compat_testing_refactor:default"
 
 
 def main():
@@ -115,6 +116,7 @@ def extract_tier_ratings(df):
     ucsc_hg38_values = []
     ensembl_hg38_values = []
     ucsc_pantro6_values = []
+    ucsc_mm39_values = []
     for index, row in df.iterrows():
         (
             mm10_tier,
@@ -124,6 +126,7 @@ def extract_tier_ratings(df):
             ucsc_hg38_tier,
             ucsc_pantro6_tier,
             ensembl_hg38_tier,
+            ucsc_mm39_tier,
         ) = extract_values(row["tier_rating"])
         mm10_values.append(mm10_tier)
         ncbi_hg38_values.append(ncbi_hg38_tier)
@@ -132,6 +135,7 @@ def extract_tier_ratings(df):
         ucsc_hg38_values.append(ucsc_hg38_tier)
         ensembl_hg38_values.append(ensembl_hg38_tier)
         ucsc_pantro6_values.append(ucsc_pantro6_tier)
+        ucsc_mm39_values.append(ucsc_mm39_tier)
 
     # df_tiers.rename(columns={0: 'tier_rating'}, inplace=True)
     # df_tiers['mm10_tier'] = None
@@ -150,6 +154,7 @@ def extract_tier_ratings(df):
     df2["panTro6 UCSC"] = ucsc_pantro6_values
     df2["mm10 NCBI"] = mm10_values
     df2["dm6_UCSC"] = dm6_values
+    df2["ucsc_mm39"] = ucsc_mm39_values
 
     print(df2)
     df2.to_csv("/home/drc/Downloads/export_test.csv")
@@ -166,13 +171,14 @@ def extract_values(dictionary):
 
     dictionary = json.loads(dictionary)
 
-    mm10_tier = dictionary["mm10"]["tier_ranking"]
+    mm10_tier = dictionary["ucsc_mm10"]["tier_ranking"]
     ncbi_hg38_tier = dictionary["ncbi_hg38"]["tier_ranking"]
-    hg19_tier = dictionary["hg19"]["tier_ranking"]
+    hg19_tier = dictionary["ucsc_hg19"]["tier_ranking"]
     ucsc_dm6_tier = dictionary["ucsc_dm6"]["tier_ranking"]
     ucsc_hg38_tier = dictionary["ucsc_hg38"]["tier_ranking"]
     ensembl_hg38_tier = dictionary["ensembl_hg38"]["tier_ranking"]
     ucsc_pantro6_tier = dictionary["ucsc_pantro6"]["tier_ranking"]
+    ucsc_mm39_tier = dictionary["ucsc_mm39"]["tier_ranking"]
 
     return (
         mm10_tier,
@@ -182,6 +188,7 @@ def extract_values(dictionary):
         ucsc_hg38_tier,
         ucsc_pantro6_tier,
         ensembl_hg38_tier,
+        ucsc_mm39_tier,
     )
 
 
@@ -206,6 +213,7 @@ def create_heatmap(df):
         "Pan troglodytes (panTro6)",
         "Mus Musculus (mm10)",
         "Drosophila melanogaster (dm6)",
+        "Mus Musculus (mm39)",
     ]
 
     df.set_index(["sample_name", df.index], inplace=True)
@@ -230,8 +238,8 @@ def create_heatmap(df):
     colorbar.set_ticklabels(custom_labels)
     # plt.colorbar(ticks=4, label='Custom Label', ticklabels=custom_labels)
     plt.title("Tier Rating: Bed File vs Ref Genome")
-    plt.xlabel("Reference Genomes", fontsize=12)
-    plt.ylabel("Query Bed Files", fontsize=12)
+    plt.xlabel("Reference Genomes", fontsize=8)
+    plt.ylabel("Query Bed Files", fontsize=8)
     # plt.grid(True)
     plt.show()
 
