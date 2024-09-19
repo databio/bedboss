@@ -47,7 +47,7 @@ def pull_1000_bedfiles(filter, data_output_path):
     try:
         os.makedirs(data_output_path, exist_ok=True)
     except OSError:
-        print(f"Directory already exists, skipping...")
+        print("Directory already exists, skipping...")
 
     print(filter)
     print(data_output_path)

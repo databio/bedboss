@@ -194,7 +194,7 @@ class ReferenceValidator:
             IGD_LOCATION = os.environ["IGD_LOCATION"]
         except:
             # Local installation of C version of IGD
-            IGD_LOCATION = f"/home/drc/GITHUB/igd/IGD/bin/igd"
+            IGD_LOCATION = "/home/drc/GITHUB/igd/IGD/bin/igd"
 
         # Construct an IGD command to run as subprocess
         igd_command = IGD_LOCATION + f" search {self.igd_path} -q {bedfile}"
@@ -233,6 +233,8 @@ class ReferenceValidator:
         :return: a dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True)
         """
 
+        _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
+
         if ref_filter:
             # Filter out unwanted reference genomes to assess
             for genome_model in self.genome_models:
@@ -269,7 +271,6 @@ class ReferenceValidator:
             model_compat_stats[genome_model.genome_alias].compatibility = (
                 self.calculate_rating(model_compat_stats[genome_model.genome_alias])
             )
-
         if concise:
             concise_dict = {}
             for name, stats in model_compat_stats.items():

@@ -14,18 +14,17 @@ from eido import validate_project
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
 
-from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
-from bedboss.exceptions import BedBossException
 from bedboss.models import (
     BedClassificationUpload,
     FilesUpload,
     PlotsUpload,
     StatsUpload,
 )
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 from bedboss.utils import (
     standardize_genome_name,
@@ -62,6 +61,7 @@ def run_all(
     rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
+    validate_reference: bool = True,
     chrom_sizes: str = None,
     open_signal_matrix: str = None,
     ensdb: str = None,
@@ -91,6 +91,7 @@ def run_all(
     :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
         (transcription factor implies narrow, histone mark implies broad peaks) [optional]
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
+    :param bool validate_reference: set True to run genome reference validator
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
     :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
     :param dict other_metadata: a dict containing all attributes from the sample
@@ -195,6 +196,14 @@ def run_all(
         bed_format=bed_metadata.bed_format.value,
     )
 
+    if validate_reference:
+        _LOGGER.info("Validating reference genome")
+        ref_valid_stats = ReferenceValidator().determine_compatibility(
+            bedfile=bed_metadata.bed_file, concise=True
+        )
+    else:
+        ref_valid_stats = None
+
     bbagent.bed.add(
         identifier=bed_metadata.bed_digest,
         stats=stats.model_dump(exclude_unset=True),
@@ -202,6 +211,7 @@ def run_all(
         plots=plots.model_dump(exclude_unset=True),
         files=files.model_dump(exclude_unset=True),
         classification=classification.model_dump(exclude_unset=True),
+        ref_validation=ref_valid_stats,
         license_id=license_id,
         upload_qdrant=upload_qdrant,
         upload_pephub=upload_pephub,

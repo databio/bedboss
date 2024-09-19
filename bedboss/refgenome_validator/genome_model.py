@@ -1,8 +1,3 @@
-from typing import Optional, List
-
-import refgenconf
-
-
 class GenomeModel:
     """
         Initialize genome model
@@ -72,4 +67,4 @@ class GenomeModel:
         # We will probably have a singular .igd database that we will simply compare the bed file to, so this should probably
         # just filter results in a way to determine if there were any hits/not hits for this particular genome
 
-        raise NotImplemented()
+        raise NotImplementedError()

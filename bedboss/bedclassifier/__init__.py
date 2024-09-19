@@ -1,1 +1,0 @@
-from bedboss.bedclassifier.bedclassifier import get_bed_type

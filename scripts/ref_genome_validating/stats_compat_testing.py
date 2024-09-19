@@ -2,14 +2,11 @@
 # PEP : donaldcampbelljr/refgenome_compat_testing:default
 import copy
 import os
-import numpy as np
-import requests
 import pephubclient
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from scipy.cluster.hierarchy import linkage
 
 try:
     PEP_URL = os.environ["PEP_URL"]

@@ -307,6 +307,7 @@ def upload_gse(
                 sa_session=session,
                 gse_status_sa_model=gse_status,
                 standardize_pep=standardize_pep,
+                rerun=rerun,
             )
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
@@ -353,6 +354,7 @@ def _upload_gse(
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
     standardize_pep: bool = False,
+    rerun: bool = False,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -365,6 +367,7 @@ def _upload_gse(
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
     :param standardize_pep: standardize pep metadata using BEDMS
+    :param rerun: force overwrite data in the database
 
     :return: None
     """
@@ -444,7 +447,7 @@ def _upload_gse(
                 upload_pephub=True,
                 upload_s3=True,
                 upload_qdrant=True,
-                force_overwrite=False,
+                force_overwrite=rerun,
             )
             uploaded_files.append(file_digest)
             sample_status.status = STATUS.SUCCESS

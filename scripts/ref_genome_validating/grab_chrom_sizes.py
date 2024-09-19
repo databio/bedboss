@@ -1,7 +1,6 @@
 # This script exists because some chrom.sizes files have been hard to track down.
 # However, one can extract their own from the sequence files. Requires having downloaded a reference genome locally
 
-import os
 from Bio import SeqIO
 
 
