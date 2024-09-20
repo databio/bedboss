@@ -19,6 +19,8 @@ def standardize_genome_name(input_genome: str) -> str:
     we should use
     :return: genome name string
     """
+    if not input_genome:
+        return ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
