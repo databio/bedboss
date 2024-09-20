@@ -1,0 +1,23 @@
+title: IGD Exclude Ranges
+description: Output for IGD exclude ranges results
+type: object
+properties:
+  pipeline_name: "exclude_ranges_overlaps"
+  samples:
+    type: object
+    properties:
+      bed_type_from_geo:
+        type: string
+        description: ""
+      reported_ref_genome:
+        type: string
+        description: ""
+      geo_accession:
+        type: string
+        description: ""
+      reported_genome_build:
+        type: string
+        description: ""
+      reported_organism:
+        type: string
+        description: ""

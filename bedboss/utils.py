@@ -6,7 +6,7 @@ import requests
 from pephubclient.files_manager import FilesManager
 import peppy
 from peppy.const import SAMPLE_RAW_DICT_KEY
-from attribute_standardizer import AttrStandardizer
+from bedms import AttrStandardizer
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -137,7 +137,7 @@ def standardize_pep(
     """
     if standard_columns is None:
         standard_columns = ["library_source", "assay", "genome", "species_name"]
-    model = AttrStandardizer("BEDBASE")
+    model = AttrStandardizer(model)
     suggestions = model.standardize(pep)
 
     changes = {}
