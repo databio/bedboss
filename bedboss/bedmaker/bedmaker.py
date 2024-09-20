@@ -12,7 +12,7 @@ from geniml.io import RegionSet
 from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
-from bedboss.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedmaker.const import (
     BED_TO_BIGBED_PROGRAM,
     BEDGRAPH_TEMPLATE,

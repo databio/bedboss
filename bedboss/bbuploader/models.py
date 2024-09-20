@@ -5,12 +5,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class BedBossMetadata(BaseModel):
     genome: str = Field(None, alias="ref_genome")
-    organism: Optional[str] = Field("", alias="sample_organism_ch1")
+    species_name: Optional[str] = Field("", alias="sample_organism_ch1")
     species_id: Optional[str] = Field("", alias="sample_taxid_ch1")
     cell_type: Optional[str] = ""
     cell_line: Optional[str] = ""
     genotype: Optional[str] = ""
-    exp_protocol: Optional[str] = Field("", alias="sample_library_strategy")
+    assay: Optional[str] = Field("", alias="sample_library_strategy")
     library_source: Optional[str] = Field("", alias="sample_library_source")
     target: Optional[str] = Field("")
     antibody: Optional[str] = Field("", alias="chip_antibody")
