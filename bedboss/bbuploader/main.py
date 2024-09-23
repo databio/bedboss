@@ -6,6 +6,7 @@ import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from pephubclient import PEPHubClient
+from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
@@ -78,9 +79,14 @@ def upload_all(
     _LOGGER.info(f"found {pep_annotation_list.count} projects")
 
     count = 0
+    total_projects = len(pep_annotation_list.results)
     for gse_pep in pep_annotation_list.results:
+        count += 1
         with Session(bbagent.config.db_engine.engine) as session:
-            _LOGGER.info(f"Processing: '{gse_pep.name}'")
+            MessageHandler.print_success(f"{'##' * 30}")
+            MessageHandler.print_success(
+                f"#### Processing: '{gse_pep.name}'. #### Processing {count} / {total_projects}. ####"
+            )
 
             gse_status = session.scalar(
                 select(GeoGseStatus).where(GeoGseStatus.gse == gse_pep.name)
@@ -124,6 +130,7 @@ def upload_all(
                     sa_session=session,
                     gse_status_sa_model=gse_status,
                     standardize_pep=standardize_pep,
+                    rerun=rerun,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -136,7 +143,6 @@ def upload_all(
             status_parser(gse_status, upload_result)
             session.commit()
 
-            count += 1
             if count >= download_limit:
                 break
 

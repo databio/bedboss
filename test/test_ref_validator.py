@@ -1,6 +1,6 @@
 import os
 
-from bedboss.refgenome_validator import ReferenceValidator
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
