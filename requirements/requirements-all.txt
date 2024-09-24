@@ -1,5 +1,6 @@
 logmuse>=0.2.7
 coloredlogs>=15.0.1
+eido>=0.2.3
 peppy>=0.40.6
 yacman>=0.8.4
 requests>=2.28.2

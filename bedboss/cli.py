@@ -148,7 +148,7 @@ def run_pep(
         file_okay=True,
         readable=True,
     ),
-    create_bedset: bool = typer.Option(False, help="Create a new bedset"),
+    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
     bedset_heavy: bool = typer.Option(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
@@ -160,9 +160,9 @@ def run_pep(
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
-    upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
-    upload_s3: bool = typer.Option(False, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
+    upload_s3: bool = typer.Option(True, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
