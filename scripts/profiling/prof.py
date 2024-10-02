@@ -9,7 +9,7 @@ def runn():
             bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
             outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
             genome="hg38",
-            input_file="/test/data/bed/hg38/GSM6732293_Con_liver-IP2.bed",
+            input_file="/home/bnt4me/virginia/repos/bedboss/test/data/bed/hg38/GSM6732293_Con_liver-IP2.bed",
             input_type="bed",
             force_overwrite=True,
             upload_pephub=True,

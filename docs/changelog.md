@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Standardization of peps using bedbase bedms schema
 - Reference validator module
 
+## Fixed
+- Pipeline failures (due to pipeline manager)
+- Failure in cleaning temp files
+
 
 # [0.4.0] - 2024-08-26
 ## Added

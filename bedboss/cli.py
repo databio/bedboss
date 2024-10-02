@@ -15,7 +15,11 @@ app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=F
 
 
 def create_pm(
-    outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
+    outfolder: str,
+    multi: bool = False,
+    recover: bool = True,
+    dirty: bool = False,
+    pipeline_name: str = "bedboss-pipeline",
 ):
     import pypiper
 
@@ -23,7 +27,7 @@ def create_pm(
     pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
     pm: pypiper.PipelineManager = pypiper.PipelineManager(
-        name="bedboss-pipeline",
+        name=pipeline_name,
         outfolder=pm_out_folder,
         version=__version__,
         multi=multi,
@@ -199,6 +203,7 @@ def run_pep(
             multi=multi,
             recover=recover,
             dirty=dirty,
+            pipeline_name=pep.replace("/", "_").replace(":", "_"),
         ),
     )
 
