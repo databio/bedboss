@@ -1,12 +1,14 @@
 import logging
 import os
 import urllib.request
+import glob
 
 import requests
 from pephubclient.files_manager import FilesManager
 import peppy
 from peppy.const import SAMPLE_RAW_DICT_KEY
 from bedms import AttrStandardizer
+from pypiper import PipelineManager
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -167,3 +169,23 @@ def standardize_pep(
             del raw_pep[SAMPLE_RAW_DICT_KEY][original_key]
 
     return peppy.Project.from_dict(raw_pep)
+
+
+def cleanup_pm_temp(pm: PipelineManager) -> None:
+    """
+    Cleanup temporary files from the PipelineManager
+
+    :param pm: PipelineManager
+    """
+    if len(pm.cleanup_list_conditional) > 0:
+        for cleandir in pm.cleanup_list_conditional:
+            try:
+                items_to_clean = glob.glob(cleandir)
+                for clean_item in items_to_clean:
+                    if os.path.isfile(clean_item):
+                        os.remove(clean_item)
+                    elif os.path.isdir(clean_item):
+                        os.rmdir(clean_item)
+            except Exception as e:
+                _LOGGER.error(f"Error cleaning up: {e}")
+        pm.cleanup_list_conditional = []

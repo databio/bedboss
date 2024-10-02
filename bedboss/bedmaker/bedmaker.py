@@ -27,6 +27,7 @@ from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import BedBossException, RequirementsException
+from bedboss.utils import cleanup_pm_temp
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -102,6 +103,7 @@ def make_bigbed(
                 _LOGGER.info(f"Running: {cmd}")
                 pm.run(cmd, big_bed_path, nofail=False)
             except Exception as err:
+                cleanup_pm_temp(pm)
                 raise BedBossException(
                     f"Fail to generating bigBed files for {bed_path}: "
                     f"unable to validate genome assembly with Refgenie. "
@@ -120,12 +122,12 @@ def make_bigbed(
             try:
                 pm.run(cmd, big_bed_path, nofail=True)
             except Exception as err:
+                cleanup_pm_temp(pm)
                 _LOGGER.info(
                     f"Fail to generating bigBed files for {bed_path}: "
                     f"unable to validate genome assembly with Refgenie. "
                     f"Error: {err}"
                 )
-        pm._cleanup()
     if pm_clean:
         pm.stop_pipeline()
     return big_bed_path
@@ -367,7 +369,7 @@ def make_all(
         narrowpeak=narrowpeak,
         rfg_config=rfg_config,
         chrom_sizes=chrom_sizes,
-        pm=None,
+        pm=pm,
     )
     bed_type, bed_format = get_bed_type(output_bed)
     if check_qc:

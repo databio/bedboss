@@ -146,7 +146,7 @@ def run_all(
         pm=pm,
     )
     if not other_metadata:
-        other_metadata = {}
+        other_metadata = {"sample_name": name}
 
     statistics_dict = bedstat(
         bedfile=bed_metadata.bed_file,
