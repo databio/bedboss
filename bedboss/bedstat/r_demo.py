@@ -1,8 +1,8 @@
-
 import subprocess
 import socket
 import signal
 import os
+
 
 class RServiceManager:
     """
@@ -14,6 +14,7 @@ class RServiceManager:
         port (int): Port number for the socket connection.
         process (subprocess.Popen): The process running the R service.
     """
+
     def __init__(self, r_script_path="tools/r-service.R", host="127.0.0.1", port=8888):
         """
         Initializes the RServiceManager with the given R script path, host, and port.
@@ -27,6 +28,7 @@ class RServiceManager:
         self.host = host
         self.port = port
         self.process = None
+
     def start_service(self):
         """
         Starts the R service by running the R script in a subprocess.
@@ -34,6 +36,7 @@ class RServiceManager:
         cmd = ["Rscript", self.r_script_path]
         self.process = subprocess.Popen(cmd, shell=False, preexec_fn=os.setsid)
         print(f"Running R process with PID: {self.process.pid}")
+
     def run_file(self, file_path):
         """
         Sends a file path to the R service for processing.
@@ -48,6 +51,7 @@ class RServiceManager:
             s.close()
         except ConnectionRefusedError:
             print("Connection refused. Make sure the R service is running.")
+
     def terminate_service(self):
         """
         Terminates the R service by sending a termination signal and ensuring the process is stopped.
@@ -76,4 +80,3 @@ rsm.run_file("../../test/data/bed/simpleexamples/bed1.bed")
 
 # After the pipeline finishes, terminate the R service
 rsm.terminate_service()
-
