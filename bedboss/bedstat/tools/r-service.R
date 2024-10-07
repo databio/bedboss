@@ -1,3 +1,4 @@
+# This function should run the process
 processBED = function(path, client, port) {
 	message("Processing BED file: ", path)
 	if (path == "done") {  # Secret shutdown signal
