@@ -6,6 +6,7 @@ import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from pephubclient import PEPHubClient
+from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
@@ -19,7 +20,7 @@ from bedboss.bbuploader.models import (
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
-from bedboss.utils import standardize_genome_name
+from bedboss.utils import standardize_genome_name, standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -36,8 +37,9 @@ def upload_all(
     genome: str = None,
     create_bedset: bool = True,
     rerun: bool = False,
-    run_skipped=False,
-    run_failed=True,
+    run_skipped: bool = False,
+    run_failed: bool = True,
+    standardize_pep: bool = False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -54,6 +56,7 @@ def upload_all(
     :param rerun: rerun processing of the series
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
+    :param standardize_pep: standardize pep metadata using BEDMS
     """
 
     phc = PEPHubClient()
@@ -76,10 +79,14 @@ def upload_all(
     _LOGGER.info(f"found {pep_annotation_list.count} projects")
 
     count = 0
+    total_projects = len(pep_annotation_list.results)
     for gse_pep in pep_annotation_list.results:
-
+        count += 1
         with Session(bbagent.config.db_engine.engine) as session:
-            _LOGGER.info(f"Processing: '{gse_pep.name}'")
+            MessageHandler.print_success(f"{'##' * 30}")
+            MessageHandler.print_success(
+                f"#### Processing: '{gse_pep.name}'. #### Processing {count} / {total_projects}. ####"
+            )
 
             gse_status = session.scalar(
                 select(GeoGseStatus).where(GeoGseStatus.gse == gse_pep.name)
@@ -122,6 +129,8 @@ def upload_all(
                     genome=genome,
                     sa_session=session,
                     gse_status_sa_model=gse_status,
+                    standardize_pep=standardize_pep,
+                    rerun=rerun,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -134,7 +143,6 @@ def upload_all(
             status_parser(gse_status, upload_result)
             session.commit()
 
-            count += 1
             if count >= download_limit:
                 break
 
@@ -244,8 +252,9 @@ def upload_gse(
     create_bedset: bool = True,
     genome: str = None,
     rerun: bool = False,
-    run_skipped=False,
-    run_failed=True,
+    run_skipped: bool = False,
+    run_failed: bool = True,
+    standardize_pep: bool = False,
 ):
     """
     Upload bed files from GEO series to BedBase
@@ -258,6 +267,7 @@ def upload_gse(
     :param rerun: rerun processing of the series
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
+    :param standardize_pep: standardize pep metadata using BEDMS
 
     :return: None
     """
@@ -302,6 +312,8 @@ def upload_gse(
                 genome=genome,
                 sa_session=session,
                 gse_status_sa_model=gse_status,
+                standardize_pep=standardize_pep,
+                rerun=rerun,
             )
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
@@ -347,6 +359,8 @@ def _upload_gse(
     genome: str = None,
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
+    standardize_pep: bool = False,
+    rerun: bool = False,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -358,6 +372,8 @@ def _upload_gse(
     :param genome: reference genome to upload to database. If None, all genomes will be processed
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
+    :param standardize_pep: standardize pep metadata using BEDMS
+    :param rerun: force overwrite data in the database
 
     :return: None
     """
@@ -371,12 +387,14 @@ def _upload_gse(
 
     project = phc.load_project(f"bedbase/{gse}:{DEFAULT_GEO_TAG}")
 
+    if standardize_pep:
+        project = pep_standardizer(project)
+
     project_status = ProjectProcessingStatus(number_of_samples=len(project.samples))
     uploaded_files = []
     gse_status_sa_model.number_of_files = len(project.samples)
     sa_session.commit()
     for project_sample in project.samples:
-
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
 
         required_metadata = process_pep_sample(
@@ -435,7 +453,7 @@ def _upload_gse(
                 upload_pephub=True,
                 upload_s3=True,
                 upload_qdrant=True,
-                force_overwrite=False,
+                force_overwrite=rerun,
             )
             uploaded_files.append(file_digest)
             sample_status.status = STATUS.SUCCESS
@@ -449,7 +467,6 @@ def _upload_gse(
         sa_session.commit()
 
     if create_bedset and uploaded_files:
-
         _LOGGER.info(f"Creating bedset for: '{gse}'")
         run_bedbuncher(
             bedbase_config=bedbase_config,
@@ -470,41 +487,3 @@ def _upload_gse(
 
     _LOGGER.info(f"Processing of '{gse}' is finished with success!")
     return project_status
-
-
-#
-# if __name__ == "__main__":
-#     # upload_gse(
-#     #     # gse="gse246900",
-#     #     # gse="gse247593",
-#     #     # gse="gse241222",
-#     #     #gse="gse266130",
-#     #     gse="gse99178",
-#     #     # gse="gse240325", # TODO: check if qc works
-#     #     # gse="gse229592", # mice
-#     #     bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
-#     #     outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
-#     #     # genome="HG38",
-#     #     # rerun=True,
-#     #     run_failed=True,
-#     #     run_skipped=True,
-#     # )
-#     upload_all(
-#         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
-#         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
-#         start_date="2024/01/21",
-#         end_date="2024/08/28",
-#         search_limit=2,
-#         search_offset=0,
-#         genome="GRCh38",
-#         rerun=True,
-#     )
-# # upload_all(
-# #     bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
-# #     outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
-# #     start_date="2024/01/01",
-# #     # end_date="2024/03/28",
-# #     search_limit=200,
-# #     search_offset=0,
-# #     genome="GRCh38",
-# # )

@@ -60,3 +60,15 @@ class BedTypeException(BedBossException):
         using Open Signal Matrix
         """
         super(BedTypeException, self).__init__(reason)
+
+
+class ValidatorException(BedBossException):
+    """Exception when there is an exception during refgenome validation"""
+
+    def __init__(self, reason: str = ""):
+        """
+        Optionally provide explanation for exceptional condition.
+
+        :param str reason: some context why error occurred
+        """
+        super(BedTypeException, self).__init__(reason)

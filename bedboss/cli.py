@@ -15,7 +15,11 @@ app = typer.Typer(pretty_exceptions_short=False, pretty_exceptions_show_locals=F
 
 
 def create_pm(
-    outfolder: str, multi: bool = False, recover: bool = True, dirty: bool = False
+    outfolder: str,
+    multi: bool = False,
+    recover: bool = True,
+    dirty: bool = False,
+    pipeline_name: str = "bedboss-pipeline",
 ):
     import pypiper
 
@@ -23,7 +27,7 @@ def create_pm(
     pm_out_folder = os.path.join(pm_out_folder, "pipeline_manager")
 
     pm: pypiper.PipelineManager = pypiper.PipelineManager(
-        name="bedboss-pipeline",
+        name=pipeline_name,
         outfolder=pm_out_folder,
         version=__version__,
         multi=multi,
@@ -148,7 +152,7 @@ def run_pep(
         file_okay=True,
         readable=True,
     ),
-    create_bedset: bool = typer.Option(False, help="Create a new bedset"),
+    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
     bedset_heavy: bool = typer.Option(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
@@ -160,11 +164,12 @@ def run_pep(
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
-    upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
-    upload_s3: bool = typer.Option(False, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
+    upload_s3: bool = typer.Option(True, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
+    standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -192,11 +197,13 @@ def run_pep(
         upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
+        standardize_pep=standardize_pep,
         pm=create_pm(
             outfolder=outfolder,
             multi=multi,
             recover=recover,
             dirty=dirty,
+            pipeline_name=pep.replace("/", "_").replace(":", "_"),
         ),
     )
 
@@ -552,8 +559,21 @@ def convert_universe(
 def check_requirements():
     from bedboss.bedboss import requirements_check
 
-    print("Checking piplines requirements...")
+    print("Checking pipelines requirements...")
     requirements_check()
+
+
+@app.command(help="Install R dependencies")
+def install_requirements():
+    import subprocess
+
+    r_path = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), "installRdeps.R")
+    )
+
+    subprocess.run(
+        ["Rscript", r_path],
+    )
 
 
 @app.callback()

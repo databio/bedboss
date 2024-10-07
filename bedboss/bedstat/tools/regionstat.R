@@ -314,7 +314,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
     ) 
   }
   
-  # QThist plot
+  # QThis plot
   if (exists("bedmeta")){
     if ("mean_region_width" %in% names(bedmeta)){
       run_plot = FALSE
