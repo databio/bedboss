@@ -387,7 +387,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   } else {
     bedmeta = list(
       name=fileId,
-      regions_no=length(query),
+      number_of_regions=length(query),
       mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
       md5sum=opt$digest
     )
