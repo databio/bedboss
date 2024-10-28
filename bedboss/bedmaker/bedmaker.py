@@ -105,9 +105,7 @@ def make_bigbed(
             except Exception as err:
                 cleanup_pm_temp(pm)
                 raise BedBossException(
-                    f"Fail to generating bigBed files for {bed_path}: "
-                    f"unable to validate genome assembly with Refgenie. "
-                    f"Error: {err}"
+                    f"Fail to generating bigBed files for {bed_path}: " f"Error: {err}"
                 )
         else:
             cmd = (

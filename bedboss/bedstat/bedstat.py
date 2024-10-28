@@ -94,15 +94,16 @@ def bedstat(
     except FileExistsError:
         pass
 
+    # TODO: osm commented to speed up code
     # find/download open signal matrix
-    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-        try:
-            open_signal_matrix = get_osm_path(genome)
-        except OpenSignalMatrixException:
-            _LOGGER.warning(
-                f"Open Signal Matrix was not found for {genome}. Skipping..."
-            )
-            open_signal_matrix = None
+    # if not open_signal_matrix or not os.path.exists(open_signal_matrix):
+    #     try:
+    #         open_signal_matrix = get_osm_path(genome)
+    #     except OpenSignalMatrixException:
+    #         _LOGGER.warning(
+    #             f"Open Signal Matrix was not found for {genome}. Skipping..."
+    #         )
+    open_signal_matrix = None
 
     # Used to stop pipeline bedstat is used independently
     if not pm:
@@ -112,19 +113,17 @@ def bedstat(
 
     if not bed_digest:
         bed_digest = RegionSet(bedfile).identifier
-    bedfile_name = os.path.split(bedfile)[1]
 
-    fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     outfolder_stats_results = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
     try:
         os.makedirs(outfolder_stats_results)
     except FileExistsError:
         pass
     json_file_path = os.path.abspath(
-        os.path.join(outfolder_stats_results, fileid + ".json")
+        os.path.join(outfolder_stats_results, bed_digest + ".json")
     )
     json_plots_file_path = os.path.abspath(
-        os.path.join(outfolder_stats_results, fileid + "_plots.json")
+        os.path.join(outfolder_stats_results, bed_digest + "_plots.json")
     )
     if not just_db_commit:
         if not pm:
@@ -152,7 +151,7 @@ def bedstat(
         )
         command = (
             f"Rscript {rscript_path} --bedfilePath={bedfile} "
-            f"--fileId={fileid} --openSignalMatrix={open_signal_matrix} "
+            f"--fileId={bed_digest} --openSignalMatrix={open_signal_matrix} "
             f"--outputFolder={outfolder_stats_results} --genome={genome} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
