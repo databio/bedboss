@@ -309,10 +309,12 @@ def insert_pep(
 
     for i, pep_sample in enumerate(pep.samples):
 
-        if skipper.is_processed(pep_sample.sample_name):
-            m.print_success(f"Skipping {pep_sample.sample_name}. Already processed.")
-            # _LOGGER.info(f"Skipping {pep_sample.sample_name}. Already processed.")
-            processed_ids.append(pep_sample.sample_name)
+        is_processed = skipper.is_processed(pep_sample.sample_name)
+        if is_processed:
+            m.print_success(
+                f"Skipping {pep_sample.sample_name} : {is_processed}. Already processed."
+            )
+            processed_ids.append(is_processed)
             continue
 
         m.print_success(f"Processing sample {i + 1}/{len(pep.samples)}")
