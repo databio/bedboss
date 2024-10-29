@@ -1,13 +1,13 @@
+import glob
 import logging
 import os
 import urllib.request
-import glob
 
-import requests
-from pephubclient.files_manager import FilesManager
 import peppy
-from peppy.const import SAMPLE_RAW_DICT_KEY
+import requests
 from bedms import AttrStandardizer
+from pephubclient.files_manager import FilesManager
+from peppy.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
 _LOGGER = logging.getLogger("bedboss")

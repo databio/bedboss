@@ -20,7 +20,8 @@ from bedboss.bbuploader.models import (
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
-from bedboss.utils import standardize_genome_name, standardize_pep as pep_standardizer
+from bedboss.utils import standardize_genome_name
+from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)

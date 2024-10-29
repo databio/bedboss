@@ -1,22 +1,22 @@
-from typing import Optional, Union, List, Dict
+import logging
 import os
+from typing import Dict, List, Optional, Union
 
 from bedboss.exceptions import ValidatorException
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.models import (
-    ChromNameStats,
     ChromLengthStats,
-    SequenceFitStats,
+    ChromNameStats,
+    CompatibilityConcise,
     CompatibilityStats,
     RatingModel,
-    CompatibilityConcise,
+    SequenceFitStats,
 )
 from bedboss.refgenome_validator.utils import (
     get_bed_chrom_info,
-    run_igd_command,
     parse_IGD_output,
+    run_igd_command,
 )
-import logging
 
 _LOGGER = logging.getLogger("bedboss")
 

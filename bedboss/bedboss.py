@@ -14,10 +14,12 @@ from eido import validate_project
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
 
+from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
+from bedboss.exceptions import BedBossException
 from bedboss.models import (
     BedClassificationUpload,
     FilesUpload,
@@ -25,15 +27,8 @@ from bedboss.models import (
     StatsUpload,
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
-
-from bedboss.utils import (
-    standardize_genome_name,
-    get_genome_digest,
-    standardize_pep as pep_standardizer,
-)
-from bedboss.exceptions import BedBossException
-from bedboss._version import __version__
-
+from bedboss.utils import get_genome_digest, standardize_genome_name
+from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -156,6 +151,7 @@ def run_all(
         bed_digest=bed_metadata.bed_digest,
         open_signal_matrix=open_signal_matrix,
         just_db_commit=just_db_commit,
+        rfg_config=rfg_config,
         pm=pm,
     )
     statistics_dict["bed_type"] = bed_metadata.bed_type

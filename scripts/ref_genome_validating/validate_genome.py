@@ -1,15 +1,13 @@
 # This script will be used to do standalone trials and tuning of the ref genome validator
 import json
 import os
+
 from pipestat import pipestat
 
-from bedboss.refgenome_validator.main import (
-    ReferenceValidator,
-    GenomeModel,
-)
-
 # helper utils
-from process_exclude_ranges import unzip_bedfile, get_samples, MAX_SAMPLES
+from process_exclude_ranges import MAX_SAMPLES, get_samples, unzip_bedfile
+
+from bedboss.refgenome_validator.main import GenomeModel, ReferenceValidator
 
 try:
     IGD_DB_PATH = os.environ["IGD_DB_PATH"]

@@ -1,4 +1,5 @@
 import typer
+
 from bedboss._version import __version__
 
 app_bbuploader = typer.Typer(

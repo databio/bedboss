@@ -6,8 +6,8 @@ import gzip
 import os
 import shutil
 import subprocess
-import pipestat
 
+import pipestat
 from geofetch import Geofetcher
 
 # assumes user has built the igd database and has igd(c) installed locally

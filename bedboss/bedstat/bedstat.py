@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+import statistics
+from pathlib import Path
 from typing import Union
 
 import pypiper
 from geniml.io import RegionSet
 
+from bedboss.bedstat.gc_content import calculate_gc_content, create_gc_plot
 from bedboss.const import (
     BEDSTAT_OUTPUT,
     HOME_PATH,
@@ -70,6 +73,7 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
+    rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
 ) -> dict:
     """
@@ -82,6 +86,8 @@ def bedstat(
         required for the tissue specificity plots
     :param str outfolder: The folder for storing the pipeline results.
     :param str genome: genome assembly of the sample
+    :param bool just_db_commit: if True, the pipeline will only commit to the database
+    :param str rfg_config: path to the refgenie config file
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
     :param pm: pypiper object
@@ -176,6 +182,23 @@ def bedstat(
     # length 1 and force keys to lower to correspond with the
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+
+    gc_contents = calculate_gc_content(
+        bedfile=bedfile, genome=genome, rfg_config=rfg_config
+    )
+
+    if gc_contents:
+        gc_mean = statistics.mean(gc_contents)
+
+        data["gc_content"] = round(gc_mean, 2)
+
+        gc_plot = create_gc_plot(
+            bed_id=bed_digest,
+            gc_contents=gc_contents,
+            outfolder=os.path.join(outfolder_stats_results),
+            gc_mean=gc_mean,
+        )
+        plots.append(gc_plot)
 
     for plot in plots:
         plot_id = plot["name"]

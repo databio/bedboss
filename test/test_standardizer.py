@@ -1,6 +1,7 @@
-from bedboss.utils import standardize_pep
 import peppy
 import pytest
+
+from bedboss.utils import standardize_pep
 
 
 # @pytest.mark.skip(reason="Not for automatic testing")
