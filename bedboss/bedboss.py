@@ -20,6 +20,7 @@ from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
 from bedboss.exceptions import BedBossException
+from bedboss.skipper import Skipper
 from bedboss.models import (
     BedClassificationUpload,
     FilesUpload,
@@ -250,6 +251,7 @@ def insert_pep(
     upload_qdrant: bool = False,
     no_fail: bool = False,
     standardize_pep: bool = False,
+    rerun: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
@@ -276,6 +278,7 @@ def insert_pep(
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
     :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
+    :param bool rerun: whether to rerun processed samples
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -299,7 +302,19 @@ def insert_pep(
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
+    skipper = Skipper(output_folder, pep.name)
+
+    if rerun:
+        skipper.reinitialize()
+
     for i, pep_sample in enumerate(pep.samples):
+
+        if skipper.is_processed(pep_sample.sample_name):
+            m.print_success(f"Skipping {pep_sample.sample_name}. Already processed.")
+            # _LOGGER.info(f"Skipping {pep_sample.sample_name}. Already processed.")
+            processed_ids.append(pep_sample.sample_name)
+            continue
+
         m.print_success(f"Processing sample {i + 1}/{len(pep.samples)}")
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
         if pep_sample.get("file_type"):
@@ -337,9 +352,12 @@ def insert_pep(
             )
 
             processed_ids.append(bed_id)
+            skipper.add_processed(pep_sample.sample_name, bed_id, success=True)
+
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
             failed_samples.append(pep_sample.sample_name)
+            skipper.add_failed(pep_sample.sample_name, f"{e}")
 
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")

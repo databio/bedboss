@@ -59,10 +59,8 @@ def get_genome_assembly_obj(
     :return: assembly object
     """
     if genome in assembly_objects:
-        print("##### I HAVE THE ASSEMBLY OBJECT!!!!!!!!!!!")
         return assembly_objects[genome]
     else:
-        print("##### I DO NOT HAVE THE ASSEMBLY OBJECT?????????/}}}}}}}}}")
         try:
             assembly_objects[genome] = GenomeAssembly(
                 get_genome_fasta_file(genome, rfg_config=rfg_config)
