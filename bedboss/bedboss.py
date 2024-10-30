@@ -26,6 +26,7 @@ from bedboss.models import (
     FilesUpload,
     PlotsUpload,
     StatsUpload,
+    BedSetAnnotations,
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.utils import get_genome_digest, standardize_genome_name
@@ -302,6 +303,7 @@ def insert_pep(
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
+    bedset_annotation = BedSetAnnotations(**pep.config).model_dump()
     skipper = Skipper(output_folder, pep.name)
 
     if rerun:
@@ -375,6 +377,7 @@ def insert_pep(
             upload_s3=upload_s3,
             no_fail=no_fail,
             force_overwrite=force_overwrite,
+            annotation=bedset_annotation,
         )
     else:
         _LOGGER.info(

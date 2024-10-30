@@ -95,6 +95,7 @@ def run_bedbuncher(
     output_folder: str,
     name: str = None,
     description: str = None,
+    annotation: dict = None,
     heavy: bool = False,
     upload_pephub: bool = False,
     upload_s3: bool = False,
@@ -110,6 +111,7 @@ def run_bedbuncher(
     :param output_folder: path to the output folder
     :param bed_set: Bedset object or list of bedfiles ids
     :param description: Bedset description
+    :param annotation: Bedset annotation (author, source)
     :param heavy: whether to use heavy processing (add all columns to the database).
         if False -> R-script won't be executed, only basic statistics will be calculated
     :param no_fail: whether to raise an error if bedset was not added to the database
@@ -159,6 +161,7 @@ def run_bedbuncher(
         local_path=output_folder,
         no_fail=no_fail,
         overwrite=force_overwrite,
+        annotation=annotation,
     )
 
 
