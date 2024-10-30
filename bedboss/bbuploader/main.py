@@ -183,7 +183,7 @@ def process_pep_sample(
     return BedBossRequired(
         sample_name=bed_sample.sample_name,
         file_path=bed_sample.file_url,
-        ref_genome=standardize_genome_name(bed_sample.ref_genome),
+        ref_genome=standardize_genome_name(bed_sample.ref_genome, bed_sample.file_url),
         type=file_type,
         narrowpeak=is_narrowpeak,
         pep=project_metadata,

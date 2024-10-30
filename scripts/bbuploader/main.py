@@ -26,5 +26,27 @@ def runn():
     # rf
 
 
+def test_another_test():
+    from bedboss.bbuploader.main import upload_gse
+
+    upload_gse(
+        # gse="gse246900",
+        # gse="gse247593",
+        # gse="gse241222",
+        # gse="gse266130",
+        gse="gse209627",
+        # gse="gse240325", # TODO: check if qc works
+        # gse="gse229592", # mice
+        bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+        outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
+        # genome="HG38",
+        rerun=True,
+        run_failed=True,
+        run_skipped=True,
+    )
+
+
 if __name__ == "__main__":
-    runn()
+    # runn()
+
+    test_another_test()

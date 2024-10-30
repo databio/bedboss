@@ -113,7 +113,7 @@ def run_all(
     else:
         raise BedBossException("Incorrect bedbase_config type. Exiting...")
 
-    genome = standardize_genome_name(genome)
+    genome = standardize_genome_name(genome, bedfile=input_file)
 
     _LOGGER.info(f"Input file = '{input_file}'")
     _LOGGER.info(f"Output folder = '{outfolder}'")

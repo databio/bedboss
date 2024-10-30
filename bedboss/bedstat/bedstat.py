@@ -182,10 +182,12 @@ def bedstat(
     # length 1 and force keys to lower to correspond with the
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
-
-    gc_contents = calculate_gc_content(
-        bedfile=bedfile, genome=genome, rfg_config=rfg_config
-    )
+    try:
+        gc_contents = calculate_gc_content(
+            bedfile=bedfile, genome=genome, rfg_config=rfg_config
+        )
+    except BaseException as e:
+        gc_contents = None
 
     if gc_contents:
         gc_mean = statistics.mean(gc_contents)
