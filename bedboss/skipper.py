@@ -47,6 +47,7 @@ class Skipper:
 
         :param file_path: path to the log file
         """
+        print("# CREATING LOGGG FILE FOR THE FIRST TIME")
         with open(file_path, "w") as file:
             file.write("")
 
