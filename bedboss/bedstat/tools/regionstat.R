@@ -118,6 +118,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   } else {
     run_plot = TRUE
   }
+  query_new = GenomeInfoDb::keepStandardChromosomes(query, pruning.mode="coarse")
   if (run_plot){
     tryCatch(
       expr = {
@@ -125,11 +126,11 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Ensembl annotation gtf file not provided. Skipping TSS distance plot ... ")
         } else{
           if (genome %in% c("hg19", "hg38", "mm10", "mm9")) {
-            TSSdist = calcFeatureDistRefTSS(query, genome)
+            TSSdist = calcFeatureDistRefTSS(query_new, genome)
             plotBoth("tss_distance", plotFeatureDist( TSSdist, featureName="TSS"))
           } else {
             tss = getTssFromGTF(gtffile, TRUE)
-            TSSdist = calcFeatureDist(query, tss)
+            TSSdist = calcFeatureDist(query_new, tss)
             plotBoth("tss_distance", plotFeatureDist( TSSdist, featureName="TSS"))
           }
         }
@@ -146,9 +147,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       }
     )
   }
-  
-  
-  
+
   # Chromosomes region distribution plot
   if (!exists("bedmeta") ){
     tryCatch(

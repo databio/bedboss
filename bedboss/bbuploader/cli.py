@@ -45,6 +45,13 @@ def upload_all(
     standardize_pep: bool = typer.Option(
         False, help="Standardize pep with BEDMESS. [Default: False]"
     ),
+    use_skipper: bool = typer.Option(
+        True,
+        help="Use skipper to skip projects if they were processed locally [Default: False]",
+    ),
+    reinit_skipper: bool = typer.Option(
+        False, help="Reinitialize skipper. [Default: False]"
+    ),
 ):
     from .main import upload_all as upload_all_function
 
@@ -62,6 +69,8 @@ def upload_all(
         run_skipped=run_skipped,
         run_failed=run_failed,
         standardize_pep=standardize_pep,
+        use_skipper=use_skipper,
+        reinit_skipper=reinit_skipper,
     )
 
 
@@ -87,6 +96,13 @@ def upload_gse(
     standardize_pep: bool = typer.Option(
         False, help="Standardize pep with BEDMESS. [Default: False]"
     ),
+    use_skipper: bool = typer.Option(
+        True,
+        help="Use skipper to skip projects if they were processed locally [Default: False]",
+    ),
+    reinit_skipper: bool = typer.Option(
+        False, help="Reinitialize skipper. [Default: False]"
+    ),
 ):
     from .main import upload_gse as upload_gse_function
 
@@ -100,6 +116,8 @@ def upload_gse(
         run_skipped=run_skipped,
         run_failed=run_failed,
         standardize_pep=standardize_pep,
+        use_skipper=use_skipper,
+        reinit_skipper=reinit_skipper,
     )
 
 

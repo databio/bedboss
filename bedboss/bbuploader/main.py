@@ -22,6 +22,7 @@ from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
 from bedboss.utils import standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
+from bedboss.skipper import Skipper
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -41,6 +42,8 @@ def upload_all(
     run_skipped: bool = False,
     run_failed: bool = True,
     standardize_pep: bool = False,
+    use_skipper=True,
+    reinit_skipper=False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -58,6 +61,9 @@ def upload_all(
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
     :param standardize_pep: standardize pep metadata using BEDMS
+    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
+        and failed files.
+    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
     """
 
     phc = PEPHubClient()
@@ -132,6 +138,8 @@ def upload_all(
                     gse_status_sa_model=gse_status,
                     standardize_pep=standardize_pep,
                     rerun=rerun,
+                    use_skipper=use_skipper,
+                    reinit_skipper=reinit_skipper,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -256,6 +264,8 @@ def upload_gse(
     run_skipped: bool = False,
     run_failed: bool = True,
     standardize_pep: bool = False,
+    use_skipper=True,
+    reinit_skipper=False,
 ):
     """
     Upload bed files from GEO series to BedBase
@@ -269,6 +279,9 @@ def upload_gse(
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
     :param standardize_pep: standardize pep metadata using BEDMS
+    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
+        and failed files.
+    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
 
     :return: None
     """
@@ -315,6 +328,8 @@ def upload_gse(
                 gse_status_sa_model=gse_status,
                 standardize_pep=standardize_pep,
                 rerun=rerun,
+                use_skipper=use_skipper,
+                reinit_skipper=reinit_skipper,
             )
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
@@ -362,6 +377,8 @@ def _upload_gse(
     gse_status_sa_model: GeoGseStatus = None,
     standardize_pep: bool = False,
     rerun: bool = False,
+    use_skipper: bool = True,
+    reinit_skipper: bool = False,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -375,6 +392,9 @@ def _upload_gse(
     :param gse_status_sa_model: sqlalchemy model for project status
     :param standardize_pep: standardize pep metadata using BEDMS
     :param rerun: force overwrite data in the database
+    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
+        and failed files.
+    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
 
     :return: None
     """
@@ -395,8 +415,33 @@ def _upload_gse(
     uploaded_files = []
     gse_status_sa_model.number_of_files = len(project.samples)
     sa_session.commit()
-    for project_sample in project.samples:
+
+    total_sample_number = len(project.samples)
+
+    if use_skipper:
+        skipper_obj = Skipper(output_path=outfolder, name=gse)
+        if reinit_skipper:
+            skipper_obj.reinitialize()
+        _LOGGER.info(f"Skipper initialized for: '{gse}'")
+    else:
+        skipper_obj = None
+
+    for counter, project_sample in enumerate(project.samples):
+        _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
+
+        # if int(project_sample.get("file_size") or 0) > 10000000:
+        #     _LOGGER.info(f"Skipping: '{sample_gsm}' - file size is too big")
+        #     project_status.number_of_skipped += 1
+        #     skipper_obj.add_failed(sample_gsm, f"File size is too big. {int(project_sample.get('file_size'))/1000000} MB")
+        #     continue
+
+        if skipper_obj:
+            is_processed = skipper_obj.is_processed(sample_gsm)
+            if is_processed:
+                _LOGGER.info(f"Skipping: '{sample_gsm}' - already processed")
+                uploaded_files.append(is_processed)
+                continue
 
         required_metadata = process_pep_sample(
             bed_sample=project_sample,
@@ -457,6 +502,8 @@ def _upload_gse(
                 force_overwrite=rerun,
             )
             uploaded_files.append(file_digest)
+            if skipper_obj:
+                skipper_obj.add_processed(sample_gsm, file_digest)
             sample_status.status = STATUS.SUCCESS
             project_status.number_of_processed += 1
 
@@ -464,6 +511,9 @@ def _upload_gse(
             sample_status.status = STATUS.FAIL
             sample_status.error = str(exc)
             project_status.number_of_failed += 1
+
+            if skipper_obj:
+                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
 
         sa_session.commit()
 
@@ -476,7 +526,7 @@ def _upload_gse(
             output_folder=os.path.join(outfolder, "outputs"),
             name=gse,
             description=project.description,
-            heavy=True,
+            heavy=False,
             upload_pephub=True,
             upload_s3=True,
             no_fail=True,
