@@ -157,7 +157,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           genomeBins  = getGenomeBins(chromSizes)
           plotBoth("chrombins", plotChromBins(calcChromBins(query, genomeBins)))
         } else{
-          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query, genome)))
+          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query_new, genome)))
         }
         
         plots = rbind(plots, getPlotReportDF("chrombins", "Regions distribution over chromosomes"))

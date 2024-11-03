@@ -13,3 +13,4 @@ ubiquerg>=0.6.2
 bedms>=0.1.0
 pephubclient>=0.4.4
 geniml[ml]>=0.4.2
+gdrs>=0.1.0

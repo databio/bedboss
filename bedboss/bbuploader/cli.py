@@ -37,7 +37,7 @@ def upload_all(
     create_bedset: bool = typer.Option(
         True, help="Create bedset from bed files. [Default: True]"
     ),
-    rerun: bool = typer.Option(True, help="Re-run all the samples. [Default: False]"),
+    rerun: bool = typer.Option(False, help="Re-run all the samples. [Default: False]"),
     run_skipped: bool = typer.Option(
         True, help="Run skipped projects. [Default: False]"
     ),
