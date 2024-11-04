@@ -12,8 +12,6 @@ class Skipper:
         self.file_path = os.path.join(output_path, f"{name}.log")
         self.file_fail_log_path = os.path.join(output_path, f"{name}_fail.log")
 
-        print(f"SKIPPER: LOG FILE PATH: {self.file_path}")
-
         self.info = self._read_log_file(self.file_path)
 
     def is_processed(self, sample_name: str) -> Union[str, bool]:
@@ -49,7 +47,6 @@ class Skipper:
 
         :param file_path: path to the log file
         """
-        print("# CREATING LOGGG FILE FOR THE FIRST TIME")
         with open(file_path, "w") as file:
             file.write("")
 
