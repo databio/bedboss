@@ -432,6 +432,11 @@ class ReferenceValidator:
             if prediction.tier_ranking == 1:
                 best_rankings.append(genome)
 
+        if len(best_rankings) == 0:
+            for genome, prediction in compatibility_stats.items():
+                if prediction.tier_ranking == 2:
+                    best_rankings.append(genome)
+
         if len(best_rankings) == 1:
             return GENOME_FILES.get(best_rankings[0])
         return None

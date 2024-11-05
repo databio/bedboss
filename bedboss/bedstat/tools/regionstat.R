@@ -133,13 +133,14 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
             TSSdist = calcFeatureDist(query_new, tss)
             plotBoth("tss_distance", plotFeatureDist( TSSdist, featureName="TSS"))
           }
+          plots = rbind(plots, getPlotReportDF("tss_distance", "Region-TSS distance distribution"))
+          message("Successfully calculated and plot TSS distance.")
         }
         if (exists("bedmeta")){
           tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
           bedmeta = append(bedmeta, tss)
         }
-        plots = rbind(plots, getPlotReportDF("tss_distance", "Region-TSS distance distribution"))
-        message("Successfully calculated and plot TSS distance.")
+
       },
       error = function(e){
         message('Caught an error in creating: TSS distance plot!')
