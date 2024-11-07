@@ -36,8 +36,10 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
         return "hg38"
     elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
-    elif input_genome == "mm10":
+    elif input_genome == "mm10" or input_genome == "grcm38":
         return "mm10"
+    elif input_genome == "mm9" or input_genome == "grcm37":
+        return "mm9"
     # else:
     #     raise GenomeException("Incorrect genome assembly was provided")
     else:
