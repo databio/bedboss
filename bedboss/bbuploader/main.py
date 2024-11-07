@@ -530,7 +530,7 @@ def _upload_gse(
             upload_pephub=True,
             upload_s3=True,
             no_fail=True,
-            force_overwrite=False,
+            force_overwrite=rerun,
         )
 
     else:
