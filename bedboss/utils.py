@@ -24,7 +24,7 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     :param bedfile: path to bed file
     :return: genome name string
     """
-    if not input_genome or len(input_genome) > 8:
+    if not input_genome or len(input_genome) > 10:
         if bedfile:
             predictor = ReferenceValidator()
             return predictor.predict(bedfile) or ""

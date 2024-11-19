@@ -44,7 +44,7 @@ def upload_all(
         False, help="Overwrite existing bedfiles. [Default: False]"
     ),
     overwrite_bedset: bool = typer.Option(
-        False, help="Overwrite existing bedset. [Default: False]"
+        True, help="Overwrite existing bedset. [Default: False]"
     ),
     rerun: bool = typer.Option(False, help="Re-run all the samples. [Default: False]"),
     run_skipped: bool = typer.Option(
