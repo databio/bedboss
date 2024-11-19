@@ -1,6 +1,6 @@
 PKG_NAME = "bbuploader"
 
-FILE_FOLDER_NAME = "files"
+FILE_FOLDER_NAME = "geo_files"
 
 DEFAULT_GEO_TAG = "samples"
 

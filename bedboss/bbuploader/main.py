@@ -8,6 +8,7 @@ from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
+from setuptools.command.egg_info import overwrite_arg
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
@@ -21,8 +22,10 @@ from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
 from bedboss.utils import standardize_genome_name
-from bedboss.utils import standardize_pep as pep_standardizer
+from bedboss.utils import standardize_pep as pep_standardizer, download_file
 from bedboss.skipper import Skipper
+from bedboss.bbuploader.constants import FILE_FOLDER_NAME
+from bedboss.bbuploader.utils import create_gsm_sub_name
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -38,12 +41,15 @@ def upload_all(
     download_limit: int = 100,
     genome: str = None,
     create_bedset: bool = True,
+    preload=True,
     rerun: bool = False,
     run_skipped: bool = False,
     run_failed: bool = True,
     standardize_pep: bool = False,
     use_skipper=True,
     reinit_skipper=False,
+    overwrite=False,
+    overwrite_bedset=False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -57,9 +63,10 @@ def upload_all(
     :param download_limit: limit of GSE projects to be downloaded (used for testing purposes) [Default: 100]
     :param genome: reference genome [Default: None] (e.g. hg38) - if None, all genomes will be processed
     :param create_bedset: create bedset from bed files
-    :param rerun: rerun processing of the series
-    :param run_skipped: rerun files that were skipped
-    :param run_failed: rerun failed files
+    :param preload: pre - download files to the local folder (used for faster reproducibility)
+    :param rerun: rerun processing of the series. Used in logging system. If you want to reupload file use overwrite
+    :param run_skipped: rerun files that were skipped. Used in logging system. If you want to reupload file use overwrite
+    :param run_failed: rerun failed files. Used in logging system. If you want to reupload file use overwrite
     :param standardize_pep: standardize pep metadata using BEDMS
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
         and failed files.
@@ -137,9 +144,12 @@ def upload_all(
                     sa_session=session,
                     gse_status_sa_model=gse_status,
                     standardize_pep=standardize_pep,
-                    rerun=rerun,
+                    # rerun=rerun,
                     use_skipper=use_skipper,
                     reinit_skipper=reinit_skipper,
+                    preload=preload,
+                    overwrite=overwrite,
+                    overwrite_bedset=overwrite_bedset,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -260,12 +270,15 @@ def upload_gse(
     outfolder: str = os.getcwd(),
     create_bedset: bool = True,
     genome: str = None,
+    preload: bool = True,
     rerun: bool = False,
     run_skipped: bool = False,
     run_failed: bool = True,
     standardize_pep: bool = False,
     use_skipper=True,
     reinit_skipper=False,
+    overwrite=False,
+    overwrite_bedset=False,
 ):
     """
     Upload bed files from GEO series to BedBase
@@ -275,6 +288,7 @@ def upload_gse(
     :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
     :param create_bedset: create bedset from bed files
     :param genome: reference genome to upload to database. If None, all genomes will be processed
+    :param preload: pre - download files to the local folder (used for faster reproducibility)
     :param rerun: rerun processing of the series
     :param run_skipped: rerun files that were skipped
     :param run_failed: rerun failed files
@@ -282,6 +296,8 @@ def upload_gse(
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
         and failed files.
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
+    :param overwrite: overwrite existing bedfiles
+    :param overwrite_bedset: overwrite existing bedset
 
     :return: None
     """
@@ -327,7 +343,9 @@ def upload_gse(
                 sa_session=session,
                 gse_status_sa_model=gse_status,
                 standardize_pep=standardize_pep,
-                rerun=rerun,
+                preload=preload,
+                overwrite=overwrite,
+                overwrite_bedset=overwrite_bedset,
                 use_skipper=use_skipper,
                 reinit_skipper=reinit_skipper,
             )
@@ -376,9 +394,11 @@ def _upload_gse(
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
     standardize_pep: bool = False,
-    rerun: bool = False,
+    overwrite: bool = False,
+    overwrite_bedset: bool = False,
     use_skipper: bool = True,
     reinit_skipper: bool = False,
+    preload: bool = True,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -391,11 +411,12 @@ def _upload_gse(
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
     :param standardize_pep: standardize pep metadata using BEDMS
-    :param rerun: force overwrite data in the database
+    :param overwrite: overwrite existing bedfiles
+    :param overwrite_bedset: overwrite existing bedset
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
         and failed files.
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
-
+    :param preload: pre - download files to the local folder (used for faster reproducibility)
     :return: None
     """
     if isinstance(bedbase_config, str):
@@ -486,10 +507,21 @@ def _upload_gse(
         sample_status.status = STATUS.PROCESSING
         sa_session.commit()
 
+        if preload:
+            gsm_folder = create_gsm_sub_name(sample_gsm)
+            files_path = os.path.join(outfolder, FILE_FOLDER_NAME, gsm_folder)
+            os.makedirs(files_path, exist_ok=True)
+            file_abs_path = os.path.abspath(
+                os.path.join(files_path, project_sample.file)
+            )
+            download_file(project_sample.file_url, file_abs_path, no_fail=True)
+        else:
+            file_abs_path = required_metadata.file_path
+
         try:
             file_digest = run_all(
                 name=required_metadata.title,
-                input_file=required_metadata.file_path,
+                input_file=file_abs_path,
                 input_type=required_metadata.type,
                 outfolder=os.path.join(outfolder, "outputs"),
                 genome=required_metadata.ref_genome,
@@ -499,7 +531,7 @@ def _upload_gse(
                 upload_pephub=True,
                 upload_s3=True,
                 upload_qdrant=True,
-                force_overwrite=rerun,
+                force_overwrite=overwrite,
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
@@ -530,7 +562,7 @@ def _upload_gse(
             upload_pephub=True,
             upload_s3=True,
             no_fail=True,
-            force_overwrite=rerun,
+            force_overwrite=overwrite_bedset,
         )
 
     else:
