@@ -20,15 +20,15 @@ from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
 from bedboss.exceptions import BedBossException
-from bedboss.skipper import Skipper
 from bedboss.models import (
     BedClassificationUpload,
+    BedSetAnnotations,
     FilesUpload,
     PlotsUpload,
     StatsUpload,
-    BedSetAnnotations,
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
+from bedboss.skipper import Skipper
 from bedboss.utils import get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
 
@@ -113,7 +113,7 @@ def run_all(
     else:
         raise BedBossException("Incorrect bedbase_config type. Exiting...")
 
-    genome = standardize_genome_name(genome, bedfile=input_file)
+    genome = standardize_genome_name(genome)
 
     _LOGGER.info(f"Input file = '{input_file}'")
     _LOGGER.info(f"Output folder = '{outfolder}'")

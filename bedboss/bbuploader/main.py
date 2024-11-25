@@ -12,20 +12,24 @@ from setuptools.command.egg_info import overwrite_arg
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from bedboss.bbuploader.constants import DEFAULT_GEO_TAG, PKG_NAME, STATUS
+from bedboss.bbuploader.constants import (
+    DEFAULT_GEO_TAG,
+    FILE_FOLDER_NAME,
+    PKG_NAME,
+    STATUS,
+)
 from bedboss.bbuploader.models import (
     BedBossMetadata,
     BedBossRequired,
     ProjectProcessingStatus,
 )
+from bedboss.bbuploader.utils import create_gsm_sub_name
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
-from bedboss.utils import standardize_genome_name
-from bedboss.utils import standardize_pep as pep_standardizer, download_file
 from bedboss.skipper import Skipper
-from bedboss.bbuploader.constants import FILE_FOLDER_NAME
-from bedboss.bbuploader.utils import create_gsm_sub_name
+from bedboss.utils import download_file, standardize_genome_name
+from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -201,7 +205,7 @@ def process_pep_sample(
     return BedBossRequired(
         sample_name=bed_sample.sample_name,
         file_path=bed_sample.file_url,
-        ref_genome=standardize_genome_name(bed_sample.ref_genome, bed_sample.file_url),
+        ref_genome=bed_sample.ref_genome,
         type=file_type,
         narrowpeak=is_narrowpeak,
         pep=project_metadata,
@@ -336,7 +340,7 @@ def upload_gse(
         try:
             upload_result = _upload_gse(
                 gse=gse,
-                bedbase_config=bedbase_config,
+                bedbase_config=bbagent,
                 outfolder=outfolder,
                 create_bedset=create_bedset,
                 genome=genome,
@@ -517,6 +521,10 @@ def _upload_gse(
             download_file(project_sample.file_url, file_abs_path, no_fail=True)
         else:
             file_abs_path = required_metadata.file_path
+
+        required_metadata.ref_genome = standardize_genome_name(
+            required_metadata.ref_genome, file_abs_path
+        )
 
         try:
             file_digest = run_all(

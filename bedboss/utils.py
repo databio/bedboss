@@ -24,12 +24,6 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     :param bedfile: path to bed file
     :return: genome name string
     """
-    if not input_genome or len(input_genome) > 10:
-        if bedfile:
-            predictor = ReferenceValidator()
-            return predictor.predict(bedfile) or ""
-        else:
-            return input_genome
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
@@ -40,6 +34,13 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
         return "mm10"
     elif input_genome == "mm9" or input_genome == "grcm37":
         return "mm9"
+
+    elif not input_genome or len(input_genome) > 10:
+        if bedfile:
+            predictor = ReferenceValidator()
+            return predictor.predict(bedfile) or ""
+        else:
+            return input_genome
     # else:
     #     raise GenomeException("Incorrect genome assembly was provided")
     else:

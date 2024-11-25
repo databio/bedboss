@@ -1,6 +1,6 @@
 # This module will serve to skip samples that were already processed.
-from typing import Union
 import os
+from typing import Union
 
 
 class Skipper:

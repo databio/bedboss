@@ -3,6 +3,7 @@ import os
 from typing import Dict, List, Optional, Union
 
 from bedboss.exceptions import ValidatorException
+from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.models import (
     ChromLengthStats,
@@ -12,7 +13,6 @@ from bedboss.refgenome_validator.models import (
     RatingModel,
     SequenceFitStats,
 )
-from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.utils import (
     get_bed_chrom_info,
     parse_IGD_output,
@@ -422,6 +422,8 @@ class ReferenceValidator:
 
         :return: sring with the name of the reference genome that the bed file is compatible with or None, if no compatibility is found
         """
+
+        _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
         compatibility_stats: Dict[str, CompatibilityConcise] = (
             self.determine_compatibility(bedfile, concise=True)
         )

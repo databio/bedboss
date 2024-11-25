@@ -30,7 +30,8 @@ def another_test():
     from bedboss.bbuploader.main import upload_gse
 
     upload_gse(
-        gse="gse218680",
+        # gse="gse261411",
+        gse="gse261536",
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
@@ -45,6 +46,7 @@ def another_test():
         rerun=True,
         run_failed=True,
         run_skipped=True,
+        reinit_skipper=True,
     )
 
 
@@ -68,5 +70,5 @@ def upload_time():
 if __name__ == "__main__":
     # runn()
 
-    # another_test()
-    upload_time()
+    another_test()
+    # upload_time()
