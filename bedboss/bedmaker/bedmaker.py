@@ -315,6 +315,7 @@ def make_all(
     chrom_sizes: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
+    light: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> BedMakerOutput:
     """
@@ -338,6 +339,7 @@ def make_all(
     :param narrowpeak: whether the regions are narrow (transcription factor
                        implies narrow, histone mark implies broad peaks)
     :param check_qc: run quality control during bedmaking
+    :param light: run the pipeline in light mode (without producing bigBed files)
     :param pm: pypiper object
 
     :return: dict with generated bed metadata - BedMakerOutput object:
@@ -382,15 +384,19 @@ def make_all(
                 f"Quality control failed for {output_path}. Error: {e}"
             )
     try:
-        output_bigbed = make_bigbed(
-            bed_path=output_bed,
-            output_path=output_path,
-            genome=genome,
-            bed_type=bed_type,
-            rfg_config=rfg_config,
-            chrom_sizes=chrom_sizes,
-            pm=pm,
-        )
+        if light:
+            _LOGGER.info("Skipping bigBed generation due to light mode.")
+            output_bigbed = None
+        else:
+            output_bigbed = make_bigbed(
+                bed_path=output_bed,
+                output_path=output_path,
+                genome=genome,
+                bed_type=bed_type,
+                rfg_config=rfg_config,
+                chrom_sizes=chrom_sizes,
+                pm=pm,
+            )
     except BedBossException:
         output_bigbed = None
     if pm_clean:

@@ -142,6 +142,7 @@ def run_all(
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
+        light=light,
         pm=pm,
     )
     if not other_metadata:
