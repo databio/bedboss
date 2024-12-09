@@ -5,7 +5,6 @@ from Bio import SeqIO
 
 
 def main():
-
     # file_path = "/home/drc/Downloads/ncbi_ref_genome/ncbi_dataset/GCF_000001405.40_GRCh38.p14_genomic.fa"
     file_path = "/home/drc/Downloads/backup ref genome/GCA_000001405.29.fasta"
     FastaFile = open(file_path, "r")
@@ -14,7 +13,6 @@ def main():
         "/home/drc/GITHUB/bedboss/bedboss/scripts/ref_genome_validating/chrom_sizes/ensembl_hg38.chrom.sizes",
         "w",
     ) as file:
-
         for rec in SeqIO.parse(FastaFile, "fasta"):
             name = rec.id
             seq = rec.seq

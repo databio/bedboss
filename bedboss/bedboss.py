@@ -68,6 +68,7 @@ def run_all(
     upload_qdrant: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
+    light: bool = False,
     # Universes
     universe: bool = False,
     universe_method: str = None,
@@ -99,6 +100,7 @@ def run_all(
     :param bool upload_qdrant: whether to skip qdrant indexing
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
+    :param bool light: whether to run light version of the pipeline
 
     :param bool universe: whether to add the sample as the universe [Default: False]
     :param str universe_method: method used to create the universe [Default: None]
@@ -145,17 +147,20 @@ def run_all(
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
-    statistics_dict = bedstat(
-        bedfile=bed_metadata.bed_file,
-        outfolder=outfolder,
-        genome=genome,
-        ensdb=ensdb,
-        bed_digest=bed_metadata.bed_digest,
-        open_signal_matrix=open_signal_matrix,
-        just_db_commit=just_db_commit,
-        rfg_config=rfg_config,
-        pm=pm,
-    )
+    if light:
+        statistics_dict = {}
+    else:
+        statistics_dict = bedstat(
+            bedfile=bed_metadata.bed_file,
+            outfolder=outfolder,
+            genome=genome,
+            ensdb=ensdb,
+            bed_digest=bed_metadata.bed_digest,
+            open_signal_matrix=open_signal_matrix,
+            just_db_commit=just_db_commit,
+            rfg_config=rfg_config,
+            pm=pm,
+        )
     statistics_dict["bed_type"] = bed_metadata.bed_type
     statistics_dict["bed_format"] = bed_metadata.bed_format.value
 
@@ -211,11 +216,12 @@ def run_all(
         classification=classification.model_dump(exclude_unset=True),
         ref_validation=ref_valid_stats,
         license_id=license_id,
-        upload_qdrant=upload_qdrant,
+        upload_qdrant=upload_qdrant and not light,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         local_path=outfolder,
         overwrite=force_overwrite,
+        processed=not light,
         nofail=True,
     )
 
@@ -310,7 +316,6 @@ def insert_pep(
         skipper.reinitialize()
 
     for i, pep_sample in enumerate(pep.samples):
-
         is_processed = skipper.is_processed(pep_sample.sample_name)
         if is_processed:
             m.print_success(

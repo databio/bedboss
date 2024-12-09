@@ -251,8 +251,10 @@ class ReferenceValidator:
 
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.genome_alias]: CompatibilityStats = (
-                self.calculate_chrom_stats(bed_chrom_info, genome_model.chrom_sizes)
+            model_compat_stats[
+                genome_model.genome_alias
+            ]: CompatibilityStats = self.calculate_chrom_stats(
+                bed_chrom_info, genome_model.chrom_sizes
             )
 
             # Third layer - IGD, only if layer 1 and layer 2 have passed
@@ -264,13 +266,15 @@ class ReferenceValidator:
                     genome_model.genome_alias
                 ].chrom_length_stats.beyond_range
             ):
-                model_compat_stats[genome_model.genome_alias].igd_stats = (
-                    self.get_igd_overlaps(bedfile)
-                )
+                model_compat_stats[
+                    genome_model.genome_alias
+                ].igd_stats = self.get_igd_overlaps(bedfile)
 
             # Calculate compatibility rating
-            model_compat_stats[genome_model.genome_alias].compatibility = (
-                self.calculate_rating(model_compat_stats[genome_model.genome_alias])
+            model_compat_stats[
+                genome_model.genome_alias
+            ].compatibility = self.calculate_rating(
+                model_compat_stats[genome_model.genome_alias]
             )
         if concise:
             concise_dict = {}
@@ -424,9 +428,9 @@ class ReferenceValidator:
         """
 
         _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
-        compatibility_stats: Dict[str, CompatibilityConcise] = (
-            self.determine_compatibility(bedfile, concise=True)
-        )
+        compatibility_stats: Dict[
+            str, CompatibilityConcise
+        ] = self.determine_compatibility(bedfile, concise=True)
 
         best_rankings = []
 

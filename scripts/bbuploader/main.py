@@ -29,9 +29,14 @@ def runn():
 def another_test():
     from bedboss.bbuploader.main import upload_gse
 
+    # time it:
+    import time
+
+    time1 = time.time()
     upload_gse(
         # gse="gse261411",
-        gse="gse261536",
+        # gse="gse261536",
+        gse="gse274130",
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
@@ -47,7 +52,10 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
+        light=True,
     )
+    time2 = time.time()
+    print(f"Time taken: {time2 - time1}")
 
 
 def upload_time():

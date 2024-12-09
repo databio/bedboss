@@ -4,7 +4,6 @@ from typing import Union
 
 
 class Skipper:
-
     def __init__(self, output_path: str, name: str):
         self.output_path = output_path
         self.name = name
