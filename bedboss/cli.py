@@ -89,6 +89,9 @@ def run_all(
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
+    light: bool = typer.Option(
+        False, help="Run the pipeline in light mode. [Default: False]"
+    ),
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
@@ -129,6 +132,7 @@ def run_all(
         open_signal_matrix=open_signal_matrix,
         ensdb=ensdb,
         other_metadata=None,
+        light=light,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
         upload_qdrant=upload_qdrant,
@@ -170,6 +174,9 @@ def run_pep(
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
+    light: bool = typer.Option(
+        False, help="Run the pipeline in light mode. [Default: False]"
+    ),
     rerun: bool = typer.Option(False, help="Rerun already processed samples"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
@@ -199,6 +206,7 @@ def run_pep(
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
         standardize_pep=standardize_pep,
+        light=light,
         rerun=rerun,
         pm=create_pm(
             outfolder=outfolder,

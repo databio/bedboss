@@ -61,6 +61,9 @@ def upload_all(
     reinit_skipper: bool = typer.Option(
         False, help="Reinitialize skipper. [Default: False]"
     ),
+    light: bool = typer.Option(
+        False, help="Run the pipeline in light mode. [Default: False]"
+    ),
 ):
     from .main import upload_all as upload_all_function
 
@@ -83,6 +86,7 @@ def upload_all(
         reinit_skipper=reinit_skipper,
         overwrite=overwrite,
         overwrite_bedset=overwrite_bedset,
+        light=light,
     )
 
 

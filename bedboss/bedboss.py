@@ -95,12 +95,12 @@ def run_all(
     :param dict other_metadata: a dict containing all attributes from the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
-    :param bool just_db_commit: whether just to commit the JSON to the database (default: False)
-    :param bool force_overwrite: force overwrite analysis (default: False)
-    :param bool upload_qdrant: whether to skip qdrant indexing
+    :param bool just_db_commit: whether just to commit the JSON to the database [Default: False]
+    :param bool force_overwrite: force overwrite analysis [Default: False]
+    :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
     :param bool upload_s3: whether to upload to s3
-    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
-    :param bool light: whether to run light version of the pipeline
+    :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
+    :param bool light: whether to run light version of the pipeline [Default: False]
 
     :param bool universe: whether to add the sample as the universe [Default: False]
     :param str universe_method: method used to create the universe [Default: None]
@@ -109,7 +109,7 @@ def run_all(
     :return str bed_digest: bed digest
     """
     if isinstance(bedbase_config, str):
-        bbagent = BedBaseAgent(bedbase_config)
+        bbagent = BedBaseAgent(config=bedbase_config, init_ml=not light)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
         bbagent = bedbase_config
     else:
@@ -259,6 +259,7 @@ def insert_pep(
     upload_qdrant: bool = False,
     no_fail: bool = False,
     standardize_pep: bool = False,
+    light: bool = False,
     rerun: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
@@ -285,6 +286,7 @@ def insert_pep(
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
+    :param bool light: whether to run light version of the pipeline
     :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
     :param bool rerun: whether to rerun processed samples
     :param pypiper.PipelineManager pm: pypiper object
@@ -358,6 +360,7 @@ def insert_pep(
                 universe=pep_sample.get("universe"),
                 universe_method=pep_sample.get("universe_method"),
                 universe_bedset=pep_sample.get("universe_bedset"),
+                light=light,
                 pm=pm,
             )
 
@@ -384,6 +387,7 @@ def insert_pep(
             no_fail=no_fail,
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
+            light=light,
         )
     else:
         _LOGGER.info(

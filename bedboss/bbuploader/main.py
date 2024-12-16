@@ -54,6 +54,7 @@ def upload_all(
     reinit_skipper=False,
     overwrite=False,
     overwrite_bedset=False,
+    light=False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -75,12 +76,13 @@ def upload_all(
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
         and failed files.
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
+    :param light: light mode, where skipping statistic processing for memory optimization and time saving
     """
 
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
-    bbagent = BedBaseAgent(config=bedbase_config)
+    bbagent = BedBaseAgent(config=bedbase_config, init_ml=not light)
     genome = standardize_genome_name(genome)
 
     pep_annotation_list = find_peps(
@@ -154,6 +156,7 @@ def upload_all(
                     preload=preload,
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
+                    light=light,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -577,6 +580,7 @@ def _upload_gse(
             upload_s3=True,
             no_fail=True,
             force_overwrite=overwrite_bedset,
+            light=light,
         )
 
     else:

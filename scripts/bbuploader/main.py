@@ -64,19 +64,20 @@ def upload_time():
     upload_all(
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
-        start_date="2024/06/01",
-        # end_date="2024/08/28",
+        start_date="2020/06/01",
+        end_date="2020/07/15",
         search_limit=1000,
         download_limit=10000,
         search_offset=0,
-        genome="hg38",
+        # genome="hg38",
         rerun=True,
         run_skipped=True,
+        light=True,
     )
 
 
 if __name__ == "__main__":
     # runn()
 
-    another_test()
-    # upload_time()
+    # another_test()
+    upload_time()

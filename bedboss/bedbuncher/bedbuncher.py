@@ -101,6 +101,7 @@ def run_bedbuncher(
     upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
+    light: bool = False,
 ) -> None:
     """
     Add bedset to the database
@@ -118,6 +119,7 @@ def run_bedbuncher(
     :param upload_pephub: whether to create a view in pephub
     :param upload_s3: whether to upload files to s3
     :param force_overwrite: whether to overwrite the record in the database
+    :param light: whether to run the pipeline in light mode
     # TODO: force_overwrite is not working!!! Fix it!
     :return:
     """
@@ -162,6 +164,7 @@ def run_bedbuncher(
         no_fail=no_fail,
         overwrite=force_overwrite,
         annotation=annotation,
+        processed=not light,
     )
 
 

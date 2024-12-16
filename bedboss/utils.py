@@ -24,6 +24,8 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     :param bedfile: path to bed file
     :return: genome name string
     """
+    if not isinstance(input_genome, str):
+        input_genome = ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
@@ -47,6 +49,7 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
         return input_genome
 
 
+# %%
 def download_file(url: str, path: str, no_fail: bool = False) -> None:
     """
     Download file from the url to specific location
