@@ -1,36 +1,46 @@
+import glob
 import logging
 import os
 import urllib.request
-import glob
 
-import requests
-from pephubclient.files_manager import FilesManager
 import peppy
-from peppy.const import SAMPLE_RAW_DICT_KEY
+import requests
 from bedms import AttrStandardizer
+from pephubclient.files_manager import FilesManager
+from peppy.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
+
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
 
 
-def standardize_genome_name(input_genome: str) -> str:
+def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     """
     Standardizing user provided genome
 
     :param input_genome: standardize user provided genome, so bedboss know what genome
     we should use
+    :param bedfile: path to bed file
     :return: genome name string
     """
-    if not input_genome:
-        return ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
         return "hg38"
     elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
-    elif input_genome == "mm10":
+    elif input_genome == "mm10" or input_genome == "grcm38":
         return "mm10"
+    elif input_genome == "mm9" or input_genome == "grcm37":
+        return "mm9"
+
+    elif not input_genome or len(input_genome) > 10:
+        if bedfile:
+            predictor = ReferenceValidator()
+            return predictor.predict(bedfile) or ""
+        else:
+            return input_genome
     # else:
     #     raise GenomeException("Incorrect genome assembly was provided")
     else:

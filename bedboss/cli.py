@@ -170,6 +170,7 @@ def run_pep(
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
+    rerun: bool = typer.Option(False, help="Rerun already processed samples"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -198,6 +199,7 @@ def run_pep(
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
         standardize_pep=standardize_pep,
+        rerun=rerun,
         pm=create_pm(
             outfolder=outfolder,
             multi=multi,

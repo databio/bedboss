@@ -1,15 +1,13 @@
 import copy
-
 import os
 
-import numpy as np
-import requests
-
-import pephubclient
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pephubclient
+import requests
+import seaborn as sns
 from scipy.cluster.hierarchy import linkage
 
 # PEP_URL = "donaldcampbelljr/excluded_ranges_species:default"

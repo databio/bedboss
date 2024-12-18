@@ -14,26 +14,23 @@ from eido import validate_project
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
 
+from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
+from bedboss.exceptions import BedBossException
 from bedboss.models import (
     BedClassificationUpload,
+    BedSetAnnotations,
     FilesUpload,
     PlotsUpload,
     StatsUpload,
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
-
-from bedboss.utils import (
-    standardize_genome_name,
-    get_genome_digest,
-    standardize_pep as pep_standardizer,
-)
-from bedboss.exceptions import BedBossException
-from bedboss._version import __version__
-
+from bedboss.skipper import Skipper
+from bedboss.utils import get_genome_digest, standardize_genome_name
+from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -156,6 +153,7 @@ def run_all(
         bed_digest=bed_metadata.bed_digest,
         open_signal_matrix=open_signal_matrix,
         just_db_commit=just_db_commit,
+        rfg_config=rfg_config,
         pm=pm,
     )
     statistics_dict["bed_type"] = bed_metadata.bed_type
@@ -254,6 +252,7 @@ def insert_pep(
     upload_qdrant: bool = False,
     no_fail: bool = False,
     standardize_pep: bool = False,
+    rerun: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
@@ -280,6 +279,7 @@ def insert_pep(
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
     :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
+    :param bool rerun: whether to rerun processed samples
     :param pypiper.PipelineManager pm: pypiper object
     :return: None
     """
@@ -303,7 +303,22 @@ def insert_pep(
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
 
+    bedset_annotation = BedSetAnnotations(**pep.config).model_dump()
+    skipper = Skipper(output_folder, pep.name)
+
+    if rerun:
+        skipper.reinitialize()
+
     for i, pep_sample in enumerate(pep.samples):
+
+        is_processed = skipper.is_processed(pep_sample.sample_name)
+        if is_processed:
+            m.print_success(
+                f"Skipping {pep_sample.sample_name} : {is_processed}. Already processed."
+            )
+            processed_ids.append(is_processed)
+            continue
+
         m.print_success(f"Processing sample {i + 1}/{len(pep.samples)}")
         _LOGGER.info(f"Running bedboss pipeline for {pep_sample.sample_name}")
         if pep_sample.get("file_type"):
@@ -341,9 +356,12 @@ def insert_pep(
             )
 
             processed_ids.append(bed_id)
+            skipper.add_processed(pep_sample.sample_name, bed_id, success=True)
+
         except BedBossException as e:
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
             failed_samples.append(pep_sample.sample_name)
+            skipper.add_failed(pep_sample.sample_name, f"{e}")
 
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
@@ -359,6 +377,7 @@ def insert_pep(
             upload_s3=upload_s3,
             no_fail=no_fail,
             force_overwrite=force_overwrite,
+            annotation=bedset_annotation,
         )
     else:
         _LOGGER.info(

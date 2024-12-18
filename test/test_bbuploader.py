@@ -1,4 +1,4 @@
-from bedboss.bbuploader.main import upload_gse, upload_all
+from bedboss.bbuploader.main import upload_all, upload_gse
 
 
 def test_manual():

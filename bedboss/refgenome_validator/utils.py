@@ -1,7 +1,8 @@
-from typing import Union, List
-from geniml.io import RegionSet
-import subprocess
 import logging
+import subprocess
+from typing import List, Union
+
+from geniml.io import RegionSet
 
 _LOGGER = logging.getLogger("bedboss")
 

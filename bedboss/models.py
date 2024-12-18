@@ -135,3 +135,14 @@ class FilesUpload(BedFiles):
 
 class BedClassificationUpload(BedClassification):
     model_config = ConfigDict(extra="ignore")
+
+
+class BedSetAnnotations(BaseModel):
+    """
+    Annotations for a bedset
+    """
+
+    author: Union[str, None] = None
+    source: Union[str, None] = None
+
+    model_config = ConfigDict(extra="ignore")

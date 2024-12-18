@@ -24,7 +24,6 @@ def search_test():
     # from bedboss.bedboss import run_all
     #
     # with cProfile.Profile() as pr:
-
     # the search backend
     from time import time
 
