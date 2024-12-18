@@ -4,6 +4,7 @@ import subprocess
 from typing import Union
 
 import bbconf
+import yaml
 import pephubclient
 import peppy
 import pypiper
@@ -11,8 +12,10 @@ from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
 from eido import validate_project
+import datetime
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
+from geniml.bbclient import BBClient
 
 from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
@@ -29,7 +32,7 @@ from bedboss.models import (
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
-from bedboss.utils import get_genome_digest, standardize_genome_name
+from bedboss.utils import get_genome_digest, standardize_genome_name, calculate_time
 from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
@@ -65,6 +68,7 @@ def run_all(
     other_metadata: dict = None,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
+    update: bool = False,
     upload_qdrant: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
@@ -97,6 +101,7 @@ def run_all(
         (basically genomes that's not in GDdata)
     :param bool just_db_commit: whether just to commit the JSON to the database [Default: False]
     :param bool force_overwrite: force overwrite analysis [Default: False]
+    :param bool update: whether to update the record in the database [Default: False] (if True, overwrites 'force_overwrite' and ignores it)
     :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
@@ -208,23 +213,42 @@ def run_all(
     else:
         ref_valid_stats = None
 
-    bbagent.bed.add(
-        identifier=bed_metadata.bed_digest,
-        stats=stats.model_dump(exclude_unset=True),
-        metadata=other_metadata,
-        plots=plots.model_dump(exclude_unset=True),
-        files=files.model_dump(exclude_unset=True),
-        classification=classification.model_dump(exclude_unset=True),
-        ref_validation=ref_valid_stats,
-        license_id=license_id,
-        upload_qdrant=upload_qdrant and not light,
-        upload_pephub=upload_pephub,
-        upload_s3=upload_s3,
-        local_path=outfolder,
-        overwrite=force_overwrite,
-        processed=not light,
-        nofail=True,
-    )
+    if update:
+        bbagent.bed.update(
+            identifier=bed_metadata.bed_digest,
+            stats=stats.model_dump(exclude_unset=True),
+            metadata=other_metadata,
+            plots=plots.model_dump(exclude_unset=True),
+            files=files.model_dump(exclude_unset=True),
+            classification=classification.model_dump(exclude_unset=True),
+            ref_validation=ref_valid_stats,
+            license_id=license_id,
+            upload_qdrant=upload_qdrant and not light,
+            upload_pephub=upload_pephub,
+            upload_s3=upload_s3,
+            local_path=outfolder,
+            overwrite=True,
+            processed=not light,
+            nofail=True,
+        )
+    else:
+        bbagent.bed.add(
+            identifier=bed_metadata.bed_digest,
+            stats=stats.model_dump(exclude_unset=True),
+            metadata=other_metadata,
+            plots=plots.model_dump(exclude_unset=True),
+            files=files.model_dump(exclude_unset=True),
+            classification=classification.model_dump(exclude_unset=True),
+            ref_validation=ref_valid_stats,
+            license_id=license_id,
+            upload_qdrant=upload_qdrant and not light,
+            upload_pephub=upload_pephub,
+            upload_s3=upload_s3,
+            local_path=outfolder,
+            overwrite=force_overwrite,
+            processed=not light,
+            nofail=True,
+        )
 
     if universe:
         bbagent.bed.add_universe(
@@ -400,3 +424,94 @@ def insert_pep(
     m.print_error(f"Failed samples: {failed_samples}")
 
     return None
+
+
+@calculate_time
+def run_unprocessed_beds(
+    bedbase_config: Union[str, BedBaseAgent],
+    output_folder: str,
+    limit: int = 10,
+    nofail: bool = False,
+):
+    """
+    Run bedboss pipeline for all unprocessed beds in the bedbase
+
+    :param bedbase_config: bedbase configuration file path
+    :param output_folder: output folder of the pipeline
+    :param limit: limit of the number of beds to process
+    :param nofail: whether to raise an error if bedset was not added to the database
+
+    :return: None
+    """
+
+    if isinstance(bedbase_config, str):
+        bbagent = BedBaseAgent(config=bedbase_config)
+    elif isinstance(bedbase_config, bbconf.BedBaseAgent):
+        bbagent = bedbase_config
+    else:
+        raise BedBossException("Incorrect bedbase_config type. Exiting...")
+
+    unprocessed_beds = bbagent.bed.get_unprocessed(limit=limit)
+
+    bbclient = BBClient()
+    failed_samples = []
+    for bed_annot in unprocessed_beds.results:
+        bed_file = bbclient.load_bed(bed_annot.id)
+
+        try:
+            run_all(
+                input_file=bed_file.path,
+                input_type="bed",
+                outfolder=output_folder,
+                genome=bed_annot.genome_alias,
+                bedbase_config=bbagent,
+                name=bed_annot.name,
+                license_id=bed_annot.license_id,
+                rfg_config=None,
+                check_qc=False,
+                validate_reference=True,
+                chrom_sizes=None,
+                open_signal_matrix=None,
+                ensdb=None,
+                other_metadata=None,
+                just_db_commit=False,
+                update=True,
+                upload_qdrant=True,
+                upload_s3=True,
+                upload_pephub=True,
+                light=False,
+                universe=False,
+                universe_method=None,
+                universe_bedset=None,
+                pm=None,
+            )
+        except Exception as e:
+            _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
+            if nofail:
+                raise BedBossException(f"Failed to process {bed_annot.name}. See {e}")
+
+            failed_samples.append(
+                {
+                    "id": bed_annot.id,
+                    "error": e,
+                }
+            )
+
+    if failed_samples:
+        date_now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        with open(
+            os.path.join(output_folder, f"failed_samples_{date_now}.yaml"), "w"
+        ) as file:
+            yaml.dump(failed_samples, file)
+
+    from rich import print
+
+    m.print_success(f"Processing completed successfully")
+
+    print_values = dict(
+        unprocessed_files=unprocessed_beds.count,
+        processing_files=unprocessed_beds.limit,
+        failed_files=len(failed_samples),
+        success_files=unprocessed_beds.limit - len(failed_samples),
+    )
+    print(print_values)

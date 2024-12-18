@@ -36,7 +36,9 @@ def another_test():
     upload_gse(
         # gse="gse261411",
         # gse="gse261536",
-        gse="gse274130",
+        # gse="gse274130",
+        # Genome hg19 and mm10
+        gse="gse151780",
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
@@ -53,6 +55,8 @@ def another_test():
         run_skipped=True,
         reinit_skipper=True,
         light=True,
+        overwrite=True,
+        overwrite_bedset=True,
     )
     time2 = time.time()
     print(f"Time taken: {time2 - time1}")
@@ -79,5 +83,5 @@ def upload_time():
 if __name__ == "__main__":
     # runn()
 
-    # another_test()
-    upload_time()
+    another_test()
+    # upload_time()

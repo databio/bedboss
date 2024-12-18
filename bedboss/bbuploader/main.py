@@ -285,7 +285,7 @@ def upload_gse(
     use_skipper=True,
     reinit_skipper=False,
     overwrite=False,
-    overwrite_bedset=False,
+    overwrite_bedset=True,
     light=False,
 ):
     """
