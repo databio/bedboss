@@ -1,8 +1,9 @@
 import glob
 import logging
 import os
-import urllib.request
 import time
+import urllib.request
+from functools import wraps
 
 import peppy
 import requests
@@ -10,7 +11,6 @@ from bedms import AttrStandardizer
 from pephubclient.files_manager import FilesManager
 from peppy.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
-from functools import wraps
 
 from bedboss.refgenome_validator.main import ReferenceValidator
 
@@ -51,7 +51,6 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
         return input_genome
 
 
-# %%
 def download_file(url: str, path: str, no_fail: bool = False) -> None:
     """
     Download file from the url to specific location

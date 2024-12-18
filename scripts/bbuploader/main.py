@@ -27,10 +27,10 @@ def runn():
 
 
 def another_test():
-    from bedboss.bbuploader.main import upload_gse
-
     # time it:
     import time
+
+    from bedboss.bbuploader.main import upload_gse
 
     time1 = time.time()
     upload_gse(
@@ -38,7 +38,7 @@ def another_test():
         # gse="gse261536",
         # gse="gse274130",
         # Genome hg19 and mm10
-        gse="gse151780",
+        gse="gse280839",
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",

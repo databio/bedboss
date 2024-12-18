@@ -8,7 +8,6 @@ from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
-from setuptools.command.egg_info import overwrite_arg
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
@@ -28,13 +27,14 @@ from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException
 from bedboss.skipper import Skipper
-from bedboss.utils import download_file, standardize_genome_name
+from bedboss.utils import calculate_time, download_file, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
 
 
+@calculate_time
 def upload_all(
     bedbase_config: str,
     outfolder: str = os.getcwd(),
@@ -271,6 +271,7 @@ def find_peps(
     )
 
 
+@calculate_time
 def upload_gse(
     gse: str,
     bedbase_config: Union[str, BedBaseAgent],

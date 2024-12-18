@@ -1,21 +1,21 @@
+import datetime
 import logging
 import os
 import subprocess
 from typing import Union
 
 import bbconf
-import yaml
 import pephubclient
 import peppy
 import pypiper
+import yaml
 from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
 from eido import validate_project
-import datetime
+from geniml.bbclient import BBClient
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
-from geniml.bbclient import BBClient
 
 from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
@@ -32,7 +32,7 @@ from bedboss.models import (
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
-from bedboss.utils import get_genome_digest, standardize_genome_name, calculate_time
+from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
 
 _LOGGER = logging.getLogger(PKG_NAME)
@@ -50,6 +50,7 @@ def requirements_check() -> None:
     )
 
 
+@calculate_time
 def run_all(
     input_file: str,
     input_type: str,
@@ -264,6 +265,7 @@ def run_all(
     return bed_metadata.bed_digest
 
 
+@calculate_time
 def insert_pep(
     bedbase_config: str,
     output_folder: str,
@@ -278,6 +280,7 @@ def insert_pep(
     ensdb: str = None,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
+    update: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
     upload_qdrant: bool = False,
@@ -306,6 +309,7 @@ def insert_pep(
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param bool just_db_commit: whether save only to the database (Without saving locally )
     :param bool force_overwrite: whether to overwrite the existing record
+    :param bool update: whether to update the record in the database. This option will overwrite the force_overwrite option. [Default: False]
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
@@ -378,6 +382,7 @@ def insert_pep(
                 ensdb=ensdb,
                 just_db_commit=just_db_commit,
                 force_overwrite=force_overwrite,
+                update=update,
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
@@ -427,12 +432,12 @@ def insert_pep(
 
 
 @calculate_time
-def run_unprocessed_beds(
+def reprocess_all(
     bedbase_config: Union[str, BedBaseAgent],
     output_folder: str,
     limit: int = 10,
     nofail: bool = False,
-):
+) -> None:
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
 
@@ -504,7 +509,7 @@ def run_unprocessed_beds(
         ) as file:
             yaml.dump(failed_samples, file)
 
-    from rich import print
+            m.print_warning(f"Logs with failed samples are saved in {output_folder}")
 
     m.print_success(f"Processing completed successfully")
 
@@ -515,3 +520,113 @@ def run_unprocessed_beds(
         success_files=unprocessed_beds.limit - len(failed_samples),
     )
     print(print_values)
+
+
+@calculate_time
+def reprocess_one(
+    bedbase_config: Union[str, BedBaseAgent],
+    output_folder: str,
+    identifier: str,
+) -> None:
+    """
+    Run bedboss pipeline for one bed in the bedbase [Reprocess]
+
+    :param bedbase_config: bedbase configuration file path
+    :param output_folder: output folder of the pipeline
+    :param identifier: bed identifier
+
+    :return: None
+    """
+
+    if isinstance(bedbase_config, str):
+        bbagent = BedBaseAgent(config=bedbase_config)
+    elif isinstance(bedbase_config, bbconf.BedBaseAgent):
+        bbagent = bedbase_config
+    else:
+        raise BedBossException("Incorrect bedbase_config type. Exiting...")
+
+    bbclient = BBClient()
+
+    bed_annot = bbagent.bed.get(identifier)
+    bed_file = bbclient.load_bed(bed_annot.id)
+
+    run_all(
+        input_file=bed_file.path,
+        input_type="bed",
+        outfolder=output_folder,
+        genome=bed_annot.genome_alias,
+        bedbase_config=bbagent,
+        name=bed_annot.name,
+        license_id=bed_annot.license_id,
+        rfg_config=None,
+        check_qc=False,
+        validate_reference=True,
+        chrom_sizes=None,
+        open_signal_matrix=None,
+        ensdb=None,
+        other_metadata=None,
+        just_db_commit=False,
+        update=True,
+        upload_qdrant=True,
+        upload_s3=True,
+        upload_pephub=True,
+        light=False,
+        universe=False,
+        universe_method=None,
+        universe_bedset=None,
+        pm=None,
+    )
+
+    _LOGGER.info(f"Successfully processed {identifier}")
+
+
+@calculate_time
+def reprocess_bedset(
+    bedbase_config: Union[str, BedBaseAgent],
+    output_folder: str,
+    identifier: str,
+    no_fail: bool = True,
+    heavy: bool = False,
+):
+    """
+    Recalculate bedset from the bedbase
+
+    :param bedbase_config: bedbase configuration file path
+    :param output_folder: output folder of the pipeline
+    :param identifier: bedset identifier
+    :param no_fail: whether to raise an error if bedset was not added to the database
+    :param heavy: whether to use heavy processing. Calculate plots for bedset
+
+    :return: None
+    """
+
+    if isinstance(bedbase_config, str):
+        bbagent = BedBaseAgent(config=bedbase_config)
+    elif isinstance(bedbase_config, bbconf.BedBaseAgent):
+        bbagent = bedbase_config
+    else:
+        raise BedBossException("Incorrect bedbase_config type. Exiting...")
+
+    bedset_annot = bbagent.bedset.get(identifier)
+
+    run_bedbuncher(
+        bedbase_config=bbagent,
+        record_id=bedset_annot.id,
+        bed_set=bedset_annot.bed_ids,
+        name=bedset_annot.name,
+        output_folder=output_folder,
+        description=bedset_annot.description,
+        heavy=heavy,
+        upload_pephub=False,
+        upload_s3=heavy,
+        no_fail=no_fail,
+        force_overwrite=True,
+        annotation={
+            **bedset_annot.model_dump(
+                exclude={
+                    "bed_ids",
+                }
+            )
+        },
+        light=False,
+    )
