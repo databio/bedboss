@@ -61,8 +61,8 @@ def upload_all(
     reinit_skipper: bool = typer.Option(
         False, help="Reinitialize skipper. [Default: False]"
     ),
-    light: bool = typer.Option(
-        False, help="Run the pipeline in light mode. [Default: False]"
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
 ):
     from .main import upload_all as upload_all_function
@@ -86,7 +86,7 @@ def upload_all(
         reinit_skipper=reinit_skipper,
         overwrite=overwrite,
         overwrite_bedset=overwrite_bedset,
-        light=light,
+        lite=lite,
     )
 
 
@@ -128,8 +128,8 @@ def upload_gse(
     reinit_skipper: bool = typer.Option(
         False, help="Reinitialize skipper. [Default: False]"
     ),
-    light: bool = typer.Option(
-        False, help="Run the pipeline in light mode. [Default: False]"
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
 ):
     from .main import upload_gse as upload_gse_function
@@ -149,7 +149,7 @@ def upload_gse(
         reinit_skipper=reinit_skipper,
         overwrite=overwrite,
         overwrite_bedset=overwrite_bedset,
-        light=light,
+        lite=lite,
     )
 
 

@@ -54,7 +54,7 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
-        light=True,
+        lite=True,
         overwrite=True,
         overwrite_bedset=True,
     )
@@ -76,7 +76,7 @@ def upload_time():
         # genome="hg38",
         rerun=True,
         run_skipped=True,
-        light=True,
+        lite=True,
     )
 
 

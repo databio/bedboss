@@ -54,7 +54,7 @@ def upload_all(
     reinit_skipper=False,
     overwrite=False,
     overwrite_bedset=False,
-    light=False,
+    lite=False,
 ):
     """
     This is main function that is responsible for processing bed files from PEPHub.
@@ -76,13 +76,13 @@ def upload_all(
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
         and failed files.
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
-    :param light: light mode, where skipping statistic processing for memory optimization and time saving
+    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     """
 
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
-    bbagent = BedBaseAgent(config=bedbase_config, init_ml=not light)
+    bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
     genome = standardize_genome_name(genome)
 
     pep_annotation_list = find_peps(
@@ -156,7 +156,7 @@ def upload_all(
                     preload=preload,
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
-                    light=light,
+                    lite=lite,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -287,7 +287,7 @@ def upload_gse(
     reinit_skipper=False,
     overwrite=False,
     overwrite_bedset=True,
-    light=False,
+    lite=False,
 ):
     """
     Upload bed files from GEO series to BedBase
@@ -307,11 +307,11 @@ def upload_gse(
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
     :param overwrite: overwrite existing bedfiles
     :param overwrite_bedset: overwrite existing bedset
-    :param light: light mode, where skipping statistic processing for memory optimization and time saving
+    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
 
     :return: None
     """
-    bbagent = BedBaseAgent(config=bedbase_config, init_ml=not light)
+    bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
 
     with Session(bbagent.config.db_engine.engine) as session:
         _LOGGER.info(f"Processing: '{gse}'")
@@ -358,7 +358,7 @@ def upload_gse(
                 overwrite_bedset=overwrite_bedset,
                 use_skipper=use_skipper,
                 reinit_skipper=reinit_skipper,
-                light=light,
+                lite=lite,
             )
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
@@ -410,7 +410,7 @@ def _upload_gse(
     use_skipper: bool = True,
     reinit_skipper: bool = False,
     preload: bool = True,
-    light=False,
+    lite=False,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -429,7 +429,7 @@ def _upload_gse(
         and failed files.
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
     :param preload: pre - download files to the local folder (used for faster reproducibility)
-    :param light: light mode, where skipping statistic processing for memory optimization and time saving
+    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     :return: None
     """
     if isinstance(bedbase_config, str):
@@ -549,7 +549,7 @@ def _upload_gse(
                 upload_s3=True,
                 upload_qdrant=True,
                 force_overwrite=overwrite,
-                light=light,
+                lite=lite,
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
@@ -581,7 +581,7 @@ def _upload_gse(
             upload_s3=True,
             no_fail=True,
             force_overwrite=overwrite_bedset,
-            light=light,
+            lite=lite,
         )
 
     else:

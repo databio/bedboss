@@ -73,7 +73,7 @@ def run_all(
     upload_qdrant: bool = False,
     upload_s3: bool = False,
     upload_pephub: bool = False,
-    light: bool = False,
+    lite: bool = False,
     # Universes
     universe: bool = False,
     universe_method: str = None,
@@ -106,7 +106,7 @@ def run_all(
     :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
     :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
-    :param bool light: whether to run light version of the pipeline [Default: False]
+    :param bool lite: whether to run lite version of the pipeline [Default: False]
 
     :param bool universe: whether to add the sample as the universe [Default: False]
     :param str universe_method: method used to create the universe [Default: None]
@@ -115,7 +115,7 @@ def run_all(
     :return str bed_digest: bed digest
     """
     if isinstance(bedbase_config, str):
-        bbagent = BedBaseAgent(config=bedbase_config, init_ml=not light)
+        bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
         bbagent = bedbase_config
     else:
@@ -148,13 +148,13 @@ def run_all(
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
-        light=light,
+        lite=lite,
         pm=pm,
     )
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
-    if light:
+    if lite:
         statistics_dict = {}
     else:
         statistics_dict = bedstat(
@@ -224,12 +224,12 @@ def run_all(
             classification=classification.model_dump(exclude_unset=True),
             ref_validation=ref_valid_stats,
             license_id=license_id,
-            upload_qdrant=upload_qdrant and not light,
+            upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=True,
-            processed=not light,
+            processed=not lite,
             nofail=True,
         )
     else:
@@ -242,12 +242,12 @@ def run_all(
             classification=classification.model_dump(exclude_unset=True),
             ref_validation=ref_valid_stats,
             license_id=license_id,
-            upload_qdrant=upload_qdrant and not light,
+            upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=force_overwrite,
-            processed=not light,
+            processed=not lite,
             nofail=True,
         )
 
@@ -286,7 +286,7 @@ def insert_pep(
     upload_qdrant: bool = False,
     no_fail: bool = False,
     standardize_pep: bool = False,
-    light: bool = False,
+    lite: bool = False,
     rerun: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
@@ -314,7 +314,7 @@ def insert_pep(
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
-    :param bool light: whether to run light version of the pipeline
+    :param bool lite: whether to run lite version of the pipeline
     :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
     :param bool rerun: whether to rerun processed samples
     :param pypiper.PipelineManager pm: pypiper object
@@ -389,7 +389,7 @@ def insert_pep(
                 universe=pep_sample.get("universe"),
                 universe_method=pep_sample.get("universe_method"),
                 universe_bedset=pep_sample.get("universe_bedset"),
-                light=light,
+                lite=lite,
                 pm=pm,
             )
 
@@ -416,7 +416,7 @@ def insert_pep(
             no_fail=no_fail,
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
-            light=light,
+            lite=lite,
         )
     else:
         _LOGGER.info(
@@ -484,7 +484,7 @@ def reprocess_all(
                 upload_qdrant=True,
                 upload_s3=True,
                 upload_pephub=True,
-                light=False,
+                lite=False,
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
@@ -570,7 +570,7 @@ def reprocess_one(
         upload_qdrant=True,
         upload_s3=True,
         upload_pephub=True,
-        light=False,
+        lite=False,
         universe=False,
         universe_method=None,
         universe_bedset=None,
@@ -628,5 +628,5 @@ def reprocess_bedset(
                 }
             )
         },
-        light=False,
+        lite=False,
     )

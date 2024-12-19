@@ -93,8 +93,8 @@ def run_all(
         False,
         help="Update the bedbase database with the new record if it exists. This overwrites 'force_overwrite' option",
     ),
-    light: bool = typer.Option(
-        False, help="Run the pipeline in light mode. [Default: False]"
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
@@ -136,7 +136,7 @@ def run_all(
         open_signal_matrix=open_signal_matrix,
         ensdb=ensdb,
         other_metadata=None,
-        light=light,
+        lite=lite,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
         update=update,
@@ -183,8 +183,8 @@ def run_pep(
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
-    light: bool = typer.Option(
-        False, help="Run the pipeline in light mode. [Default: False]"
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
     rerun: bool = typer.Option(False, help="Rerun already processed samples"),
     # PipelineManager
@@ -216,7 +216,7 @@ def run_pep(
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
         standardize_pep=standardize_pep,
-        light=light,
+        lite=lite,
         rerun=rerun,
         pm=create_pm(
             outfolder=outfolder,
