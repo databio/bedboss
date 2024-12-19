@@ -18,7 +18,6 @@ except:
 
 
 def main():
-
     # pull from tier rating column to get the final assessment
     tier_rating_keys = ["mm10", "hg38", "hg19"]
 

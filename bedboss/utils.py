@@ -1,7 +1,9 @@
 import glob
 import logging
 import os
+import time
 import urllib.request
+from functools import wraps
 
 import peppy
 import requests
@@ -24,6 +26,8 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     :param bedfile: path to bed file
     :return: genome name string
     """
+    if not isinstance(input_genome, str):
+        input_genome = ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
@@ -35,7 +39,7 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     elif input_genome == "mm9" or input_genome == "grcm37":
         return "mm9"
 
-    elif not input_genome or len(input_genome) > 10:
+    elif not input_genome or len(input_genome) > 7:
         if bedfile:
             predictor = ReferenceValidator()
             return predictor.predict(bedfile) or ""
@@ -199,3 +203,23 @@ def cleanup_pm_temp(pm: PipelineManager) -> None:
             except Exception as e:
                 _LOGGER.error(f"Error cleaning up: {e}")
         pm.cleanup_list_conditional = []
+
+
+def calculate_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+
+        hours, remainder = divmod(execution_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        print(
+            f"Function '{func.__name__}' executed in {int(hours)} hours, {int(minutes)} minutes, and {seconds:.2f} seconds"
+        )
+
+        return result
+
+    return wrapper

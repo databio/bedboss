@@ -3,7 +3,6 @@ from geniml.search.interfaces import BiVectorSearchInterface
 
 
 def search_test():
-
     # backend for text embeddings and bed embeddings
     text_backend = QdrantBackend(
         dim=384,

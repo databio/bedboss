@@ -18,7 +18,6 @@ DEFAULT_QUANTIZATION_CONFIG = models.ScalarQuantization(
 
 
 def upload_text_embeddings():
-
     # lab qdrant client
     # qc = QdrantClient(
     #   host=os.environ.get("QDRATN_HOST"),

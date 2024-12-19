@@ -40,7 +40,6 @@ def main(species):
         print("Must supply species,e.g. mouse, homosapiens, rat, cow!")
 
     else:
-
         # Make sure to have the IDE ignore these folders!!!!
         data_output_path = os.path.abspath("data")
         results_path = os.path.abspath("results")

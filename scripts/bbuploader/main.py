@@ -27,11 +27,18 @@ def runn():
 
 
 def another_test():
+    # time it:
+    import time
+
     from bedboss.bbuploader.main import upload_gse
 
+    time1 = time.time()
     upload_gse(
         # gse="gse261411",
-        gse="gse261536",
+        # gse="gse261536",
+        # gse="gse274130",
+        # Genome hg19 and mm10
+        gse="gse280839",
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
@@ -47,7 +54,12 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
+        lite=True,
+        overwrite=True,
+        overwrite_bedset=True,
     )
+    time2 = time.time()
+    print(f"Time taken: {time2 - time1}")
 
 
 def upload_time():
@@ -56,14 +68,15 @@ def upload_time():
     upload_all(
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
-        start_date="2024/06/01",
-        # end_date="2024/08/28",
+        start_date="2020/06/01",
+        end_date="2020/07/15",
         search_limit=1000,
         download_limit=10000,
         search_offset=0,
-        genome="hg38",
+        # genome="hg38",
         rerun=True,
         run_skipped=True,
+        lite=True,
     )
 
 
