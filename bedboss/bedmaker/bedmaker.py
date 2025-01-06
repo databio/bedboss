@@ -159,7 +159,7 @@ def make_bed(
 
     :return: path to the BED file
     """
-    _LOGGER.info(f"Converting {os.path.abspath(input_file)} to BED format.")
+    _LOGGER.info(f"Converting {input_file} to BED format.")
 
     input_type = input_type.lower()
     if input_type not in [member.value for member in InputTypes]:
