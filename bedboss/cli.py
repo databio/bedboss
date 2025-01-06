@@ -243,7 +243,7 @@ def reprocess_all(
 ):
     from bedboss.bedboss import reprocess_all as reprocess_all_function
 
-    reprocess_all(
+    reprocess_all_function(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         limit=limit,
@@ -265,7 +265,7 @@ def reprocess_one(
 ):
     from bedboss.bedboss import reprocess_one as reprocess_one_function
 
-    reprocess_one(
+    reprocess_one_function(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         identifier=identifier,

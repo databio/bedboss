@@ -436,7 +436,7 @@ def reprocess_all(
     bedbase_config: Union[str, BedBaseAgent],
     output_folder: str,
     limit: int = 10,
-    nofail: bool = False,
+    no_fail: bool = False,
 ) -> None:
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
@@ -444,7 +444,7 @@ def reprocess_all(
     :param bedbase_config: bedbase configuration file path
     :param output_folder: output folder of the pipeline
     :param limit: limit of the number of beds to process
-    :param nofail: whether to raise an error if bedset was not added to the database
+    :param no_fail: whether to raise an error if bedset was not added to the database
 
     :return: None
     """
@@ -492,7 +492,7 @@ def reprocess_all(
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
-            if nofail:
+            if no_fail:
                 raise BedBossException(f"Failed to process {bed_annot.name}. See {e}")
 
             failed_samples.append(
