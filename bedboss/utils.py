@@ -208,6 +208,10 @@ def cleanup_pm_temp(pm: PipelineManager) -> None:
 def calculate_time(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+
+        print(f"--> Arguments: {args}")
+        print(f"--> Keyword arguments: {kwargs}")
+
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
