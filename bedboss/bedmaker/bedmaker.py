@@ -159,7 +159,7 @@ def make_bed(
 
     :return: path to the BED file
     """
-    _LOGGER.info(f"Converting {input_file} to BED format.")
+    _LOGGER.info(f"Processing {input_file} file in bedmaker...")
 
     input_type = input_type.lower()
     if input_type not in [member.value for member in InputTypes]:
@@ -302,6 +302,8 @@ def make_bed(
     pm._cleanup()
     if pm_clean:
         pm.stop_pipeline()
+
+    _LOGGER.info(f"Bed output file: {output_path}. BEDmaker: File processed successfully.")
 
     return output_path
 
