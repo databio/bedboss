@@ -22,7 +22,7 @@ def upload_all(
         None, help="The latest date when opep was updated [Default: today's date]"
     ),
     search_limit: int = typer.Option(
-        50, help="Limit of projects to be searched. [Default: 10]"
+        50, help="Limit of projects to be searched. [Default: 50]"
     ),
     search_offset: int = typer.Option(
         0, help="Limit of projects to be searched. [Default: 0]"
