@@ -509,7 +509,6 @@ def _upload_gse(
                 project_status.number_of_processed += 1
                 continue
 
-
         sample_status.genome = required_metadata.ref_genome
         # to upload files only with a specific genome
         if genome:
