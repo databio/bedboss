@@ -500,6 +500,15 @@ def _upload_gse(
             )
             sa_session.add(sample_status)
             sa_session.commit()
+        else:
+            if sample_status.status == STATUS.SUCCESS and not overwrite:
+                _LOGGER.info(
+                    f"Skipping: '{required_metadata.sample_name}' - already processed"
+                )
+                uploaded_files.append(sample_status.genome)
+                project_status.number_of_processed += 1
+                continue
+
 
         sample_status.genome = required_metadata.ref_genome
         # to upload files only with a specific genome
