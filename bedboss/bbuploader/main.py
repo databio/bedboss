@@ -10,6 +10,7 @@ from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
+from geniml.exceptions import GenimlBaseError
 
 from bedboss.bbuploader.constants import (
     DEFAULT_GEO_TAG,
@@ -558,6 +559,14 @@ def _upload_gse(
             project_status.number_of_processed += 1
 
         except BedBossException as exc:
+            sample_status.status = STATUS.FAIL
+            sample_status.error = str(exc)
+            project_status.number_of_failed += 1
+
+            if skipper_obj:
+                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
+
+        except GenimlBaseError as exc:
             sample_status.status = STATUS.FAIL
             sample_status.error = str(exc)
             project_status.number_of_failed += 1

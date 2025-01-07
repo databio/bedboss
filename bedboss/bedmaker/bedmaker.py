@@ -303,7 +303,9 @@ def make_bed(
     if pm_clean:
         pm.stop_pipeline()
 
-    _LOGGER.info(f"Bed output file: {output_path}. BEDmaker: File processed successfully.")
+    _LOGGER.info(
+        f"Bed output file: {output_path}. BEDmaker: File processed successfully."
+    )
 
     return output_path
 
