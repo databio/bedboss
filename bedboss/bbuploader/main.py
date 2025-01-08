@@ -164,6 +164,7 @@ def upload_all(
                     f"Processing of '{gse_pep.name}' failed with error: {err}"
                 )
                 gse_status.status = STATUS.FAIL
+                gse_status.error = str(err)
                 session.commit()
                 continue
 
@@ -364,6 +365,7 @@ def upload_gse(
         except Exception as e:
             _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
             gse_status.status = STATUS.FAIL
+            gse_status.error = str(e)
             session.commit()
             exit()
 
@@ -505,7 +507,7 @@ def _upload_gse(
                 _LOGGER.info(
                     f"Skipping: '{required_metadata.sample_name}' - already processed"
                 )
-                uploaded_files.append(sample_status.genome)
+                uploaded_files.append(sample_status.bed_id)
                 project_status.number_of_processed += 1
                 continue
 
@@ -564,9 +566,11 @@ def _upload_gse(
             if skipper_obj:
                 skipper_obj.add_processed(sample_gsm, file_digest)
             sample_status.status = STATUS.SUCCESS
+            sample_status.bed_id = file_digest
             project_status.number_of_processed += 1
 
         except BedBossException as exc:
+            _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
             sample_status.status = STATUS.FAIL
             sample_status.error = str(exc)
             project_status.number_of_failed += 1
@@ -575,6 +579,7 @@ def _upload_gse(
                 skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
 
         except GenimlBaseError as exc:
+            _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
             sample_status.status = STATUS.FAIL
             sample_status.error = str(exc)
             project_status.number_of_failed += 1

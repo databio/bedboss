@@ -55,7 +55,7 @@ def upload_all(
         False, help="Standardize pep with BEDMESS. [Default: False]"
     ),
     use_skipper: bool = typer.Option(
-        True,
+        False,
         help="Use skipper to skip projects if they were processed locally [Default: False]",
     ),
     reinit_skipper: bool = typer.Option(
@@ -122,7 +122,7 @@ def upload_gse(
         False, help="Standardize pep with BEDMESS. [Default: False]"
     ),
     use_skipper: bool = typer.Option(
-        True,
+        False,
         help="Use local skipper to skip projects if they were processed locally [Default: False]",
     ),
     reinit_skipper: bool = typer.Option(
