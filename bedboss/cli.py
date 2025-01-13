@@ -665,6 +665,22 @@ def install_requirements():
     )
 
 
+@app.command(help="Verify configuration file")
+def verify_config(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bbconf.config_parser.utils import config_analyzer
+
+    if config_analyzer(config):
+        print("Configuration file is valid!")
+
+
 @app.callback()
 def common(
     ctx: typer.Context,
