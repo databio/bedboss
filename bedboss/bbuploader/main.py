@@ -598,7 +598,7 @@ def _upload_gse(
             output_folder=os.path.join(outfolder, "outputs"),
             name=gse,
             description=project.description,
-            heavy=False,
+            heavy=False,  # TODO: set to False because can't handle bedset > 10 files
             upload_pephub=True,
             upload_s3=True,
             no_fail=True,
