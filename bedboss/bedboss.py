@@ -46,7 +46,10 @@ def requirements_check() -> None:
     """
     _LOGGER.info("Checking requirements...")
     subprocess.run(
-        ["bash", f"{os.path.dirname(os.path.abspath(__file__))}/requirements_test.sh"]
+        [
+            "bash",
+            f"{os.path.dirname(os.path.abspath(__file__))}/scripts/requirements_test.sh",
+        ]
     )
 
 

@@ -657,7 +657,9 @@ def install_requirements():
     import subprocess
 
     r_path = os.path.abspath(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), "installRdeps.R")
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "scripts", "installRdeps.R"
+        )
     )
 
     subprocess.run(

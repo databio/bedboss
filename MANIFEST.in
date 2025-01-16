@@ -14,3 +14,4 @@ include bedboss/tokens/*
 include bedboss/tokens/*
 include bedboss/bbuploader/*
 include bedboss/refgenome_validator/chrom_sizes/*
+include bedboss/scripts/*
