@@ -5,12 +5,12 @@ from typing import Literal, Union
 import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
+from geniml.exceptions import GenimlBaseError
 from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
-from geniml.exceptions import GenimlBaseError
 
 from bedboss.bbuploader.constants import (
     DEFAULT_GEO_TAG,
