@@ -1,9 +1,9 @@
 # R Script that generates statistics for a bedfile
 
 library(GenomicDistributions)
-library(GenomicDistributionsData)
-library(GenomeInfoDb)
-library(ensembldb)
+# library(GenomicDistributionsData)
+# library(GenomeInfoDb)
+# library(ensembldb)
 library(optparse)
 library(tools)
 library(R.utils)
@@ -118,6 +118,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   } else {
     run_plot = TRUE
   }
+  query_new = GenomeInfoDb::keepStandardChromosomes(query, pruning.mode="coarse")
   if (run_plot){
     tryCatch(
       expr = {
@@ -125,20 +126,21 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           message("Ensembl annotation gtf file not provided. Skipping TSS distance plot ... ")
         } else{
           if (genome %in% c("hg19", "hg38", "mm10", "mm9")) {
-            TSSdist = calcFeatureDistRefTSS(query, genome)
-            plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
+            TSSdist = calcFeatureDistRefTSS(query_new, genome)
+            plotBoth("tss_distance", plotFeatureDist( TSSdist, featureName="TSS"))
           } else {
             tss = getTssFromGTF(gtffile, TRUE)
-            TSSdist = calcFeatureDist(query, tss)
-            plotBoth("tssdist", plotFeatureDist( TSSdist, featureName="TSS"))
+            TSSdist = calcFeatureDist(query_new, tss)
+            plotBoth("tss_distance", plotFeatureDist( TSSdist, featureName="TSS"))
           }
+          plots = rbind(plots, getPlotReportDF("tss_distance", "Region-TSS distance distribution"))
+          message("Successfully calculated and plot TSS distance.")
         }
         if (exists("bedmeta")){
           tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
           bedmeta = append(bedmeta, tss)
         }
-        plots = rbind(plots, getPlotReportDF("tssdist", "Region-TSS distance distribution"))
-        message("Successfully calculated and plot TSS distance.")
+
       },
       error = function(e){
         message('Caught an error in creating: TSS distance plot!')
@@ -146,9 +148,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       }
     )
   }
-  
-  
-  
+
   # Chromosomes region distribution plot
   if (!exists("bedmeta") ){
     tryCatch(
@@ -158,7 +158,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
           genomeBins  = getGenomeBins(chromSizes)
           plotBoth("chrombins", plotChromBins(calcChromBins(query, genomeBins)))
         } else{
-          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query, genome)))
+          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query_new, genome)))
         }
         
         plots = rbind(plots, getPlotReportDF("chrombins", "Regions distribution over chromosomes"))
@@ -170,49 +170,47 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
       }
     ) 
   }
-  
-  
-  
-  
-  # OPTIONAL: Plot GC content only if proper BSgenome package is installed. 
-  if (exists("bedmeta")){
-    if ("gc_content" %in% names(bedmeta)){
-      run_plot = FALSE
-    } else {
-      run_plot = TRUE
-    }
-  } else {
-      run_plot = TRUE
-  }
 
-  if (run_plot){
-    if (bsGenomeAvail) {
-      tryCatch(
-        expr = {
-          if (requireNamespace(BSgm, quietly=TRUE)){
-            library (BSgm, character.only = TRUE)
-            bsg = eval(as.name(BSgm))
-            gcvec = calcGCContent(query, bsg)
-          } else {
-            library (BSg, character.only = TRUE)
-            bsg = eval(as.name(BSg))
-            gcvec = calcGCContent(query, bsg)
-          }
-          plotBoth("gccontent", plotGCContent(gcvec))
-          if (exists("bedmeta")){
-            gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
-            bedmeta = append(bedmeta, gc_content)
-          }
-          plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
-          message("Successfully calculated and plot GC content.")
-        },
-        error = function(e){
-          message('Caught an error in creating: GC content plot!')
-          print(e, gcvec)
-        }
-      ) 
-    }
-  }
+# We can calculate it differently
+#   # OPTIONAL: Plot GC content only if proper BSgenome package is installed.
+#   if (exists("bedmeta")){
+#     if ("gc_content" %in% names(bedmeta)){
+#       run_plot = FALSE
+#     } else {
+#       run_plot = TRUE
+#     }
+#   } else {
+#       run_plot = TRUE
+#   }
+#
+#   if (run_plot){
+#     if (bsGenomeAvail) {
+#       tryCatch(
+#         expr = {
+#           if (requireNamespace(BSgm, quietly=TRUE)){
+#             library (BSgm, character.only = TRUE)
+#             bsg = eval(as.name(BSgm))
+#             gcvec = calcGCContent(query, bsg)
+#           } else {
+#             library (BSg, character.only = TRUE)
+#             bsg = eval(as.name(BSg))
+#             gcvec = calcGCContent(query, bsg)
+#           }
+#           plotBoth("gccontent", plotGCContent(gcvec))
+#           if (exists("bedmeta")){
+#             gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
+#             bedmeta = append(bedmeta, gc_content)
+#           }
+#           plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
+#           message("Successfully calculated and plot GC content.")
+#         },
+#         error = function(e){
+#           message('Caught an error in creating: GC content plot!')
+#           print(e, gcvec)
+#         }
+#       )
+#     }
+#   }
   
   
   # Partition plots, default to percentages
@@ -311,7 +309,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
         message('Caught an error in creating: Cumulative partition plot!')
         print(e)
       }
-    ) 
+    )
   }
   
   # QThis plot
@@ -360,24 +358,24 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   }
   
   
-  # Tissue specificity plot if open signal matrix is provided
-  if (!exists("bedmeta") ){
-    if (cellMatrix == "None") {
-      message("open signal matrix not provided. Skipping tissue specificity plot ... ")
-    } else {
-      tryCatch(
-        expr = {
-          plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
-          plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
-          message("Successfully calculated and plot cell specific enrichment for open chromatin.")
-        },
-        error = function(e){
-          message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
-          print(e)
-        }
-      ) 
-    }
-  }
+#   # Tissue specificity plot if open signal matrix is provided
+#   if (!exists("bedmeta") ){
+#     if (cellMatrix == "None") {
+#       message("open signal matrix not provided. Skipping tissue specificity plot ... ")
+#     } else {
+#       tryCatch(
+#         expr = {
+#           plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
+#           plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
+#           message("Successfully calculated and plot cell specific enrichment for open chromatin.")
+#         },
+#         error = function(e){
+#           message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
+#           print(e)
+#         }
+#       )
+#     }
+#   }
  
   
   # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
@@ -387,7 +385,7 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
   } else {
     bedmeta = list(
       name=fileId,
-      regions_no=length(query),
+      number_of_regions=length(query),
       mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
       md5sum=opt$digest
     )

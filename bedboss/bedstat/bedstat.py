@@ -1,11 +1,14 @@
 import json
 import logging
 import os
+import statistics
+from pathlib import Path
 from typing import Union
 
 import pypiper
 from geniml.io import RegionSet
 
+from bedboss.bedstat.gc_content import calculate_gc_content, create_gc_plot
 from bedboss.const import (
     BEDSTAT_OUTPUT,
     HOME_PATH,
@@ -70,6 +73,7 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
+    rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
 ) -> dict:
     """
@@ -82,6 +86,8 @@ def bedstat(
         required for the tissue specificity plots
     :param str outfolder: The folder for storing the pipeline results.
     :param str genome: genome assembly of the sample
+    :param bool just_db_commit: if True, the pipeline will only commit to the database
+    :param str rfg_config: path to the refgenie config file
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
     :param pm: pypiper object
@@ -94,15 +100,16 @@ def bedstat(
     except FileExistsError:
         pass
 
+    # TODO: osm commented to speed up code
     # find/download open signal matrix
-    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-        try:
-            open_signal_matrix = get_osm_path(genome)
-        except OpenSignalMatrixException:
-            _LOGGER.warning(
-                f"Open Signal Matrix was not found for {genome}. Skipping..."
-            )
-            open_signal_matrix = None
+    # if not open_signal_matrix or not os.path.exists(open_signal_matrix):
+    #     try:
+    #         open_signal_matrix = get_osm_path(genome)
+    #     except OpenSignalMatrixException:
+    #         _LOGGER.warning(
+    #             f"Open Signal Matrix was not found for {genome}. Skipping..."
+    #         )
+    open_signal_matrix = None
 
     # Used to stop pipeline bedstat is used independently
     if not pm:
@@ -112,19 +119,17 @@ def bedstat(
 
     if not bed_digest:
         bed_digest = RegionSet(bedfile).identifier
-    bedfile_name = os.path.split(bedfile)[1]
 
-    fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
     outfolder_stats_results = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
     try:
         os.makedirs(outfolder_stats_results)
     except FileExistsError:
         pass
     json_file_path = os.path.abspath(
-        os.path.join(outfolder_stats_results, fileid + ".json")
+        os.path.join(outfolder_stats_results, bed_digest + ".json")
     )
     json_plots_file_path = os.path.abspath(
-        os.path.join(outfolder_stats_results, fileid + "_plots.json")
+        os.path.join(outfolder_stats_results, bed_digest + "_plots.json")
     )
     if not just_db_commit:
         if not pm:
@@ -152,7 +157,7 @@ def bedstat(
         )
         command = (
             f"Rscript {rscript_path} --bedfilePath={bedfile} "
-            f"--fileId={fileid} --openSignalMatrix={open_signal_matrix} "
+            f"--fileId={bed_digest} --openSignalMatrix={open_signal_matrix} "
             f"--outputFolder={outfolder_stats_results} --genome={genome} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
@@ -177,6 +182,25 @@ def bedstat(
     # length 1 and force keys to lower to correspond with the
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+    try:
+        gc_contents = calculate_gc_content(
+            bedfile=bedfile, genome=genome, rfg_config=rfg_config
+        )
+    except BaseException as e:
+        gc_contents = None
+
+    if gc_contents:
+        gc_mean = statistics.mean(gc_contents)
+
+        data["gc_content"] = round(gc_mean, 2)
+
+        gc_plot = create_gc_plot(
+            bed_id=bed_digest,
+            gc_contents=gc_contents,
+            outfolder=os.path.join(outfolder_stats_results),
+            gc_mean=gc_mean,
+        )
+        plots.append(gc_plot)
 
     for plot in plots:
         plot_id = plot["name"]

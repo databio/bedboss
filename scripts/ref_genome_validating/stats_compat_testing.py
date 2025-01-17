@@ -2,11 +2,12 @@
 # PEP : donaldcampbelljr/refgenome_compat_testing:default
 import copy
 import os
-import pephubclient
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import pandas as pd
+import pephubclient
+import seaborn as sns
 
 try:
     PEP_URL = os.environ["PEP_URL"]
@@ -17,7 +18,6 @@ except:
 
 
 def main():
-
     # pull from tier rating column to get the final assessment
     tier_rating_keys = ["mm10", "hg38", "hg19"]
 

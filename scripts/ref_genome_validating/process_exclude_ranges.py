@@ -6,8 +6,8 @@ import gzip
 import os
 import shutil
 import subprocess
-import pipestat
 
+import pipestat
 from geofetch import Geofetcher
 
 # assumes user has built the igd database and has igd(c) installed locally
@@ -40,7 +40,6 @@ def main(species):
         print("Must supply species,e.g. mouse, homosapiens, rat, cow!")
 
     else:
-
         # Make sure to have the IDE ignore these folders!!!!
         data_output_path = os.path.abspath("data")
         results_path = os.path.abspath("results")

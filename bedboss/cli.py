@@ -89,6 +89,13 @@ def run_all(
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
+    update: bool = typer.Option(
+        False,
+        help="Update the bedbase database with the new record if it exists. This overwrites 'force_overwrite' option",
+    ),
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
+    ),
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
@@ -129,8 +136,10 @@ def run_all(
         open_signal_matrix=open_signal_matrix,
         ensdb=ensdb,
         other_metadata=None,
+        lite=lite,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
+        update=update,
         upload_qdrant=upload_qdrant,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
@@ -164,12 +173,20 @@ def run_pep(
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
+    update: bool = typer.Option(
+        False,
+        help="Update the bedbase database with the new record if it exists. This overwrites 'force_overwrite' option",
+    ),
     upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(True, help="Upload to S3"),
     upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
+    ),
+    rerun: bool = typer.Option(False, help="Rerun already processed samples"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -192,12 +209,15 @@ def run_pep(
         ensdb=ensdb,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
+        update=update,
         license_id=license_id,
         upload_s3=upload_s3,
         upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
         standardize_pep=standardize_pep,
+        lite=lite,
+        rerun=rerun,
         pm=create_pm(
             outfolder=outfolder,
             multi=multi,
@@ -205,6 +225,75 @@ def run_pep(
             dirty=dirty,
             pipeline_name=pep.replace("/", "_").replace(":", "_"),
         ),
+    )
+
+
+@app.command(help="Run unprocessed files, or reprocess them")
+def reprocess_all(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    limit: int = typer.Option(100, help="Limit the number of files to reprocess"),
+    no_fail: bool = typer.Option(True, help="Do not fail on error"),
+):
+    from bedboss.bedboss import reprocess_all as reprocess_all_function
+
+    reprocess_all_function(
+        bedbase_config=bedbase_config,
+        output_folder=outfolder,
+        limit=limit,
+        no_fail=no_fail,
+    )
+
+
+@app.command(help="Run unprocessed file, or reprocess it [Only 1 file]")
+def reprocess_one(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    identifier: str = typer.Option(..., help="Identifier of the bed file"),
+):
+    from bedboss.bedboss import reprocess_one as reprocess_one_function
+
+    reprocess_one_function(
+        bedbase_config=bedbase_config,
+        output_folder=outfolder,
+        identifier=identifier,
+    )
+
+
+@app.command(help="Reprocess a bedset")
+def reprocess_bedset(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    outfolder: str = typer.Option(..., help="Path to the output folder"),
+    identifier: str = typer.Option(..., help="Bedset ID"),
+    no_fail: bool = typer.Option(True, help="Do not fail on error"),
+    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
+):
+    from bedboss.bedboss import reprocess_bedset as reprocess_bedset_function
+
+    reprocess_bedset_function(
+        bedbase_config=bedbase_config,
+        output_folder=outfolder,
+        identifier=identifier,
+        no_fail=no_fail,
+        heavy=heavy,
     )
 
 
@@ -568,12 +657,30 @@ def install_requirements():
     import subprocess
 
     r_path = os.path.abspath(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), "installRdeps.R")
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "scripts", "installRdeps.R"
+        )
     )
 
     subprocess.run(
         ["Rscript", r_path],
     )
+
+
+@app.command(help="Verify configuration file")
+def verify_config(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bbconf.config_parser.utils import config_analyzer
+
+    if config_analyzer(config):
+        print("Configuration file is valid!")
 
 
 @app.callback()

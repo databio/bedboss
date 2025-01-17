@@ -1,4 +1,5 @@
 import typer
+
 from bedboss._version import __version__
 
 app_bbuploader = typer.Typer(
@@ -21,7 +22,7 @@ def upload_all(
         None, help="The latest date when opep was updated [Default: today's date]"
     ),
     search_limit: int = typer.Option(
-        10, help="Limit of projects to be searched. [Default: 10]"
+        50, help="Limit of projects to be searched. [Default: 50]"
     ),
     search_offset: int = typer.Option(
         0, help="Limit of projects to be searched. [Default: 0]"
@@ -33,16 +34,35 @@ def upload_all(
         None,
         help="Reference genome [Default: None] (e.g. hg38) - if None, all genomes will be processed",
     ),
+    preload: bool = typer.Option(
+        True, help="Download bedfile before caching it. [Default: True]"
+    ),
     create_bedset: bool = typer.Option(
         True, help="Create bedset from bed files. [Default: True]"
     ),
-    rerun: bool = typer.Option(True, help="Re-run all the samples. [Default: False]"),
+    overwrite: bool = typer.Option(
+        False, help="Overwrite existing bedfiles. [Default: False]"
+    ),
+    overwrite_bedset: bool = typer.Option(
+        True, help="Overwrite existing bedset. [Default: False]"
+    ),
+    rerun: bool = typer.Option(False, help="Re-run all the samples. [Default: False]"),
     run_skipped: bool = typer.Option(
         True, help="Run skipped projects. [Default: False]"
     ),
     run_failed: bool = typer.Option(True, help="Run failed projects. [Default: False]"),
     standardize_pep: bool = typer.Option(
         False, help="Standardize pep with BEDMESS. [Default: False]"
+    ),
+    use_skipper: bool = typer.Option(
+        False,
+        help="Use skipper to skip projects if they were processed locally [Default: False]",
+    ),
+    reinit_skipper: bool = typer.Option(
+        False, help="Reinitialize skipper. [Default: False]"
+    ),
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
 ):
     from .main import upload_all as upload_all_function
@@ -57,10 +77,16 @@ def upload_all(
         download_limit=download_limit,
         genome=genome,
         create_bedset=create_bedset,
+        preload=preload,
         rerun=rerun,
         run_skipped=run_skipped,
         run_failed=run_failed,
         standardize_pep=standardize_pep,
+        use_skipper=use_skipper,
+        reinit_skipper=reinit_skipper,
+        overwrite=overwrite,
+        overwrite_bedset=overwrite_bedset,
+        lite=lite,
     )
 
 
@@ -78,13 +104,32 @@ def upload_gse(
         None,
         help=" reference genome to upload to database. If None, all genomes will be processed",
     ),
+    preload: bool = typer.Option(
+        True, help="Download bedfile before caching it. [Default: True]"
+    ),
     rerun: bool = typer.Option(True, help="Re-run all the samples. [Default: False]"),
     run_skipped: bool = typer.Option(
         True, help="Run skipped projects. [Default: False]"
     ),
     run_failed: bool = typer.Option(True, help="Run failed projects. [Default: False]"),
+    overwrite: bool = typer.Option(
+        False, help="Overwrite existing bedfiles. [Default: False]"
+    ),
+    overwrite_bedset: bool = typer.Option(
+        True, help="Overwrite existing bedset. [Default: False]"
+    ),
     standardize_pep: bool = typer.Option(
         False, help="Standardize pep with BEDMESS. [Default: False]"
+    ),
+    use_skipper: bool = typer.Option(
+        False,
+        help="Use local skipper to skip projects if they were processed locally [Default: False]",
+    ),
+    reinit_skipper: bool = typer.Option(
+        False, help="Reinitialize skipper. [Default: False]"
+    ),
+    lite: bool = typer.Option(
+        False, help="Run the pipeline in lite mode. [Default: False]"
     ),
 ):
     from .main import upload_gse as upload_gse_function
@@ -95,10 +140,16 @@ def upload_gse(
         gse=gse,
         create_bedset=create_bedset,
         genome=genome,
+        preload=preload,
         rerun=rerun,
         run_skipped=run_skipped,
         run_failed=run_failed,
         standardize_pep=standardize_pep,
+        use_skipper=use_skipper,
+        reinit_skipper=reinit_skipper,
+        overwrite=overwrite,
+        overwrite_bedset=overwrite_bedset,
+        lite=lite,
     )
 
 

@@ -1,36 +1,50 @@
+import glob
 import logging
 import os
+import time
 import urllib.request
-import glob
+from functools import wraps
 
-import requests
-from pephubclient.files_manager import FilesManager
 import peppy
-from peppy.const import SAMPLE_RAW_DICT_KEY
+import requests
 from bedms import AttrStandardizer
+from pephubclient.files_manager import FilesManager
+from peppy.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
+
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
 
 
-def standardize_genome_name(input_genome: str) -> str:
+def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     """
     Standardizing user provided genome
 
     :param input_genome: standardize user provided genome, so bedboss know what genome
     we should use
+    :param bedfile: path to bed file
     :return: genome name string
     """
-    if not input_genome:
-        return ""
+    if not isinstance(input_genome, str):
+        input_genome = ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
         return "hg38"
     elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
-    elif input_genome == "mm10":
+    elif input_genome == "mm10" or input_genome == "grcm38":
         return "mm10"
+    elif input_genome == "mm9" or input_genome == "grcm37":
+        return "mm9"
+
+    elif not input_genome or len(input_genome) > 7:
+        if bedfile:
+            predictor = ReferenceValidator()
+            return predictor.predict(bedfile) or ""
+        else:
+            return input_genome
     # else:
     #     raise GenomeException("Incorrect genome assembly was provided")
     else:
@@ -189,3 +203,27 @@ def cleanup_pm_temp(pm: PipelineManager) -> None:
             except Exception as e:
                 _LOGGER.error(f"Error cleaning up: {e}")
         pm.cleanup_list_conditional = []
+
+
+def calculate_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        # print(f"--> Arguments: {args}")
+        # print(f"--> Keyword arguments: {kwargs}")
+
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+
+        hours, remainder = divmod(execution_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        print(
+            f"Function '{func.__name__}' executed in {int(hours)} hours, {int(minutes)} minutes, and {seconds:.2f} seconds"
+        )
+
+        return result
+
+    return wrapper

@@ -1,22 +1,23 @@
-from typing import Optional, Union, List, Dict
+import logging
 import os
+from typing import Dict, List, Optional, Union
 
 from bedboss.exceptions import ValidatorException
+from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.models import (
-    ChromNameStats,
     ChromLengthStats,
-    SequenceFitStats,
+    ChromNameStats,
+    CompatibilityConcise,
     CompatibilityStats,
     RatingModel,
-    CompatibilityConcise,
+    SequenceFitStats,
 )
 from bedboss.refgenome_validator.utils import (
     get_bed_chrom_info,
-    run_igd_command,
     parse_IGD_output,
+    run_igd_command,
 )
-import logging
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -412,3 +413,32 @@ class ReferenceValidator:
             assigned_points=output.compatibility.assigned_points,
             tier_ranking=output.compatibility.tier_ranking,
         )
+
+    def predict(self, bedfile: str) -> Union[str, None]:
+        """
+        Predict compatibility of a bed file with reference genomes
+
+        :param bedfile: path to bedfile
+
+        :return: sring with the name of the reference genome that the bed file is compatible with or None, if no compatibility is found
+        """
+
+        _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
+        compatibility_stats: Dict[str, CompatibilityConcise] = (
+            self.determine_compatibility(bedfile, concise=True)
+        )
+
+        best_rankings = []
+
+        for genome, prediction in compatibility_stats.items():
+            if prediction.tier_ranking == 1:
+                best_rankings.append(genome)
+
+        if len(best_rankings) == 0:
+            for genome, prediction in compatibility_stats.items():
+                if prediction.tier_ranking == 2:
+                    best_rankings.append(genome)
+
+        if len(best_rankings) == 1:
+            return GENOME_FILES.get(best_rankings[0])
+        return None
