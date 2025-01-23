@@ -34,6 +34,8 @@ print(narrowpeakcount, bedcount, broadpeakcount)
 bed_type_counts = df_bed_types["bed_type"].value_counts()
 print(bed_type_counts)
 
-df_bed_types["bed_type"].value_counts(normalize=True).plot(kind="barh")
+
+df_bed_types["bed_type"].value_counts(normalize=True).plot(kind="barh" )
+
 # pt.show()
 plt.savefig("./results/bed_type_distribution.png")
