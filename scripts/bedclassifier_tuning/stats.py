@@ -26,6 +26,8 @@ DATA_FILE_BED_TYPES = "./data/bedbase_manual_pull/23jan2025/bedbase_file_types.c
 # /home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bedbase_manual_pull/23jan2025/bedbase_file_types.csv
 DATA_FILE_REFERENCE_STATS = "./data/bedbase_manual_pull/23jan2025/ref_stats.csv"
 
+DATA_FILE_GEO_FAIL = "./data/bedbase_manual_pull/23jan2025/fail_geo.csv"
+
 
 bed_types_path = os.path.abspath(DATA_FILE_BED_TYPES)
 df_bed_types = pd.read_csv(bed_types_path)
@@ -92,3 +94,8 @@ print(f"All other bed3+#: {bed3_rows_count}")
 
 print(f"Remaining: {total_rows-bed3_rows_count-bed_6plus3_rows_count-bed_6plus4_rows_count} , {(total_rows-bed3_rows_count-bed_6plus3_rows_count-bed_6plus4_rows_count)*100/total_rows}  ")
 
+geo_fail_path = os.path.abspath(DATA_FILE_GEO_FAIL)
+df_geo_fail = pd.read_csv(geo_fail_path)
+geo_fail_counts = df_geo_fail["error"].value_counts()
+
+print(geo_fail_counts)
