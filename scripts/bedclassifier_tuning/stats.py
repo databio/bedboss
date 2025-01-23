@@ -21,6 +21,21 @@ df_bed_types = pd.read_csv(bed_types_path)
 
 # Count the occurrences of each bed_format
 bed_format_counts = df_bed_types["bed_format"].value_counts()
+df_bed_types["bed_format"].value_counts(normalize=True).plot(kind="pie")
+
+
+def autopct_format(values):
+    def my_format(pct):
+        total = sum(values)
+        val = int(round(pct*total/100.0))
+        return '{:.1f}%\n({v:d})'.format(pct, v=val)
+    return my_format
+
+plt.pie(bed_format_counts, autopct=autopct_format(bed_format_counts))
+#plt.show()
+plt.savefig("./results/bed_format_pie_chart.png")
+plt.close()
+
 total_rows = df_bed_types.shape[0]
 
 print(bed_format_counts)
@@ -39,3 +54,4 @@ df_bed_types["bed_type"].value_counts(normalize=True).plot(kind="barh" )
 
 # pt.show()
 plt.savefig("./results/bed_type_distribution.png")
+plt.close()
