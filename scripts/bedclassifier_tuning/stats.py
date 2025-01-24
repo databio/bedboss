@@ -14,6 +14,8 @@
 
 # we can map genome to genome provided
 
+# Should we be getting a line count?
+
 
 import os.path
 
@@ -99,3 +101,28 @@ df_geo_fail = pd.read_csv(geo_fail_path)
 geo_fail_counts = df_geo_fail["error"].value_counts()
 
 print(geo_fail_counts)
+
+# What about breakdown of format into provided genome aliases?
+
+beds_genomes= df_bed_types[df_bed_types['bed_format'] == 'bed']['genome_alias'].value_counts()
+# beds_genomes= df_bed_types[df_bed_types['bed_format'] == 'bed']['genome_alias'].value_counts().plot(kind="barh" )
+# plt.show()
+# plt.savefig("./results/bed_genomes.png")
+# plt.close()
+print(beds_genomes)
+bed_genomes_df = beds_genomes.reset_index()
+bed_genomes_df.columns=['genome_alias','count']
+bed_genomes_df.to_csv("/home/drc/Downloads/bed_genomes_df.csv")
+
+narrowpeaks_genomes = df_bed_types[df_bed_types['bed_format'] == 'narrowpeak']['genome_alias'].value_counts()
+print(narrowpeaks_genomes)
+narrowpeaks_genomes_df = narrowpeaks_genomes.reset_index()
+narrowpeaks_genomes_df.columns=['genome_alias','count']
+narrowpeaks_genomes_df.to_csv("/home/drc/Downloads/narrow_peaks_df.csv")
+
+
+broadpeaks_genomes = df_bed_types[df_bed_types['bed_format'] == 'broadpeak']['genome_alias'].value_counts()
+print(broadpeaks_genomes)
+broadpeaks_genomes_df = broadpeaks_genomes.reset_index()
+broadpeaks_genomes_df.columns=['genome_alias','count']
+broadpeaks_genomes_df.to_csv("/home/drc/Downloads/broadpeaks_df.csv")
