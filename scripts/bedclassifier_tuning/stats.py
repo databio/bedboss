@@ -126,3 +126,35 @@ print(broadpeaks_genomes)
 broadpeaks_genomes_df = broadpeaks_genomes.reset_index()
 broadpeaks_genomes_df.columns=['genome_alias','count']
 broadpeaks_genomes_df.to_csv("/home/drc/Downloads/broadpeaks_df.csv")
+
+
+###### REFERENCE GENOME COMPATIBILITY
+print("REFGENOME COMPAT")
+reference_genome_compat_path = os.path.abspath(DATA_FILE_REFERENCE_STATS)
+df_ref_genome_compat = pd.read_csv(reference_genome_compat_path)
+
+print(df_ref_genome_compat.head(n=10))
+
+df_ref_genome_compat['rank'] = df_ref_genome_compat.groupby('bed_id')['assigned_points'].rank(method='dense', ascending=True)
+
+print(df_ref_genome_compat.head(n=10))
+
+#best_ranked_genomes = df_ref_genome_compat[df_ref_genome_compat['rank'] == 1].groupby('bed_id')['compared_genome'].first()
+
+# just give us the best ranked genome, so, in many cases this will be something with less points (better compatibility) but in some cases a poorly ranked genomes will still be the best case
+best_ranked_genomes_df = df_ref_genome_compat[df_ref_genome_compat['rank'] == 1].groupby('bed_id').first()
+print("BEST RANKED")
+print(best_ranked_genomes_df)
+best_ranked_genomes_df.to_csv("/home/drc/Downloads/best_ranked_genomes.csv")
+
+best_ranked_genomes_df['is_substring'] = best_ranked_genomes_df.apply(lambda row: 1 if str(row['provided_genome']) in row['compared_genome'] else 0, axis=1)
+best_ranked_genomes_df.to_csv("/home/drc/Downloads/best_ranked_genomes_2.csv")
+#best_ranked_genomes_df = best_ranked_genomes.reset_index()
+print(best_ranked_genomes_df['is_substring'].value_counts()) # How well did we do 1 vs 0, i.e. did the ranked 1st choice coincide with provided genome?
+
+best_ranked_genomes_df['positive_prediction_quality'] = best_ranked_genomes_df.apply(lambda row: 1 if row['is_substring']==1 and row['assigned_points']==0 else 0, axis=1)
+best_ranked_genomes_df.to_csv("/home/drc/Downloads/best_ranked_genomes_3.csv")
+print(best_ranked_genomes_df['positive_prediction_quality'].value_counts())
+#best_ranked_genomes_df.columns=['id','bed_id', 'compared_genome', 'xs', 'oobr','sequence_fit', 'assigned_points','tier_ranking','rank']
+#print(best_ranked_genomes_df.columns())
+#df['is_substring'] = df.apply(lambda row: row['provided_genome'] in row['compared_genome'], axis=1)
