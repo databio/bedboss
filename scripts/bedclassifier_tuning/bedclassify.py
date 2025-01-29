@@ -7,7 +7,7 @@ from typing import Optional
 import pipestat
 import pypiper
 
-from bedboss.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")
