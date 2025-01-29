@@ -1,8 +1,14 @@
 #!/bin/bash
 cp ../docs/templates/usage.template usage.template
 # bedboss --help > USAGE.temp 2>&1
+commands=$(bedboss get-commands)
 
-for cmd in "--help" "check-requirements --help" "delete-bed --help" "delete-bedset --help" "init-config --help" "make-bed --help" "make-bedset --help" "make-bigbed --help" "reindex --help" "run-all --help" "run-pep --help" "run-qc --help" "run-stats --help"; do
+commands_with_help=()
+for cmd in $commands; do
+  commands_with_help+=("$cmd --help")
+done
+
+for cmd in "--help" "geo --help" "geo upload-all --help" "geo upload-gse --help" "${commands_with_help[@]}"; do
 	echo $cmd
 	echo -e "## \`bedboss $cmd\`" > USAGE_header.temp
 	bedboss $cmd --help > USAGE.temp 2>&1
