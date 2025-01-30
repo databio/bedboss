@@ -26,32 +26,32 @@ dest_folder_2 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/da
 count_nt_brdpeak = 0
 count_brdpeak = 0
 
-for digest in broadpeak_digests[400:800]:
+for digest in not_broadpeak_digests:
     #https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
     #print(digest)
     # print(digest[0])
     url = f"https://data2.bedbase.org/files/{digest[0]}/{digest[1]}/{digest}.bed.gz"
     filename = url.split('/')[-1]  # Extract filename from URL
-    file_path = os.path.join(dest_folder_2, filename)
+    file_path = os.path.join(dest_folder, filename)
     #print(file_path)
-    if not os.path.exists(file_path):
-        try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()  # Raise an exception for bad status codes
-
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:  # filter out keep-alive new chunks
-                        f.write(chunk)
-
-            print(f"File downloaded successfully: {file_path}")
-
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading {url}: {e}")
-    else:
-        print(f"skipping file exists: {file_path}")
-        pass
+    # if not os.path.exists(file_path):
+    #     try:
+    #         response = requests.get(url, stream=True)
+    #         response.raise_for_status()  # Raise an exception for bad status codes
+    #
+    #         with open(file_path, 'wb') as f:
+    #             for chunk in response.iter_content(chunk_size=8192):
+    #                 if chunk:  # filter out keep-alive new chunks
+    #                     f.write(chunk)
+    #
+    #         print(f"File downloaded successfully: {file_path}")
+    #
+    #
+    #     except requests.exceptions.RequestException as e:
+    #         print(f"Error downloading {url}: {e}")
+    # else:
+    #     print(f"skipping file exists: {file_path}")
+    #     pass
 
     result = get_bed_type(file_path)
     ##print(result)
@@ -63,6 +63,6 @@ for digest in broadpeak_digests[400:800]:
         print("FOUND BROADPEAK")
         count_brdpeak +=1
 
-print("Originally classified as broadpeak. However, running classification without file-names")
+#print("Originally classified as broadpeak. However, running classification without file-names")
 print(f"broadPeaks: {count_brdpeak} \nnot broadpeak:{count_nt_brdpeak}")
 #print(get_bed_type("/home/drc/test/957d1614e76987bb9d9f3a4f75d8ae50.bed.gz"))
