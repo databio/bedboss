@@ -17,13 +17,13 @@ df_bed_types = pd.read_csv(bed_types_path)
 # Get files that were not labeled at broadPeaks but do have the type as bed6+3
 not_broadpeak_digests = df_bed_types[(df_bed_types['bed_format'] == 'bed') & (df_bed_types['bed_type'] == 'bed6+3')]['id']
 
-dest_folder ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbroadpeaks"
+dest_folder ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks"
 
 #print(not_broadpeak_digests.shape)
 
 for digest in not_broadpeak_digests:
     #https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
-    print(digest)
+    #print(digest)
     # print(digest[0])
     url = f"https://data2.bedbase.org/files/{digest[0]}/{digest[1]}/{digest}.bed.gz"
     filename = url.split('/')[-1]  # Extract filename from URL
@@ -52,3 +52,7 @@ for digest in not_broadpeak_digests:
     ##print(result)
     if result[1] != 'broadpeak':
         print(f"This one is not classified as broadpeak: {file_path}")
+    else:
+        print("FOUND BROADPEAK")
+
+#print(get_bed_type("/home/drc/test/957d1614e76987bb9d9f3a4f75d8ae50.bed.gz"))
