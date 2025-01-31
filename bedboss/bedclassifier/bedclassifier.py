@@ -41,7 +41,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
 
     while row_count <= max_rows:
         try:
-            df = pd.read_csv(bed, sep="\t", header=None, nrows=30, skiprows=row_count)
+            df = pd.read_csv(bed, sep="\t", header=None, nrows=60, skiprows=row_count)
             if row_count > 0:
                 _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
             break
@@ -90,7 +90,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
         num_cols = len(df.columns)
         bedtype = 0
 
-        if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible
+        if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible, THIS DOES NOT CATCH IF THE FILE IS ZIPPED AND THE ZIPPED FILE HAS NARROWPEAK
             bed_type_named = "broadpeak"
         elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed): # change this to look at file name, not entire path if possible
             bed_type_named = "narrowpeak"
