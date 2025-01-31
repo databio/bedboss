@@ -39,48 +39,55 @@ count_brdpeak = 0
 DIGESTS = narrowpeak_digests
 DESTINATION_FOLDER = dest_folder_4
 
-psm = pipestat.PipestatManager(results_file_path="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml")
-
-for digest in DIGESTS[:300]:
-    #https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
-    #print(digest)
-    # print(digest[0])
-    url = f"https://data2.bedbase.org/files/{digest[0]}/{digest[1]}/{digest}.bed.gz"
-    filename = url.split('/')[-1]  # Extract filename from URL
-    file_path = os.path.join(DESTINATION_FOLDER, filename)
-    #print(file_path)
-    if not os.path.exists(file_path):
-        try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()  # Raise an exception for bad status codes
-
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:  # filter out keep-alive new chunks
-                        f.write(chunk)
-
-            print(f"File downloaded successfully: {file_path}")
-
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading {url}: {e}")
-    else:
-        print(f"skipping file exists: {file_path}")
-        pass
-
-    result = get_bed_type(file_path)
-    print(result)
-    psm.report(record_identifier=digest, values={"bed_type":result})
-
-    if result[1] != 'narrowpeak':
-        print(f"This one is not classified as narrowpeak: {file_path}")
-        count_nt_brdpeak += 1
-    else:
-        print("FOUND narrowpeak")
-        count_brdpeak +=1
-
-print(f"narrowpeak: {count_brdpeak} \nnot narrowpeak:{count_nt_brdpeak}")
+# psm = pipestat.PipestatManager(results_file_path="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml")
+#
+# for digest in DIGESTS[0:1400]:
+#     #https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
+#     #print(digest)
+#     # print(digest[0])
+#     url = f"https://data2.bedbase.org/files/{digest[0]}/{digest[1]}/{digest}.bed.gz"
+#     filename = url.split('/')[-1]  # Extract filename from URL
+#     file_path = os.path.join(DESTINATION_FOLDER, filename)
+#     #print(file_path)
+#     if not os.path.exists(file_path):
+#         try:
+#             response = requests.get(url, stream=True)
+#             response.raise_for_status()  # Raise an exception for bad status codes
+#
+#             with open(file_path, 'wb') as f:
+#                 for chunk in response.iter_content(chunk_size=8192):
+#                     if chunk:  # filter out keep-alive new chunks
+#                         f.write(chunk)
+#
+#             print(f"File downloaded successfully: {file_path}")
+#
+#
+#         except requests.exceptions.RequestException as e:
+#             print(f"Error downloading {url}: {e}")
+#     else:
+#         print(f"skipping file exists: {file_path}")
+#         pass
+#
+#     result = get_bed_type(file_path)
+#     print(result)
+#     psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
+#
+#     if result[1] != 'narrowpeak':
+#         print(f"This one is not classified as narrowpeak: {file_path}")
+#         count_nt_brdpeak += 1
+#     else:
+#         print("FOUND narrowpeak")
+#         count_brdpeak +=1
+#
+# print(f"narrowpeak: {count_brdpeak} \nnot narrowpeak:{count_nt_brdpeak}")
 # print(get_bed_type("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
 # print(get_bed_type("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
+#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
+#print(get_bed_type("/home/drc/test/test_narrowpeak/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
+
+#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/569304341e282330677bee56fd45db0a.bed.gz"))
+#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/d091b4b1e97ad3c284235d4d43082078.bed.gz"))
+#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/66788888eaea21c069763798ff719c33.bed.gz"))
+print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/f759ec1fd104ab1db5a1d01200807937.bed.gz"))
 
 #print(not_narrowpeak_digests.head())
