@@ -136,7 +136,9 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 4:
+                    #if df[col].dtype == "int" and 0 <= df[col].median() <= 1000:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
+                        #print(f"here is median {df[col].median()}")
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
