@@ -96,6 +96,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
         #     bed_type_named = "narrowpeak"
         # else:
         #     bed_type_named = "bed"
+        bed_type_named = "bed"
 
         for col in df:
             if col <= 2:
