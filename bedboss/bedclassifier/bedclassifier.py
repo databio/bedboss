@@ -90,12 +90,12 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
         num_cols = len(df.columns)
         bedtype = 0
 
-        if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible, THIS DOES NOT CATCH IF THE FILE IS ZIPPED AND THE ZIPPED FILE HAS NARROWPEAK
-            bed_type_named = "broadpeak"
-        elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed): # change this to look at file name, not entire path if possible
-            bed_type_named = "narrowpeak"
-        else:
-            bed_type_named = "bed"
+        # if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible, THIS DOES NOT CATCH IF THE FILE IS ZIPPED AND THE ZIPPED FILE HAS NARROWPEAK
+        #     bed_type_named = "broadpeak"
+        # elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed): # change this to look at file name, not entire path if possible
+        #     bed_type_named = "narrowpeak"
+        # else:
+        #     bed_type_named = "bed"
 
         for col in df:
             if col <= 2:
