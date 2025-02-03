@@ -13,4 +13,4 @@ for root, _, files in os.walk(DATA_PATH):
 
 for file in all_files:
     result = get_bed_type(file)
-    print(result)
+    print(f"{result}: {file}")

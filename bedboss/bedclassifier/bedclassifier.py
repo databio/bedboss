@@ -202,6 +202,20 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                     else:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
+                elif 12 <= col <= 14:
+                    if col == 12 and num_cols == 15 and all(
+                        [
+                            (df[col].dtype == "float" or df[col][0] == -1),
+                            (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                            (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
+                        ]
+                    ):
+                        n = num_cols - bedtype
+                        bed_type_named = "gappedpeak"
+                        return f"bed{bedtype}+{n}", bed_type_named
+                    else:
+                        n = num_cols - bedtype
+                        return f"bed{bedtype}+{n}", bed_type_named
                 else:
                     n = num_cols - bedtype
                     return f"bed{bedtype}+{n}", bed_type_named
