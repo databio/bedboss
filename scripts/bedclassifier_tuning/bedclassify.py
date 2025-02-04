@@ -97,9 +97,9 @@ class BedClassifier:
         if self.input_type:
             all_values.update({"given_bedfile_type": self.input_type})
         if self.bed_type:
-            all_values.update({"bedfile_type": self.bed_type})
+            all_values.update({"bed_type": self.bed_type})
         if self.bed_type_named:
-            all_values.update({"bedfile_named": self.bed_type_named})
+            all_values.update({"bed_format": self.bed_type_named})
         if self.gsm:
             all_values.update({"gsm": self.gsm})
 
@@ -116,20 +116,23 @@ class BedClassifier:
 
 def main():
     # PEP for reporting all classification results
-    pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
+    #pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
 
     # Place these external to pycharm folder!!!
-    data_output_path = os.path.abspath("data")
-    results_path = os.path.abspath("results")
-    logs_dir = os.path.join(results_path, "logs")
+    # data_output_path = os.path.abspath("data")
+    # results_path = os.path.abspath("results")
+    # logs_dir = os.path.join(results_path, "logs")
+    data_output_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/data/")
+    results_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/")
+    logs_dir = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/logs")
 
     gse_obj = Finder()
 
     # # Optionally: provide filter string and max number of retrieve elements
-    # gse_obj = Finder(filters="narrowpeak", retmax=100)
+    gse_obj = Finder(filters="gappedpeak", retmax=500)
     #
-    # gse_list = gse_obj.get_gse_all()
-    # gse_obj.generate_file("data/output.txt", gse_list=gse_list)
+    gse_list = gse_obj.get_gse_all()
+    gse_obj.generate_file(os.path.join(data_output_path, "output.txt"), gse_list=gse_list)
 
     pm = pypiper.PipelineManager(
         name="bedclassifier",
@@ -141,7 +144,7 @@ def main():
 
     # for geo in gse_list:
     geofetcher_obj = Geofetcher(
-        filter="\.(bed|narrowPeak|broadPeak)\.",
+        filter="\.(gappedPeak)\.",
         filter_size="25MB",
         data_source="samples",
         geo_folder=data_output_path,
@@ -159,7 +162,7 @@ def main():
     samples = geofetched["output_samples"].samples
 
     psm = pipestat.PipestatManager(
-        pephub_path=pephuburl, schema_path="bedclassifier_output_schema.yaml"
+        results_file_path="/home/drc/test/test_gappedPeaks_geofetched/results/gappedpeak_results.yaml",
     )
 
     for sample in samples:
@@ -171,15 +174,19 @@ def main():
         sample_name = sample.sample_name
         bed_type_from_geo = sample.type.lower()
 
-        bed = BedClassifier(
-            input_file=bedfile,
-            bed_digest=sample_name,  # TODO FIX THIS IT HOULD BE AN ACTUAL DIGEST
-            output_dir=results_path,
-            input_type=bed_type_from_geo,
-            psm=psm,
-            pm=pm,
-            gsm=geo_accession,
-        )
+        try:
+            bed = BedClassifier(
+                input_file=bedfile,
+                bed_digest=sample_name,  # TODO FIX THIS IT SHOULD BE AN ACTUAL DIGEST
+                output_dir=results_path,
+                input_type=bed_type_from_geo,
+                psm=psm,
+                pm=pm,
+                gsm=geo_accession,
+            )
+        except:
+            pass
+
 
     pm.stop_pipeline()
 

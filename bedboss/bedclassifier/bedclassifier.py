@@ -142,6 +142,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         #print(f"here is median {df[col].median()}")
                         bedtype += 1
                     else:
+                        #print(f"DEBUG: {df[col].dtype} Values: {df[col][:10]} Max: {df[col][:59].max()} ")
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 5:
