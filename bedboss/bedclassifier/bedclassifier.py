@@ -90,6 +90,9 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
         num_cols = len(df.columns)
         bedtype = 0
 
+        # print("DEBUG")
+        # print(df.head)
+
         # if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible, THIS DOES NOT CATCH IF THE FILE IS ZIPPED AND THE ZIPPED FILE HAS NARROWPEAK
         #     bed_type_named = "broadpeak"
         # elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed): # change this to look at file name, not entire path if possible
@@ -142,7 +145,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         #print(f"here is median {df[col].median()}")
                         bedtype += 1
                     else:
-                        #print(f"DEBUG: {df[col].dtype} Values: {df[col][:10]} Max: {df[col][:59].max()} ")
+                        #print(f"DEBUG: {df[col].dtype} Values: {df[col][:2]} Max: {df[col][:59].max()} ")
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 5:

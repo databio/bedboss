@@ -122,14 +122,18 @@ def main():
     # data_output_path = os.path.abspath("data")
     # results_path = os.path.abspath("results")
     # logs_dir = os.path.join(results_path, "logs")
-    data_output_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/data/")
-    results_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/")
-    logs_dir = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/logs")
+    # data_output_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/data/")
+    # results_path = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/")
+    # logs_dir = os.path.abspath("/home/drc/test/test_gappedPeaks_geofetched/results/logs")
+
+    data_output_path = os.path.abspath("/home/drc/test/test_other_types/data/")
+    results_path = os.path.abspath("/home/drc/test/test_other_types/results/")
+    logs_dir = os.path.abspath("/home/drc/test/test_other_types/results/logs")
 
     gse_obj = Finder()
 
     # # Optionally: provide filter string and max number of retrieve elements
-    gse_obj = Finder(filters="gappedpeak", retmax=500)
+    gse_obj = Finder(filters="peptideMapping", retmax=1000)
     #
     gse_list = gse_obj.get_gse_all()
     gse_obj.generate_file(os.path.join(data_output_path, "output.txt"), gse_list=gse_list)
@@ -144,8 +148,8 @@ def main():
 
     # for geo in gse_list:
     geofetcher_obj = Geofetcher(
-        filter="\.(gappedPeak)\.",
-        filter_size="25MB",
+        filter="\.(peptideMapping)\.",
+        filter_size="100MB",
         data_source="samples",
         geo_folder=data_output_path,
         metadata_folder=data_output_path,
@@ -162,7 +166,7 @@ def main():
     samples = geofetched["output_samples"].samples
 
     psm = pipestat.PipestatManager(
-        results_file_path="/home/drc/test/test_gappedPeaks_geofetched/results/gappedpeak_results.yaml",
+        results_file_path="/home/drc/test/test_other_types/results/other_types_results.yaml",
     )
 
     for sample in samples:

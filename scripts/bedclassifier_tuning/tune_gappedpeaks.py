@@ -2,7 +2,9 @@
 import os
 from bedboss.bedclassifier.bedclassifier import get_bed_type
 
-DATA_PATH = "/home/drc/test/gappedPeaks/"
+#DATA_PATH = "/home/drc/test/gappedPeaks/"
+#DATA_PATH = "/home/drc/test/test_tagalign/"
+DATA_PATH = "/home/drc/test/test_peptidemapping/"
 
 all_files = []
 for root, _, files in os.walk(DATA_PATH):
@@ -14,16 +16,16 @@ count_neg = 0
 count_pos = 0
 for file in all_files:
     result = get_bed_type(file)
-    if result[1] != 'gappedpeak':
+    if result[1] != 'tagalign':
         # print(f"This one is not classified as broadpeak: {file_path}")
         count_neg += 1
-        print(f"{result}: {file}")
+
     else:
 
         # print("FOUND broadpeak")
         count_pos += 1
-    #print(f"{result}: {file}")
-print(f"gappedPeak: {count_pos} \nnot gappedPeak:{count_neg}")
+    print(f"{result}: {file}")
+print(f"tagalign: {count_pos} \nnot tagalign:{count_neg}")
 
 # One-off testing
 
