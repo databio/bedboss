@@ -30,25 +30,29 @@ narrowpeak_digests = df_bed_types[(df_bed_types['bed_format'] == 'narrowpeak') &
 
 narrowpeak_digests_4plus6 = df_bed_types[(df_bed_types['bed_format'] == 'narrowpeak') & (df_bed_types['bed_type'] == 'bed4+6')]['id']
 
+all_6_plus_3s_digests = df_bed_types[(df_bed_types['bed_type'] == 'bed6+3')]['id'] # just grab everything that is a 6+3
+
 dest_folder ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks"
 dest_folder_2 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks"
 dest_folder_3 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notnarpks"
 dest_folder_4 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks"
+
+dest_folder_5 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3"
 
 #print(not_broadpeak_digests.shape)
 count_nt_brdpeak = 0
 count_brdpeak = 0
 
 ## SET TYPES AND LOCALE FOR LOCAL STORAGE
-DIGESTS = narrowpeak_digests
-DESTINATION_FOLDER = dest_folder_4
+DIGESTS = all_6_plus_3s_digests
+DESTINATION_FOLDER = dest_folder_5
 
 NARROWPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml"
 BROADPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/broadpeak_results.yaml"
 
 #psm = pipestat.PipestatManager(results_file_path=BROADPEAK_RESULTS_FILE)
 
-for digest in DIGESTS[0:1400]:
+for digest in DIGESTS[1400:]:
     #https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
     #print(digest)
     # print(digest[0])
@@ -76,9 +80,12 @@ for digest in DIGESTS[0:1400]:
         pass
 
     result = get_bed_type(file_path)
-    #print(result)
+
+    print(result)
     #psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
 
+# THis is a test file for RNA elements
+print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/donald_test.bed"))
     # if result[1] != 'broadpeak':
     #     #print(f"This one is not classified as broadpeak: {file_path}")
     #     count_nt_brdpeak += 1
@@ -86,14 +93,14 @@ for digest in DIGESTS[0:1400]:
     #     #print("FOUND broadpeak")
     #     count_brdpeak +=1
 
-    if result[1] != 'narrowpeak':
-        # print(f"This one is not classified as broadpeak: {file_path}")
-        count_nt_brdpeak += 1
-    else:
-        # print("FOUND broadpeak")
-        count_brdpeak += 1
-
-print(f"narrowpeak: {count_brdpeak} \nnot narrowpeak:{count_nt_brdpeak}")
+#     if result[1] != 'narrowpeak':
+#         # print(f"This one is not classified as broadpeak: {file_path}")
+#         count_nt_brdpeak += 1
+#     else:
+#         # print("FOUND broadpeak")
+#         count_brdpeak += 1
+#
+# print(f"narrowpeak: {count_brdpeak} \nnot narrowpeak:{count_nt_brdpeak}")
 # print(get_bed_type("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
 # print(get_bed_type("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
 #print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))

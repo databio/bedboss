@@ -177,6 +177,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
 
                     elif num_cols == 9:
                         # This is a catch to see if this is actually a broadpeak file that is unnamed
+                        # print(f"DEBUG: COLUMN TYPE VALUE {col} {df[col].dtype} {df[col][0]} {col + 1} {df[col + 1].dtype} {df[col + 1][0]} {col + 2} {df[col + 2].dtype} {df[col + 2][0]}")
 
                         if all(
                             [
@@ -187,6 +188,17 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
                         ):
                             n = num_cols - bedtype
                             bed_type_named = "broadpeak"
+                            return f"bed{bedtype}+{n}", bed_type_named
+
+                        elif all(
+                            [
+                                (df[col].dtype == "float" or df[col][0] == -1),
+                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                                (df[col + 2].dtype == "int" and df[col + 2][0] != -1),
+                            ]
+                        ) :
+                            n = num_cols - bedtype
+                            bed_type_named = "encode_rna_elements"
                             return f"bed{bedtype}+{n}", bed_type_named
                         else:
                             n = num_cols - bedtype
