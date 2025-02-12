@@ -41,7 +41,7 @@ def get_bed_type(bed: str, no_fail: Optional[bool] = True) -> Tuple[str, str]:
 
     while row_count <= max_rows:
         try:
-            df = pd.read_csv(bed, sep="\t", header=None, nrows=60, skiprows=row_count)
+            df = pd.read_csv(bed, sep="\t", header=None, low_memory=False, skiprows=row_count)
             if row_count > 0:
                 _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
             break
