@@ -13,14 +13,11 @@ def get_bed_type(
     bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True
 ) -> Tuple[str, str]:
     """
-    get the bed file type (ex. bed3, bed3+n )
-    standardize chromosomes if necessary:
-    filter the input file to contain only the standard chromosomes,
-    remove regions on ChrUn chromosomes
+    Get the BED file classification as a tuple (ucsc_bed_spec_compliance, bed_format) e.g. (bed6+4, encode_narrowpeak)
 
     :param bed: path to the bed file OR a dataframe
     :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
-    :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bedtype"], option [ucsc_bed, encode_narrowpeak, encode_broadpeak, encode_rna_elements,encode_gappedpeak,unknown_bedtype]]
+    :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bed_format"], option [ucsc_bed, encode_narrowpeak, encode_broadpeak, encode_rna_elements,encode_gappedpeak,unknown_bed_format]]
     """
     #    column format for bed12
     #    string chrom;       "Reference sequence chromosome or scaffold"
@@ -71,9 +68,9 @@ def get_bed_type(
                     else:
                         if no_fail:
                             _LOGGER.warning(
-                                f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
+                                f"Unable to parse bed file {bed}, due to error {e}, setting bed_format = unknown_bed_format"
                             )
-                            return "unknown_bedtype", "unknown_bedtype"
+                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined due to CSV parse error {e}"
@@ -84,9 +81,9 @@ def get_bed_type(
                 else:
                     if no_fail:
                         _LOGGER.warning(
-                            f"Unable to parse bed file {bed}, due to error {e}, setting bed_type = unknown_bedtype"
+                            f"Unable to parse bed file {bed}, due to error {e}, setting bed_format = unknown_bed_format"
                         )
-                        return "unknown_bedtype", "unknown_bedtype"
+                        return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
                     else:
                         raise BedTypeException(
                             reason=f"Bed type could not be determined due to CSV parse error {e}"
@@ -113,7 +110,7 @@ def get_bed_type(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
                             )
-                            return "unknown_bedtype", "unknown_bedtype"
+                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
@@ -127,7 +124,7 @@ def get_bed_type(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {col} with data type: {df[col].dtype}"
                             )
-                            return "unknown_bedtype", "unknown_bedtype"
+                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
@@ -267,4 +264,4 @@ def get_bed_type(
         return f"bed{bedtype}+0", bed_type_named
 
     else:
-        return "unknown_bedtype", "unknown_bedtype"
+        return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
