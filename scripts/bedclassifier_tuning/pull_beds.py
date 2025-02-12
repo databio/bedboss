@@ -37,6 +37,8 @@ narrowpeak_digests_4plus6 = df_bed_types[(df_bed_types['bed_format'] == 'narrowp
 
 all_6_plus_3s_digests = df_bed_types[(df_bed_types['bed_type'] == 'bed6+3')]['id'] # just grab everything that is a 6+3
 
+all_4_plus_6_digests = df_bed_types[(df_bed_types['bed_type'] == 'bed4+6')]['id'] # just grab everything that is a 6+3
+
 dest_folder ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks"
 dest_folder_2 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks"
 dest_folder_3 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notnarpks"
@@ -44,14 +46,16 @@ dest_folder_4 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/da
 
 dest_folder_5 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3"
 
+dest_folder_6 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus6"
+
 #print(not_broadpeak_digests.shape)
 count_nt = 0
 count = 0
 count_other = 0
 
 ## SET TYPES AND LOCALE FOR LOCAL STORAGE
-DIGESTS = narrowpeak_digests
-DESTINATION_FOLDER = dest_folder_4
+DIGESTS = all_4_plus_6_digests
+DESTINATION_FOLDER = dest_folder_6
 
 NARROWPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml"
 BROADPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/broadpeak_results.yaml"
