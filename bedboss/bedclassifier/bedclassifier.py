@@ -93,15 +93,6 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
         num_cols = len(df.columns)
         bedtype = 0
 
-        # print("DEBUG")
-        # print(df.head)
-
-        # if num_cols == 9 and ("broadpeak" in bed or "broadPeak" in bed): # change this to look at file name, not entire path if possible, THIS DOES NOT CATCH IF THE FILE IS ZIPPED AND THE ZIPPED FILE HAS NARROWPEAK
-        #     bed_type_named = "broadpeak"
-        # elif num_cols == 10 and ("narrowpeak" in bed or "narrowPeak" in bed): # change this to look at file name, not entire path if possible
-        #     bed_type_named = "narrowpeak"
-        # else:
-        #     bed_type_named = "bed"
         bed_type_named = "ucsc_bed"
 
         for col in df:
@@ -143,9 +134,7 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 4:
-                    #if df[col].dtype == "int" and 0 <= df[col].median() <= 1000:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
-                        #print(f"here is median {df[col].median()}")
                         bedtype += 1
                     elif num_cols == 10 and df[col].dtype == "int" and df[col].min() > 0 and all(                            [
                                 (df[6].dtype == "float" or df[6][0] == -1),
@@ -157,7 +146,6 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                             # This might be a narrowPeak with non-standard scores (e.g. greater than 1000)
                             bedtype += 1
                     else:
-                        #print(f"DEBUG: {df[col].dtype} Values: {df[col][:2]} Max: {df[col][:59].max()} ")
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 5:
@@ -199,8 +187,6 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
 
                     elif num_cols == 9:
                         # This is a catch to see if this is actually a broadpeak file that is unnamed
-                        # print(f"DEBUG: COLUMN TYPE VALUE {col} {df[col].dtype} {df[col][0]} {col + 1} {df[col + 1].dtype} {df[col + 1][0]} {col + 2} {df[col + 2].dtype} {df[col + 2][0]}")
-
                         if all(
                             [
                                 (df[col].dtype == "float" or df[col][0] == -1),
