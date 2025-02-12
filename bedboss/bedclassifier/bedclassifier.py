@@ -70,7 +70,10 @@ def get_bed_classification(
                             _LOGGER.warning(
                                 f"Unable to parse bed file {bed}, due to error {e}, setting bed_format = unknown_bed_format"
                             )
-                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
+                            return (
+                                "unknown_ucsc_bed_spec_compliance",
+                                "unknown_bed_format",
+                            )
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined due to CSV parse error {e}"
@@ -110,7 +113,10 @@ def get_bed_classification(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
                             )
-                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
+                            return (
+                                "unknown_ucsc_bed_spec_compliance",
+                                "unknown_bed_format",
+                            )
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
@@ -124,7 +130,10 @@ def get_bed_classification(
                             _LOGGER.warning(
                                 f"Bed type could not be determined at column {col} with data type: {df[col].dtype}"
                             )
-                            return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
+                            return (
+                                "unknown_ucsc_bed_spec_compliance",
+                                "unknown_bed_format",
+                            )
                         else:
                             raise BedTypeException(
                                 reason=f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"

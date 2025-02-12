@@ -116,7 +116,7 @@ class BedClassifier:
 
 def main():
     # PEP for reporting all classification results
-    #pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
+    # pephuburl = "donaldcampbelljr/bedclassifier_tuning_geo:default"
 
     # Place these external to pycharm folder!!!
     # data_output_path = os.path.abspath("data")
@@ -136,7 +136,9 @@ def main():
     gse_obj = Finder(filters="peptideMapping", retmax=1000)
     #
     gse_list = gse_obj.get_gse_all()
-    gse_obj.generate_file(os.path.join(data_output_path, "output.txt"), gse_list=gse_list)
+    gse_obj.generate_file(
+        os.path.join(data_output_path, "output.txt"), gse_list=gse_list
+    )
 
     pm = pypiper.PipelineManager(
         name="bedclassifier",
@@ -190,7 +192,6 @@ def main():
             )
         except:
             pass
-
 
     pm.stop_pipeline()
 
