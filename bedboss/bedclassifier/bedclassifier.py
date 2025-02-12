@@ -147,6 +147,15 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         #print(f"here is median {df[col].median()}")
                         bedtype += 1
+                    elif num_cols == 10 and df[col].dtype == "int" and df[col].min() > 0 and all(                            [
+                                (df[6].dtype == "float" or df[6][0] == -1),
+                                (df[7].dtype == "float" or df[7][0] == -1),
+                                (df[8].dtype == "float" or df[8][0] == -1),
+                                (df[9].dtype == "int" or df[9][0] == -1),
+                            ]):
+
+                            # This might be a narrowPeak with non-standard scores (e.g. greater than 1000)
+                            bedtype += 1
                     else:
                         #print(f"DEBUG: {df[col].dtype} Values: {df[col][:2]} Max: {df[col][:59].max()} ")
                         n = num_cols - bedtype
@@ -159,12 +168,12 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
-                        # TODO Should we be increasing bedtype after 6?
                         bedtype += 1
                     elif num_cols == 10:
                         # This is a catch to see if this is actually a narrowpeak file that is unnamed
                         if col == 6 and all(
                             [
+                                (df[col-2].between(0, 1000).all()),
                                 (df[col].dtype == "float" or df[col][0] == -1),
                                 (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
                                 (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
@@ -174,6 +183,16 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                             n = num_cols - bedtype
                             bed_type_named = "encode_narrowpeak"
                             return f"bed{bedtype}+{n}", bed_type_named
+                        elif col == 6 and all(                            [
+                                (df[col-2].min()>0),
+                                (df[col].dtype == "float" or df[col][0] == -1),
+                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                                (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
+                                (df[col + 3].dtype == "int" or df[col + 3][0] == -1),
+                            ]):
+                                n = num_cols - bedtype
+                                bed_type_named = "ns_narrowpeak"
+                                return f"bed{bedtype}+{n}", bed_type_named
                         else:
                             n = num_cols - bedtype
                             return f"bed{bedtype}+{n}", bed_type_named

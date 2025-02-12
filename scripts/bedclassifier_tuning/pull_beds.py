@@ -45,12 +45,13 @@ dest_folder_4 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/da
 dest_folder_5 ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3"
 
 #print(not_broadpeak_digests.shape)
-count_nt_brdpeak = 0
-count_brdpeak = 0
+count_nt = 0
+count = 0
+count_other = 0
 
 ## SET TYPES AND LOCALE FOR LOCAL STORAGE
-DIGESTS = broadpeak_digests
-DESTINATION_FOLDER = dest_folder_2
+DIGESTS = narrowpeak_digests
+DESTINATION_FOLDER = dest_folder_4
 
 NARROWPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml"
 BROADPEAK_RESULTS_FILE ="/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/broadpeak_results.yaml"
@@ -91,7 +92,7 @@ for digest in DIGESTS[:1400]:
     else:
         result = get_bed_type(file_path)
 
-    #print(result)
+    print(result)
     #psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
 
     # THis is a test file for RNA elements
@@ -103,14 +104,16 @@ for digest in DIGESTS[:1400]:
     #     #print("FOUND broadpeak")
     #     count_brdpeak +=1
 
-    if result[1] != 'broadpeak':
+    if result[1] != 'encode_narrowpeak' and result[1] != "ns_narrowpeak":
         # print(f"This one is not classified as broadpeak: {file_path}")
-        count_nt_brdpeak += 1
-    else:
+        count_nt += 1
+    if result[1] == 'encode_narrowpeak':
         # print("FOUND broadpeak")
-        count_brdpeak += 1
+        count += 1
+    if result[1] == 'ns_narrowpeak':
+        count_other += 1
 #
-print(f"broadpeak: {count_brdpeak} \nnot broadpeak:{count_nt_brdpeak}")
+print(f"narrowPeak: {count} \nnot narrowPeak:{count_nt} \n ns_narrowPeak:{count_other}")
 # print(get_bed_type("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
 # print(get_bed_type("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
 #print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
