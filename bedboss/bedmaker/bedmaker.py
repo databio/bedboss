@@ -12,7 +12,7 @@ from geniml.io import RegionSet
 from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
-from bedboss.bedclassifier.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_classification
 from bedboss.bedmaker.const import (
     BED_TO_BIGBED_PROGRAM,
     BEDGRAPH_TEMPLATE,
@@ -375,7 +375,7 @@ def make_all(
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
-    bed_type, bed_format = get_bed_type(output_bed)
+    bed_type, bed_format = get_bed_classification(output_bed)
     if check_qc:
         try:
             bedqc(

@@ -8,7 +8,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from bedboss.bedclassifier.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_classification
 import pipestat
 
 from geniml.io import RegionSet
@@ -92,15 +92,15 @@ for digest in DIGESTS[:1400]:
     if USE_GENIML:
         regionset = RegionSet(regions=file_path)
         df = regionset.to_pandas()
-        result = get_bed_type(df)
+        result = get_bed_classification(df)
     else:
-        result = get_bed_type(file_path)
+        result = get_bed_classification(file_path)
 
     print(result)
     #psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
 
     # THis is a test file for RNA elements
-    #print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/donald_test.bed"))
+    #print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/donald_test.bed"))
     # if result[1] != 'broadpeak':
     #     #print(f"This one is not classified as broadpeak: {file_path}")
     #     count_nt_brdpeak += 1
@@ -118,21 +118,21 @@ for digest in DIGESTS[:1400]:
         count_other += 1
 #
 print(f"narrowPeak: {count} \nnot narrowPeak:{count_nt} \n ns_narrowPeak:{count_other}")
-# print(get_bed_type("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
-# print(get_bed_type("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
-#print(get_bed_type("/home/drc/test/test_narrowpeak/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
+# print(get_bed_classification("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
+# print(get_bed_classification("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
+#print(get_bed_classification("/home/drc/test/test_narrowpeak/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))
 
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/569304341e282330677bee56fd45db0a.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/d091b4b1e97ad3c284235d4d43082078.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/66788888eaea21c069763798ff719c33.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/f759ec1fd104ab1db5a1d01200807937.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/569304341e282330677bee56fd45db0a.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/d091b4b1e97ad3c284235d4d43082078.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/66788888eaea21c069763798ff719c33.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/f759ec1fd104ab1db5a1d01200807937.bed.gz"))
 
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/540d9b3fed3341dd491123242e8ad408.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/6d0e8a30a7b9925823dc070dbe50f04f.bed.gz"))
-#print(get_bed_type("/home/drc/test/test_broadpeak/6d0e8a30a7b9925823dc070dbe50f04f.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/c0dfe24eaff8af169942d2d8cf098eb6.bed.gz"))
-#print(get_bed_type("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/2a8a91074fe6d85d04b0d87cf088f4aa.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/540d9b3fed3341dd491123242e8ad408.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/6d0e8a30a7b9925823dc070dbe50f04f.bed.gz"))
+#print(get_bed_classification("/home/drc/test/test_broadpeak/6d0e8a30a7b9925823dc070dbe50f04f.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/c0dfe24eaff8af169942d2d8cf098eb6.bed.gz"))
+#print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/2a8a91074fe6d85d04b0d87cf088f4aa.bed.gz"))
 
 # print(not_narrowpeak_digests.head())
 #

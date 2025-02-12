@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from bedboss.bedclassifier.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_classification
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
@@ -19,12 +19,12 @@ class TestBedClassifier:
     def test_classification(
         self,
     ):
-        bedclass = get_bed_type(bed=FILE_PATH)
+        bedclass = get_bed_classification(bed=FILE_PATH)
 
     def test_get_bed_type(
         self,
     ):
-        bedtype = get_bed_type(bed=FILE_PATH_UNZIPPED)
+        bedtype = get_bed_classification(bed=FILE_PATH_UNZIPPED)
         assert bedtype == ("bed6+3", "broadpeak")
 
     @pytest.mark.parametrize(
@@ -40,7 +40,7 @@ class TestBedClassifier:
         # bed2 is encode broadpeak
         # bed 3 is encode bed6+ (6+2)
 
-        bedclass = get_bed_type(bed=values[0])
+        bedclass = get_bed_classification(bed=values[0])
         assert bedclass == values[1]
 
     @pytest.mark.skip(reason="Not implemented")

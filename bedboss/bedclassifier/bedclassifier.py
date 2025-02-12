@@ -9,7 +9,7 @@ from bedboss.exceptions import BedTypeException
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_bed_type(
+def get_bed_classification(
     bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True
 ) -> Tuple[str, str]:
     """

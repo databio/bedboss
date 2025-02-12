@@ -7,7 +7,7 @@ from typing import Optional
 import pipestat
 import pypiper
 
-from bedboss.bedclassifier.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_classification
 from bedboss.exceptions import BedTypeException
 
 _LOGGER = logging.getLogger("bedboss")
@@ -73,7 +73,7 @@ class BedClassifier:
                 self.pm.clean_add(unzipped_input_file)
 
         try:
-            self.bed_type, self.bed_type_named = get_bed_type(self.input_file)
+            self.bed_type, self.bed_type_named = get_bed_classification(self.input_file)
         except BedTypeException as e:
             _LOGGER.warning(msg=f"FAILED {bed_digest}  Exception {e}")
             self.bed_type = "unknown_bedtype"
