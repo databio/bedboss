@@ -21,21 +21,21 @@ class TestBedClassifier:
     ):
         bedclass = get_bed_classification(bed=FILE_PATH)
 
-    def test_get_bed_type(
+    def test_get_bed_classification(
         self,
     ):
         bedtype = get_bed_classification(bed=FILE_PATH_UNZIPPED)
-        assert bedtype == ("bed6+3", "broadpeak")
+        assert bedtype == ("bed6+3", "encode_broadpeak")
 
     @pytest.mark.parametrize(
         "values",
         [
-            (BED1, ("bed6+4", "narrowpeak")),
-            (BED2, ("bed6+3", "broadpeak")),
-            (BED3, ("bed6+2", "bed")),
+            (BED1, ("bed6+4", "encode_narrowpeak")),
+            (BED2, ("bed6+3", "encode_broadpeak")),
+            (BED3, ("bed6+2", "ucsc_bed")),
         ],
     )
-    def test_get_bed_types(self, values):
+    def test_get_bed_classifications(self, values):
         # bed1 is encode narrowpeak
         # bed2 is encode broadpeak
         # bed 3 is encode bed6+ (6+2)
