@@ -9,7 +9,9 @@ from bedboss.exceptions import BedTypeException
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) -> Tuple[str, str]:
+def get_bed_type(
+    bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True
+) -> Tuple[str, str]:
     """
     get the bed file type (ex. bed3, bed3+n )
     standardize chromosomes if necessary:
@@ -42,7 +44,9 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
     if isinstance(bed, str):
         while row_count <= max_rows:
             try:
-                df = pd.read_csv(bed, sep="\t", header=None, low_memory=False, skiprows=row_count)
+                df = pd.read_csv(
+                    bed, sep="\t", header=None, low_memory=False, skiprows=row_count
+                )
                 if row_count > 0:
                     _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
                 break
@@ -57,7 +61,9 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                         encoding="utf-16",
                     )
                     if row_count > 0:
-                        _LOGGER.info(f"Skipped {row_count} rows to parse bed file {bed}")
+                        _LOGGER.info(
+                            f"Skipped {row_count} rows to parse bed file {bed}"
+                        )
                     break
                 except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
                     if row_count <= max_rows:
@@ -136,15 +142,22 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
-                    elif num_cols == 10 and df[col].dtype == "int" and df[col].min() > 0 and all(                            [
+                    elif (
+                        num_cols == 10
+                        and df[col].dtype == "int"
+                        and df[col].min() > 0
+                        and all(
+                            [
                                 (df[6].dtype == "float" or df[6][0] == -1),
                                 (df[7].dtype == "float" or df[7][0] == -1),
                                 (df[8].dtype == "float" or df[8][0] == -1),
                                 (df[9].dtype == "int" or df[9][0] == -1),
-                            ]):
+                            ]
+                        )
+                    ):
 
-                            # This might be a narrowPeak with non-standard scores (e.g. greater than 1000)
-                            bedtype += 1
+                        # This might be a narrowPeak with non-standard scores (e.g. greater than 1000)
+                        bedtype += 1
                     else:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
@@ -161,7 +174,7 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                         # This is a catch to see if this is actually a narrowpeak file that is unnamed
                         if col == 6 and all(
                             [
-                                (df[col-2].between(0, 1000).all()),
+                                (df[col - 2].between(0, 1000).all()),
                                 (df[col].dtype == "float" or df[col][0] == -1),
                                 (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
                                 (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
@@ -171,16 +184,18 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                             n = num_cols - bedtype
                             bed_type_named = "encode_narrowpeak"
                             return f"bed{bedtype}+{n}", bed_type_named
-                        elif col == 6 and all(                            [
-                                (df[col-2].min()>0),
+                        elif col == 6 and all(
+                            [
+                                (df[col - 2].min() > 0),
                                 (df[col].dtype == "float" or df[col][0] == -1),
                                 (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
                                 (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
                                 (df[col + 3].dtype == "int" or df[col + 3][0] == -1),
-                            ]):
-                                n = num_cols - bedtype
-                                bed_type_named = "ns_narrowpeak"
-                                return f"bed{bedtype}+{n}", bed_type_named
+                            ]
+                        ):
+                            n = num_cols - bedtype
+                            bed_type_named = "ns_narrowpeak"
+                            return f"bed{bedtype}+{n}", bed_type_named
                         else:
                             n = num_cols - bedtype
                             return f"bed{bedtype}+{n}", bed_type_named
@@ -204,7 +219,7 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                                 (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
                                 (df[col + 2].dtype == "int" and df[col + 2][0] != -1),
                             ]
-                        ) :
+                        ):
                             n = num_cols - bedtype
                             bed_type_named = "encode_rna_elements"
                             return f"bed{bedtype}+{n}", bed_type_named
@@ -227,12 +242,16 @@ def get_bed_type(bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True) 
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif 12 <= col <= 14:
-                    if col == 12 and num_cols == 15 and all(
-                        [
-                            (df[col].dtype == "float" or df[col][0] == -1),
-                            (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
-                            (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
-                        ]
+                    if (
+                        col == 12
+                        and num_cols == 15
+                        and all(
+                            [
+                                (df[col].dtype == "float" or df[col][0] == -1),
+                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
+                                (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
+                            ]
+                        )
                     ):
                         n = num_cols - bedtype
                         bed_type_named = "encode_gappedpeak"
