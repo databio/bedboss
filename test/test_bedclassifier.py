@@ -25,6 +25,7 @@ BED_NONSTRICT_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_ns_nrwpk.bed"
 BED_RNA_ELEMENTS = f"{SIMPLE_EXAMPLES_DIR}/test_rna_elements.bed"
 BED_BROADPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_brdpk.bed"
 
+
 class TestBedClassifier:
     def test_classification(
         self,
@@ -43,16 +44,16 @@ class TestBedClassifier:
             (BED1, ("bed6+4", "encode_narrowpeak")),
             (BED2, ("bed6+3", "encode_broadpeak")),
             (BED3, ("bed6+2", "ucsc_bed")),
-            (BED_4_PLUS_6, ('bed4+6', 'ucsc_bed')),
-            (BED_6_PLUS_4, ('bed6+4', 'ucsc_bed')),
-            (BED_7_PLUS_3, ('bed7+3', 'ucsc_bed')),
-            (BED_10_PLUS_0, ('bed10+0', 'ucsc_bed')),
-            (BED_12_PLUS_0, ('bed12+0', 'ucsc_bed')),
-            (BED_12_PLUS_3, ('bed12+3', 'ucsc_bed')),
-            (BED_NARROWPEAK, ('bed6+4', 'encode_narrowpeak')),
-            (BED_NONSTRICT_NARROWPEAK, ('bed6+4', 'ns_narrowpeak')),
-            (BED_RNA_ELEMENTS, ('bed6+3', 'encode_rna_elements')),
-            (BED_BROADPEAK, ('bed6+3', 'encode_broadpeak')),
+            (BED_4_PLUS_6, ("bed4+6", "ucsc_bed")),
+            (BED_6_PLUS_4, ("bed6+4", "ucsc_bed")),
+            (BED_7_PLUS_3, ("bed7+3", "ucsc_bed")),
+            (BED_10_PLUS_0, ("bed10+0", "ucsc_bed")),
+            (BED_12_PLUS_0, ("bed12+0", "ucsc_bed")),
+            (BED_12_PLUS_3, ("bed12+3", "ucsc_bed")),
+            (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak")),
+            (BED_NONSTRICT_NARROWPEAK, ("bed6+4", "ns_narrowpeak")),
+            (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements")),
+            (BED_BROADPEAK, ("bed6+3", "encode_broadpeak")),
         ],
     )
     def test_get_bed_classifications(self, values):
