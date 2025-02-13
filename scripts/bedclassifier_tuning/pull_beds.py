@@ -164,6 +164,17 @@ print(f"narrowPeak: {count} \nnot narrowPeak:{count_nt} \n ns_narrowPeak:{count_
 # print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/c0dfe24eaff8af169942d2d8cf098eb6.bed.gz"))
 # print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/2a8a91074fe6d85d04b0d87cf088f4aa.bed.gz"))
 
+# Testing new regex for
+# data = ['567,488,', '567,488', '567,488,200', '500,', '500', '123', 'abc', '', '0,3512', '0,3512,500', ',', np.nan] # Added comma and np.nan
+# df = pd.DataFrame({'numbers': data})
+#
+# mask = (df['numbers'].str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$")) & (df['numbers'] != "") & (~df['numbers'].isna()) # Added check for NaN
+# filtered_df = df[mask]
+# print(filtered_df)
+#
+# result = df['numbers'].str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
+# print(result) # Should be False
+
 # print(not_narrowpeak_digests.head())
 #
 # print(broadpeak_digests_4plus5.head())

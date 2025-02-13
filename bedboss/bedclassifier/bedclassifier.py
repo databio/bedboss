@@ -242,7 +242,7 @@ def get_bed_classification(
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
                 elif col == 10 or col == 11:
-                    if df[col].str.match(r"^(\d+(,\d+)*)?$").all():
+                    if df[col].str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype

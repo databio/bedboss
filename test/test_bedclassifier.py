@@ -14,6 +14,16 @@ BED1 = f"{SIMPLE_EXAMPLES_DIR}/bed1.bed"
 BED2 = f"{SIMPLE_EXAMPLES_DIR}/bed2.bed"
 BED3 = f"{SIMPLE_EXAMPLES_DIR}/bed3.bed"
 
+BED_4_PLUS_6 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_4plus6.bed"
+BED_6_PLUS_4 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_6plus4.bed"
+BED_7_PLUS_3 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7plus3.bed"
+BED_10_PLUS_0 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_10plus0.bed"
+BED_12_PLUS_0 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_12plus0.bed"
+BED_12_PLUS_3 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_12plus3.bed"
+BED_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_nrwpk.bed"
+BED_NONSTRICT_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_ns_nrwpk.bed"
+BED_RNA_ELEMENTS = f"{SIMPLE_EXAMPLES_DIR}/test_rna_elements.bed"
+BED_BROADPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_brdpk.bed"
 
 class TestBedClassifier:
     def test_classification(
@@ -33,12 +43,23 @@ class TestBedClassifier:
             (BED1, ("bed6+4", "encode_narrowpeak")),
             (BED2, ("bed6+3", "encode_broadpeak")),
             (BED3, ("bed6+2", "ucsc_bed")),
+            (BED_4_PLUS_6, ('bed4+6', 'ucsc_bed')),
+            (BED_6_PLUS_4, ('bed6+4', 'ucsc_bed')),
+            (BED_7_PLUS_3, ('bed7+3', 'ucsc_bed')),
+            (BED_10_PLUS_0, ('bed10+0', 'ucsc_bed')),
+            (BED_12_PLUS_0, ('bed12+0', 'ucsc_bed')),
+            (BED_12_PLUS_3, ('bed12+3', 'ucsc_bed')),
+            (BED_NARROWPEAK, ('bed6+4', 'encode_narrowpeak')),
+            (BED_NONSTRICT_NARROWPEAK, ('bed6+4', 'ns_narrowpeak')),
+            (BED_RNA_ELEMENTS, ('bed6+3', 'encode_rna_elements')),
+            (BED_BROADPEAK, ('bed6+3', 'encode_broadpeak')),
         ],
     )
     def test_get_bed_classifications(self, values):
         # bed1 is encode narrowpeak
         # bed2 is encode broadpeak
         # bed 3 is encode bed6+ (6+2)
+        # the others are variations on the columns and ensuring they classify correctly
 
         bedclass = get_bed_classification(bed=values[0])
         assert bedclass == values[1]
