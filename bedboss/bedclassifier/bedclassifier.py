@@ -10,7 +10,9 @@ _LOGGER = logging.getLogger("bedboss")
 
 
 def get_bed_classification(
-    bed: Union[str, pd.DataFrame], no_fail: Optional[bool] = True, strict_score: Optional[bool] = True,
+    bed: Union[str, pd.DataFrame],
+    no_fail: Optional[bool] = True,
+    strict_score: Optional[bool] = True,
 ) -> Tuple[str, str]:
     """
     Get the BED file classification as a tuple (ucsc_bed_spec_compliance, bed_format) e.g. (bed6+4, encode_narrowpeak)
@@ -149,7 +151,11 @@ def get_bed_classification(
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
-                    elif df[col].dtype == "int" and not strict_score and df[col].all() >= 0:
+                    elif (
+                        df[col].dtype == "int"
+                        and not strict_score
+                        and df[col].all() >= 0
+                    ):
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
