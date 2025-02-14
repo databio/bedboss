@@ -29,8 +29,17 @@ RUN mkdir -p /workdir/output
 
 COPY ./production/config.yaml /workdir/config.yaml
 
-#CMD ["bash"]
+# docker dosn't see refgenie from terminal if not installed like this:
+RUN pip install refgenie
 
-#ARG LIMIT=1
+# Configure refgenie:
+RUN refgenie init -c /workdir/refgenie/genome_config.yaml
+ENV REFGENIE="/workdir/refgenie/"
+
+RUN refgenie pull hg38/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
+RUN refgenie pull mm10/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
+RUN refgenie pull hg19/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
+
 CMD ["sh", "-c", "bedboss reprocess-all --bedbase-config /workdir/config.yaml --outfolder /workdir/output --limit ${UPLOAD_LIMIT:-1}"]
 
+#CMD ["bash"]
