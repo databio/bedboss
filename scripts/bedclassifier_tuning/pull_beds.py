@@ -58,6 +58,9 @@ all_4_plus_6_digests = df_bed_types[(df_bed_types["bed_type"] == "bed4+6")][
     "id"
 ]  # just grab everything that is a 6+3
 
+bed_types = ["bed4+1", "bed4+2", "bed4+3", "bed4+4", "bed4+5"]
+all_4_plus_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
+
 dest_folder = (
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks"
 )
@@ -79,21 +82,25 @@ dest_folder_6 = (
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus6"
 )
 
+dest_folder_7 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus"  # all other 4 plus
+
 # print(not_broadpeak_digests.shape)
 count_nt = 0
 count = 0
 count_other = 0
+count_change = 0
 
 ## SET TYPES AND LOCALE FOR LOCAL STORAGE
-DIGESTS = narrowpeak_digests
-DESTINATION_FOLDER = dest_folder_4
+DIGESTS = all_4_plus_digests
+DESTINATION_FOLDER = dest_folder_7
 
 NARROWPEAK_RESULTS_FILE = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml"
 BROADPEAK_RESULTS_FILE = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/broadpeak_results.yaml"
 
 # psm = pipestat.PipestatManager(results_file_path=BROADPEAK_RESULTS_FILE)
 
-for digest in DIGESTS[:1400]:
+for digest in DIGESTS[:]:
+    count += 1
     # https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
     # print(digest)
     # print(digest[0])
@@ -124,30 +131,35 @@ for digest in DIGESTS[:1400]:
         df = regionset.to_pandas()
         result = get_bed_classification(df)
     else:
-        result = get_bed_classification(file_path)
+        result1 = get_bed_classification(file_path)
+        result2 = get_bed_classification(file_path, strict_score=False)
+        if result1 != result2:
+            print(f"{digest} {result1} -> {result2}")
+            count_change += 1
 
-    print(result)
-    # psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
+print(f"TOTAL COUNT: {count} Changed Classification: {count_change}")
+# print(result)
+# psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
 
-    # THis is a test file for RNA elements
-    # print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/donald_test.bed"))
-    # if result[1] != 'broadpeak':
-    #     #print(f"This one is not classified as broadpeak: {file_path}")
-    #     count_nt_brdpeak += 1
-    # else:
-    #     #print("FOUND broadpeak")
-    #     count_brdpeak +=1
+# THis is a test file for RNA elements
+# print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/donald_test.bed"))
+# if result[1] != 'broadpeak':
+#     #print(f"This one is not classified as broadpeak: {file_path}")
+#     count_nt_brdpeak += 1
+# else:
+#     #print("FOUND broadpeak")
+#     count_brdpeak +=1
 
-    if result[1] != "encode_narrowpeak" and result[1] != "ns_narrowpeak":
-        # print(f"This one is not classified as broadpeak: {file_path}")
-        count_nt += 1
-    if result[1] == "encode_narrowpeak":
-        # print("FOUND broadpeak")
-        count += 1
-    if result[1] == "ns_narrowpeak":
-        count_other += 1
+# if result[1] != "encode_narrowpeak" and result[1] != "ns_narrowpeak":
+#     # print(f"This one is not classified as broadpeak: {file_path}")
+#     count_nt += 1
+# if result[1] == "encode_narrowpeak":
+#     # print("FOUND broadpeak")
+#     count += 1
+# if result[1] == "ns_narrowpeak":
+#     count_other += 1
 #
-print(f"narrowPeak: {count} \nnot narrowPeak:{count_nt} \n ns_narrowPeak:{count_other}")
+# print(f"narrowPeak: {count} \nnot narrowPeak:{count_nt} \n ns_narrowPeak:{count_other}")
 # print(get_bed_classification("/home/drc/Downloads/ENCFF534JCV.bed.gz"))
 # print(get_bed_classification("/home/drc/Downloads/ENCFF352KYI.bed.gz"))
 # print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/e7073e8cc9c597824d73e974d4c174b5.bed.gz"))

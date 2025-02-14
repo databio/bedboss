@@ -13,7 +13,7 @@ SIMPLE_EXAMPLES_DIR = os.path.join(FILE_DIR, "data", "bed", "simpleexamples")
 BED1 = f"{SIMPLE_EXAMPLES_DIR}/bed1.bed"
 BED2 = f"{SIMPLE_EXAMPLES_DIR}/bed2.bed"
 BED3 = f"{SIMPLE_EXAMPLES_DIR}/bed3.bed"
-
+BED_4_PLUS_5 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_4plus5.bed"
 BED_4_PLUS_6 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_4plus6.bed"
 BED_6_PLUS_4 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_6plus4.bed"
 BED_7_PLUS_3 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7plus3.bed"
@@ -44,6 +44,7 @@ class TestBedClassifier:
             (BED1, ("bed6+4", "encode_narrowpeak")),
             (BED2, ("bed6+3", "encode_broadpeak")),
             (BED3, ("bed6+2", "ucsc_bed")),
+            (BED_4_PLUS_5, ("bed4+5", "ucsc_bed")),
             (BED_4_PLUS_6, ("bed4+6", "ucsc_bed")),
             (BED_6_PLUS_4, ("bed6+4", "ucsc_bed")),
             (BED_7_PLUS_3, ("bed7+3", "ucsc_bed")),
@@ -67,6 +68,24 @@ class TestBedClassifier:
 
         bedclass = get_bed_classification(bed=values[0])
         assert bedclass == values[1]
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            (BED_4_PLUS_5, ("bed4+5", "ucsc_bed"), ("bed6+3", "encode_broadpeak")),
+            (BED_4_PLUS_6, ("bed4+6", "ucsc_bed"), ("bed6+4", "ucsc_bed")),
+            (
+                BED_NONSTRICT_NARROWPEAK,
+                ("bed4+6", "ucsc_bed"),
+                ("bed6+4", "encode_narrowpeak"),
+            ),  # has score greater than 1000
+        ],
+    )
+    def test_non_strict_flag(self, values):
+        bedclass1 = get_bed_classification(bed=values[0])
+        bedclass2 = get_bed_classification(bed=values[0], strict_score=False)
+        assert bedclass1 == values[1]
+        assert bedclass2 == values[2]
 
     @pytest.mark.skip(reason="Not implemented")
     def test_from_PEPhub_beds(
