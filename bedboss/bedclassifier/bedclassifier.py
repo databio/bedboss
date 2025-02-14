@@ -17,7 +17,7 @@ def get_bed_classification(
 
     :param bed: path to the bed file OR a dataframe
     :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
-    :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bed_format"], option [ucsc_bed, encode_narrowpeak, ns_narrowpeak, encode_broadpeak, encode_rna_elements, encode_gappedpeak, unknown_bed_format]]
+    :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bed_format"], option [ucsc_bed, encode_narrowpeak, encode_broadpeak, encode_rna_elements, encode_gappedpeak, unknown_bed_format]]
     """
     #    column format for bed12
     #    string chrom;       "Reference sequence chromosome or scaffold"
@@ -148,22 +148,6 @@ def get_bed_classification(
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
-                    elif (
-                        num_cols == 10
-                        and df[col].dtype == "int"
-                        and df[col].min() > 0
-                        and all(
-                            [
-                                (df[6].dtype == "float" or df[6][0] == -1),
-                                (df[7].dtype == "float" or df[7][0] == -1),
-                                (df[8].dtype == "float" or df[8][0] == -1),
-                                (df[9].dtype == "int" or df[9][0] == -1),
-                            ]
-                        )
-                    ):
-
-                        # This might be a narrowPeak with non-strict scores (e.g. greater than 1000)
-                        bedtype += 1
                     else:
                         n = num_cols - bedtype
                         return f"bed{bedtype}+{n}", bed_type_named
@@ -180,7 +164,6 @@ def get_bed_classification(
                         # This is a catch to see if this is actually a narrowpeak file that is unnamed
                         if col == 6 and all(
                             [
-                                (df[col - 2].between(0, 1000).all()),
                                 (df[col].dtype == "float" or df[col][0] == -1),
                                 (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
                                 (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
@@ -189,18 +172,6 @@ def get_bed_classification(
                         ):
                             n = num_cols - bedtype
                             bed_type_named = "encode_narrowpeak"
-                            return f"bed{bedtype}+{n}", bed_type_named
-                        elif col == 6 and all(
-                            [
-                                (df[col - 2].min() > 0),
-                                (df[col].dtype == "float" or df[col][0] == -1),
-                                (df[col + 1].dtype == "float" or df[col + 1][0] == -1),
-                                (df[col + 2].dtype == "float" or df[col + 2][0] == -1),
-                                (df[col + 3].dtype == "int" or df[col + 3][0] == -1),
-                            ]
-                        ):
-                            n = num_cols - bedtype
-                            bed_type_named = "ns_narrowpeak"
                             return f"bed{bedtype}+{n}", bed_type_named
                         else:
                             n = num_cols - bedtype
