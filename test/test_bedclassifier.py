@@ -21,7 +21,7 @@ BED_10_PLUS_0 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_10plus0.bed"
 BED_12_PLUS_0 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_12plus0.bed"
 BED_12_PLUS_3 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_12plus3.bed"
 BED_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_nrwpk.bed"
-BED_NONSTRICT_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_ns_nrwpk.bed" # this has values greater than 1000 in (col 5)
+BED_NONSTRICT_NARROWPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_ns_nrwpk.bed"  # this has values greater than 1000 in (col 5)
 BED_RNA_ELEMENTS = f"{SIMPLE_EXAMPLES_DIR}/test_rna_elements.bed"
 BED_BROADPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_brdpk.bed"
 
@@ -51,7 +51,10 @@ class TestBedClassifier:
             (BED_12_PLUS_0, ("bed12+0", "ucsc_bed")),
             (BED_12_PLUS_3, ("bed12+3", "ucsc_bed")),
             (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak")),
-            (BED_NONSTRICT_NARROWPEAK, ("bed4+6", "ucsc_bed")), # has score greater than 1000
+            (
+                BED_NONSTRICT_NARROWPEAK,
+                ("bed4+6", "ucsc_bed"),
+            ),  # has score greater than 1000
             (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements")),
             (BED_BROADPEAK, ("bed6+3", "encode_broadpeak")),
         ],
