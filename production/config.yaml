@@ -11,7 +11,7 @@ database:
   user: $POSTGRES_USER
   database: bedbase2
 qdrant:
-  host: $QDRANT_HOST
+  host: $QDRANT_API_HOST
   port: 6333
   api_key: $QDRANT_API_KEY
   file_collection: bedbase
