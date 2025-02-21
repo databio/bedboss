@@ -23,23 +23,42 @@ class FILE_TYPE(str, Enum):
 class BedMetadata(BaseModel):
     sample_name: str
     genome: str
-    organism: str = ""
+
+    species_name: str = Field(
+        default="", description="Name of species. e.g. Homo sapiens.", alias="organism"
+    )
     species_id: str = ""
-    cell_type: str = ""
-    cell_line: str = ""
-    exp_protocol: str = Field("", description="Experimental protocol (e.g. ChIP-seq)")
+    genotype: str = Field("", description="Genotype of the sample")
+    phenotype: str = Field("", description="Phenotype of the sample")
+
+    cell_type: str = Field(
+        "",
+        description="specific kind of cell with distinct characteristics found in an organism. e.g. Neurons, Hepatocytes, Adipocytes",
+    )
+    cell_line: str = Field(
+        "",
+        description="population of cells derived from a single cell and cultured in the lab for extended use, e.g. HeLa, HepG2, k562",
+    )
+    tissue: str = Field("", description="Tissue type")
+
     library_source: str = Field(
         "", description="Library source (e.g. genomic, transcriptomic)"
     )
-    genotype: str = Field("", description="Genotype of the sample")
-    target: str = Field("", description="Target of the assay (e.g. H3K4me3)")
+    assay: str = Field(
+        "", description="Experimental protocol (e.g. ChIP-seq)", alias="exp_protocol"
+    )
     antibody: str = Field("", description="Antibody used in the assay")
+    target: str = Field("", description="Target of the assay (e.g. H3K4me3)")
     treatment: str = Field(
         "", description="Treatment of the sample (e.g. drug treatment)"
     )
-    tissue: str = Field("", description="Tissue type")
-    global_sample_id: str = Field("", description="Global sample identifier")
-    global_experiment_id: str = Field("", description="Global experiment identifier")
+
+    global_sample_id: str = Field(
+        "", description="Global sample identifier. e.g. GSM000"
+    )  # excluded in training
+    global_experiment_id: str = Field(
+        "", description="Global experiment identifier. e.g. GSE000"
+    )  # excluded in training
     description: str = Field("", description="Description of the sample")
 
     model_config = ConfigDict(
@@ -115,4 +134,15 @@ class FilesUpload(BedFiles):
 
 
 class BedClassificationUpload(BedClassification):
+    model_config = ConfigDict(extra="ignore")
+
+
+class BedSetAnnotations(BaseModel):
+    """
+    Annotations for a bedset
+    """
+
+    author: Union[str, None] = None
+    source: Union[str, None] = None
+
     model_config = ConfigDict(extra="ignore")

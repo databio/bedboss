@@ -116,17 +116,36 @@ if ! is_executable "wigToBigWig"; then
     INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
 
+# Old requirements check
+#if is_executable "R"; then
+#
+#    echo -e "-----------------------------------------------------------"
+#    echo -e "Checking required R packages for bedstat...                            "
+#    echo -e "-----------------------------------------------------------"
+#    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA" "conflicted")
+#    for package in "${requiredRPackages[@]}"; do
+#      if ! r_check_req $package; then
+#        INSTALL_ERROR=$((INSTALL_ERROR+1))
+#      fi
+#done
+#fi
 
-if is_executable "R"; then
+if is_executable "Rscript"; then
     echo -e "-----------------------------------------------------------"
     echo -e "Checking required R packages for bedstat...                            "
     echo -e "-----------------------------------------------------------"
-    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA" "conflicted")
-    for package in "${requiredRPackages[@]}"; do
-      if ! r_check_req $package; then
-        INSTALL_ERROR=$((INSTALL_ERROR+1))
-      fi
-done
+
+    SCRIPT_DIR=$(dirname "$(realpath "$0")")
+#    echo "The script is located at: $SCRIPT_DIR"
+    Rscript "$SCRIPT_DIR/check_R_req.R"
+
+    if [ $? -eq 0 ]; then
+      echo "All required packages are installed."
+    else
+       echo $(fail "ERROR: Some R required packages are missing. Please install them.")
+      INSTALL_ERROR=$((INSTALL_ERROR+1))
+    fi
+
 fi
 
 echo "Number of WARNINGS: $INSTALL_WARNINGS"

@@ -12,7 +12,7 @@ from geniml.io import RegionSet
 from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
-from bedboss.bedclassifier import get_bed_type
+from bedboss.bedclassifier.bedclassifier import get_bed_type
 from bedboss.bedmaker.const import (
     BED_TO_BIGBED_PROGRAM,
     BEDGRAPH_TEMPLATE,
@@ -27,6 +27,7 @@ from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
 from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import BedBossException, RequirementsException
+from bedboss.utils import cleanup_pm_temp
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -102,10 +103,9 @@ def make_bigbed(
                 _LOGGER.info(f"Running: {cmd}")
                 pm.run(cmd, big_bed_path, nofail=False)
             except Exception as err:
+                cleanup_pm_temp(pm)
                 raise BedBossException(
-                    f"Fail to generating bigBed files for {bed_path}: "
-                    f"unable to validate genome assembly with Refgenie. "
-                    f"Error: {err}"
+                    f"Fail to generating bigBed files for {bed_path}: " f"Error: {err}"
                 )
         else:
             cmd = (
@@ -120,12 +120,12 @@ def make_bigbed(
             try:
                 pm.run(cmd, big_bed_path, nofail=True)
             except Exception as err:
+                cleanup_pm_temp(pm)
                 _LOGGER.info(
                     f"Fail to generating bigBed files for {bed_path}: "
                     f"unable to validate genome assembly with Refgenie. "
                     f"Error: {err}"
                 )
-        pm._cleanup()
     if pm_clean:
         pm.stop_pipeline()
     return big_bed_path
@@ -159,7 +159,7 @@ def make_bed(
 
     :return: path to the BED file
     """
-    _LOGGER.info(f"Converting {os.path.abspath(input_file)} to BED format.")
+    _LOGGER.info(f"Processing {input_file} file in bedmaker...")
 
     input_type = input_type.lower()
     if input_type not in [member.value for member in InputTypes]:
@@ -303,6 +303,10 @@ def make_bed(
     if pm_clean:
         pm.stop_pipeline()
 
+    _LOGGER.info(
+        f"Bed output file: {output_path}. BEDmaker: File processed successfully."
+    )
+
     return output_path
 
 
@@ -315,6 +319,7 @@ def make_all(
     chrom_sizes: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
+    lite: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> BedMakerOutput:
     """
@@ -338,6 +343,7 @@ def make_all(
     :param narrowpeak: whether the regions are narrow (transcription factor
                        implies narrow, histone mark implies broad peaks)
     :param check_qc: run quality control during bedmaking
+    :param lite: run the pipeline in lite mode (without producing bigBed files)
     :param pm: pypiper object
 
     :return: dict with generated bed metadata - BedMakerOutput object:
@@ -367,7 +373,7 @@ def make_all(
         narrowpeak=narrowpeak,
         rfg_config=rfg_config,
         chrom_sizes=chrom_sizes,
-        pm=None,
+        pm=pm,
     )
     bed_type, bed_format = get_bed_type(output_bed)
     if check_qc:
@@ -382,15 +388,19 @@ def make_all(
                 f"Quality control failed for {output_path}. Error: {e}"
             )
     try:
-        output_bigbed = make_bigbed(
-            bed_path=output_bed,
-            output_path=output_path,
-            genome=genome,
-            bed_type=bed_type,
-            rfg_config=rfg_config,
-            chrom_sizes=chrom_sizes,
-            pm=pm,
-        )
+        if lite:
+            _LOGGER.info("Skipping bigBed generation due to lite mode.")
+            output_bigbed = None
+        else:
+            output_bigbed = make_bigbed(
+                bed_path=output_bed,
+                output_path=output_path,
+                genome=genome,
+                bed_type=bed_type,
+                rfg_config=rfg_config,
+                chrom_sizes=chrom_sizes,
+                pm=pm,
+            )
     except BedBossException:
         output_bigbed = None
     if pm_clean:

@@ -93,7 +93,9 @@ def bedqc(
         detail.append(f"Mean region width is less than {min_region_width} bp.")
 
     if len(detail) > 0:
-        _LOGGER.info("file_name: ", bedfile_name)
+        _LOGGER.info(
+            f"file_name: {bedfile_name}",
+        )
         if os.path.exists(output_file):
             with open(output_file, "a") as f:
                 f.write(f"{bedfile_name}\t{detail} \n")

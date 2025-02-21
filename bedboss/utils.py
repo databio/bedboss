@@ -1,29 +1,50 @@
+import glob
 import logging
 import os
+import time
 import urllib.request
+from functools import wraps
 
+import peppy
 import requests
+from bedms import AttrStandardizer
 from pephubclient.files_manager import FilesManager
+from peppy.const import SAMPLE_RAW_DICT_KEY
+from pypiper import PipelineManager
+
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
 
 
-def standardize_genome_name(input_genome: str) -> str:
+def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     """
     Standardizing user provided genome
 
     :param input_genome: standardize user provided genome, so bedboss know what genome
     we should use
+    :param bedfile: path to bed file
     :return: genome name string
     """
+    if not isinstance(input_genome, str):
+        input_genome = ""
     input_genome = input_genome.strip().lower()
     # TODO: we have to add more genome options and preprocessing of the string
     if input_genome == "hg38" or input_genome == "grch38":
         return "hg38"
     elif input_genome == "hg19" or input_genome == "grch37":
         return "hg19"
-    elif input_genome == "mm10":
+    elif input_genome == "mm10" or input_genome == "grcm38":
         return "mm10"
+    elif input_genome == "mm9" or input_genome == "grcm37":
+        return "mm9"
+
+    elif not input_genome or len(input_genome) > 7:
+        if bedfile:
+            predictor = ReferenceValidator()
+            return predictor.predict(bedfile) or ""
+        else:
+            return input_genome
     # else:
     #     raise GenomeException("Incorrect genome assembly was provided")
     else:
@@ -119,3 +140,90 @@ def save_example_bedbase_config(path: str) -> None:
     file_path = os.path.abspath(os.path.join(path, "bedbase_config.yaml"))
     FilesManager.save_yaml(example_bedbase_config(), file_path)
     _LOGGER.info(f"Example BedBase configuration saved to: {file_path}")
+
+
+def standardize_pep(
+    pep: peppy.Project, standard_columns: list = None, model: str = "BEDBASE"
+) -> peppy.Project:
+    """
+    Standardize PEP file by using bedMS standardization model
+    :param pep: peppy project
+    :param standard_columns: list of columns to standardize
+
+    :return: peppy project
+
+    """
+    if standard_columns is None:
+        standard_columns = ["library_source", "assay", "genome", "species_name"]
+    model = AttrStandardizer(model)
+    suggestions = model.standardize(pep)
+
+    changes = {}
+    if suggestions is None:
+        return pep
+    for original, suggestion_dict in suggestions.items():
+        for suggestion, value in suggestion_dict.items():
+            if value > 0.9 and suggestion in standard_columns:
+                if suggestion not in changes:
+                    changes[suggestion] = {original: value}
+                else:
+                    if list(changes[suggestion].values())[0] < value:
+                        changes[suggestion] = {original: value}
+
+    raw_pep = pep.to_dict(extended=True)
+    for suggestion, original_dict in changes.items():
+        original_key = list(original_dict.keys())[0]
+        if (
+            suggestion not in raw_pep[SAMPLE_RAW_DICT_KEY]
+            and original_key in raw_pep[SAMPLE_RAW_DICT_KEY]
+        ):
+            raw_pep[SAMPLE_RAW_DICT_KEY][suggestion] = raw_pep[SAMPLE_RAW_DICT_KEY][
+                original_key
+            ]
+            del raw_pep[SAMPLE_RAW_DICT_KEY][original_key]
+
+    return peppy.Project.from_dict(raw_pep)
+
+
+def cleanup_pm_temp(pm: PipelineManager) -> None:
+    """
+    Cleanup temporary files from the PipelineManager
+
+    :param pm: PipelineManager
+    """
+    if len(pm.cleanup_list_conditional) > 0:
+        for cleandir in pm.cleanup_list_conditional:
+            try:
+                items_to_clean = glob.glob(cleandir)
+                for clean_item in items_to_clean:
+                    if os.path.isfile(clean_item):
+                        os.remove(clean_item)
+                    elif os.path.isdir(clean_item):
+                        os.rmdir(clean_item)
+            except Exception as e:
+                _LOGGER.error(f"Error cleaning up: {e}")
+        pm.cleanup_list_conditional = []
+
+
+def calculate_time(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        # print(f"--> Arguments: {args}")
+        # print(f"--> Keyword arguments: {kwargs}")
+
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+
+        hours, remainder = divmod(execution_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        print(
+            f"Function '{func.__name__}' executed in {int(hours)} hours, {int(minutes)} minutes, and {seconds:.2f} seconds"
+        )
+
+        return result
+
+    return wrapper

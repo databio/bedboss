@@ -10,7 +10,7 @@ database:
   port: 5432
   password: docker
   user: postgres
-  name: bedbase
+  database: bedbase
   #name: pep-db
   dialect: postgresql
   driver: psycopg
