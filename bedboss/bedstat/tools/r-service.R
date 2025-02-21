@@ -1,14 +1,13 @@
 setStatus = function(status) {
-	# write status to status lock file
 	message("Setting status to ", status)
-	STATUS <<- status
+	assign("STATUS", status, .GlobalEnv)
 }
 
 # This function should run the process
 processBED = function(path, client, port) {
-	sc = svSocket::get_socket_clients()
 	message("Signal received: ", path)
-	if (path == "check") {
+
+	if (path == "check") { # Status check signal
 		message("Sending status to client: ", STATUS)
 		message("socket client:", client)
 		svSocket::send_socket_clients(STATUS, sockets=client)
@@ -23,7 +22,9 @@ processBED = function(path, client, port) {
 
 	message("Processing BED file: ", path)
 	setStatus("processing")
-	Sys.sleep(5)
+
+	Sys.sleep(5)  # Simulate BED processing 
+
 	if (!file.exists(path)) {
 		message("File not found: ", path)
 		setStatus("idle")
@@ -37,7 +38,6 @@ processBED = function(path, client, port) {
 
 message("Starting R server")
 STATUS = ""
-setStatus("starting")
 setStatus("idle")
 svSocket::start_socket_server(procfun=processBED)
 
