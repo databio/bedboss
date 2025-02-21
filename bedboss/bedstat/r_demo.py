@@ -47,8 +47,25 @@ class RServiceManager:
         try:
             s = socket.socket()
             s.connect((self.host, self.port))
-            s.send(file_path.encode())
+            s.send(f"{file_path}\n".encode())
             s.close()
+            return s 
+        except ConnectionRefusedError:
+            print("Connection refused. Make sure the R service is running.")
+
+    def check_status(self):
+        """
+        Checks the status of the R service by sending a "check" message to the service.
+        """
+        try:
+            s = socket.socket()
+            s.connect((self.host, self.port))
+            s.send("check\n".encode())
+            msg = s.recv(1024).decode()
+            print(f"Received message: {msg.decode()}")
+            # s.shutdown(socket.SHUT_WR)
+            s.close()
+            return msg.decode()
         except ConnectionRefusedError:
             print("Connection refused. Make sure the R service is running.")
 
@@ -73,9 +90,10 @@ class RServiceManager:
 rsm = RServiceManager("tools/r-service.R")
 rsm.start_service()
 
+rsm.check_status()
 
 # Run any BED files through bedstat
-rsm.run_file("bedstat/data/beds/bed1.bed")
+res = rsm.run_file("bedstat/data/beds/bed1.bed")
 rsm.run_file("../../test/data/bed/simpleexamples/bed1.bed")
 
 # After the pipeline finishes, terminate the R service
