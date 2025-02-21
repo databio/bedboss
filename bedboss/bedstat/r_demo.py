@@ -2,6 +2,7 @@ import subprocess
 import socket
 import signal
 import os
+import re
 
 
 class RServiceManager:
@@ -62,10 +63,11 @@ class RServiceManager:
             s.connect((self.host, self.port))
             s.send("check\n".encode())
             msg = s.recv(1024).decode()
-            print(f"Received message: {msg.decode()}")
+            key = re.split(r'[\r\n]', msg)[0]
+            print(f"Received message: {key}")
             # s.shutdown(socket.SHUT_WR)
             s.close()
-            return msg.decode()
+            return key
         except ConnectionRefusedError:
             print("Connection refused. Make sure the R service is running.")
 
@@ -90,7 +92,7 @@ class RServiceManager:
 rsm = RServiceManager("tools/r-service.R")
 rsm.start_service()
 
-rsm.check_status()
+st = rsm.check_status()
 
 # Run any BED files through bedstat
 res = rsm.run_file("bedstat/data/beds/bed1.bed")
