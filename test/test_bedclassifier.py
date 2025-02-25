@@ -44,8 +44,8 @@ class TestBedClassifier:
             (BED1, ("bed6+4", "encode_narrowpeak")),
             (BED2, ("bed6+3", "encode_broadpeak")),
             (BED3, ("bed6+2", "ucsc_bed")),
-            (BED_4_PLUS_5, ("bed4+5", "ucsc_bed")),
-            (BED_4_PLUS_6, ("bed4+6", "ucsc_bed")),
+            (BED_4_PLUS_5, ("bed6+3", "encode_broadpeak_rs")), # labeled as they originally are classified, w/o rs
+            (BED_4_PLUS_6, ("bed6+4", "bed_like_rs")), # labeled as they originally are classified, w/o rs
             (BED_6_PLUS_4, ("bed6+4", "ucsc_bed")),
             (BED_7_PLUS_3, ("bed7+3", "ucsc_bed")),
             (BED_10_PLUS_0, ("bed10+0", "ucsc_bed")),
@@ -54,7 +54,7 @@ class TestBedClassifier:
             (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak")),
             (
                 BED_NONSTRICT_NARROWPEAK,
-                ("bed4+6", "ucsc_bed"),
+                ("bed6+4", "encode_narrowpeak_rs"),
             ),  # has score greater than 1000
             (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements")),
             (BED_BROADPEAK, ("bed6+3", "encode_broadpeak")),
@@ -69,24 +69,6 @@ class TestBedClassifier:
         bedclass = get_bed_classification(bed=values[0])
         assert bedclass == values[1]
 
-    @pytest.mark.parametrize(
-        "values",
-        [
-            (BED_4_PLUS_5, ("bed4+5", "ucsc_bed"), ("bed6+3", "encode_broadpeak")),
-            (BED_4_PLUS_6, ("bed4+6", "ucsc_bed"), ("bed6+4", "ucsc_bed")),
-            (
-                BED_NONSTRICT_NARROWPEAK,
-                ("bed4+6", "ucsc_bed"),
-                ("bed6+4", "encode_narrowpeak"),
-            ),  # has score greater than 1000
-        ],
-    )
-    def test_non_strict_flag(self, values):
-        bedclass1 = get_bed_classification(bed=values[0])
-        bedclass2 = get_bed_classification(bed=values[0], strict_score=False)
-        assert bedclass1 == values[1]
-        assert bedclass2 == values[2]
-
     @pytest.mark.skip(reason="Not implemented")
     def test_from_PEPhub_beds(
         self,
@@ -94,7 +76,6 @@ class TestBedClassifier:
         """"""
         # TODO implement testing from pephub
         pass
-
 
 #
 # def test_manual_dir_beds():

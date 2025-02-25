@@ -103,6 +103,7 @@ def get_bed_classification(
         bedtype = 0
 
         bed_format_named = "ucsc_bed"
+        relaxed = False
 
         for col in df:
             if col <= 2:
@@ -147,24 +148,32 @@ def get_bed_classification(
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
+                        if n>0:
+                            bed_format_named = "bed_like"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
                     elif (
                         df[col].dtype == "int"
-                        and not strict_score
                         and df[col].all() >= 0
                     ):
                         bedtype += 1
+                        relaxed = True
                     else:
                         n = num_cols - bedtype
+                        if n>0:
+                            bed_format_named = "bed_like"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 5:
                     if df[col].isin(["+", "-", "."]).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
+                        if n>0 and relaxed:
+                            bed_format_named = "bed_like_rs"
+                        elif relaxed and n==0:
+                            bed_format_named = "bed_rs"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
@@ -180,10 +189,17 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_format_named = "encode_narrowpeak"
+                            if relaxed:
+                                bed_format_named = "encode_narrowpeak_rs"
+                            else:
+                                bed_format_named = "encode_narrowpeak"
                             return f"bed{bedtype}+{n}", bed_format_named
                         else:
                             n = num_cols - bedtype
+                            if n > 0 and relaxed:
+                                bed_format_named = "bed_like_rs"
+                            elif relaxed and n == 0:
+                                bed_format_named = "bed_rs"
                             return f"bed{bedtype}+{n}", bed_format_named
 
                     elif num_cols == 9:
@@ -196,7 +212,10 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_format_named = "encode_broadpeak"
+                            if relaxed:
+                                bed_format_named = "encode_broadpeak_rs"
+                            else:
+                                bed_format_named = "encode_broadpeak"
                             return f"bed{bedtype}+{n}", bed_format_named
 
                         elif all(
@@ -207,25 +226,44 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_format_named = "encode_rna_elements"
+                            if relaxed:
+                                bed_format_named = "encode_rna_elements_rs"
+                            else:
+                                bed_format_named = "encode_rna_elements"
                             return f"bed{bedtype}+{n}", bed_format_named
                         else:
                             n = num_cols - bedtype
+                            if n > 0 and relaxed:
+                                bed_format_named = "bed_like_rs"
+                            elif relaxed and n == 0:
+                                bed_format_named = "bed_rs"
                             return f"bed{bedtype}+{n}", bed_format_named
                     else:
                         n = num_cols - bedtype
+                        if n > 0 and relaxed:
+                            bed_format_named = "bed_like_rs"
+                        elif relaxed and n == 0:
+                            bed_format_named = "bed_rs"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 9:
                     if df[col].dtype == "int":
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
+                        if n > 0 and relaxed:
+                            bed_format_named = "bed_like_rs"
+                        elif relaxed and n == 0:
+                            bed_format_named = "bed_rs"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 10 or col == 11:
                     if df[col].str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
+                        if n > 0 and relaxed:
+                            bed_format_named = "bed_like_rs"
+                        elif relaxed and n == 0:
+                            bed_format_named = "bed_rs"
                         return f"bed{bedtype}+{n}", bed_format_named
                 elif 12 <= col <= 14:
                     if (
@@ -240,13 +278,24 @@ def get_bed_classification(
                         )
                     ):
                         n = num_cols - bedtype
-                        bed_format_named = "encode_gappedpeak"
+                        if relaxed:
+                            bed_format_named = "encode_gappedpeak_rs"
+                        else:
+                            bed_format_named = "encode_gappedpeak"
                         return f"bed{bedtype}+{n}", bed_format_named
                     else:
                         n = num_cols - bedtype
+                        if n > 0 and relaxed:
+                            bed_format_named = "bed_like_rs"
+                        elif relaxed and n == 0:
+                            bed_format_named = "bed_rs"
                         return f"bed{bedtype}+{n}", bed_format_named
                 else:
                     n = num_cols - bedtype
+                    if n > 0 and relaxed:
+                        bed_format_named = "bed_like_rs"
+                    elif relaxed and n == 0:
+                        bed_format_named = "bed_rs"
                     return f"bed{bedtype}+{n}", bed_format_named
 
         # This is to catch any files that are assigned a bed number but don't adhere to the above conditions
