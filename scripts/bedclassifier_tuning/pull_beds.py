@@ -132,10 +132,11 @@ for digest in DIGESTS[:]:
         result = get_bed_classification(df)
     else:
         result1 = get_bed_classification(file_path)
-        result2 = get_bed_classification(file_path, strict_score=False)
-        if result1 != result2:
-            print(f"{digest} {result1} -> {result2}")
-            count_change += 1
+        print(result1)
+        #result2 = get_bed_classification(file_path, strict_score=False)
+        # if result1 != result2:
+        #     print(f"{digest} {result1} -> {result2}")
+        #     count_change += 1
 
 print(f"TOTAL COUNT: {count} Changed Classification: {count_change}")
 # print(result)

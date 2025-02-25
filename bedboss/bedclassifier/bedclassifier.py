@@ -15,12 +15,12 @@ def get_bed_classification(
     strict_score: Optional[bool] = True,
 ) -> Tuple[str, str]:
     """
-    Get the BED file classification as a tuple (ucsc_bed_spec_compliance, bed_format) e.g. (bed6+4, encode_narrowpeak)
+    Get the BED file classification as a tuple (bed_compliance, data_format) e.g. (bed6+4, encode_narrowpeak)
 
     :param bed: path to the bed file OR a dataframe
     :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
     :param strict_score: defaults to True which applies strict score specification where scores must be between 0 and 1000.
-    :return bedtype: tuple[option ["bed{bedtype}+{n}", "unknown_bed_format"], option [ucsc_bed, encode_narrowpeak, encode_broadpeak, encode_rna_elements, encode_gappedpeak, unknown_bed_format]]
+    :return bed_compliance: tuple[option ["bed{bedtype}+{n}", "unknown_data_format"], option [ucsc_bed, encode_narrowpeak, encode_broadpeak, encode_rna_elements, encode_gappedpeak, unknown_data_format]]
     """
     #    column format for bed12
     #    string chrom;       "Reference sequence chromosome or scaffold"
@@ -71,15 +71,15 @@ def get_bed_classification(
                     else:
                         if no_fail:
                             _LOGGER.warning(
-                                f"Unable to parse bed file {bed}, due to error {e}, setting bed_format = unknown_bed_format"
+                                f"Unable to parse file {bed}, due to error {e}, setting data_format = unknown_data_format"
                             )
                             return (
-                                "unknown_ucsc_bed_spec_compliance",
-                                "unknown_bed_format",
+                                "unknown_bed_compliance",
+                                "unknown_data_format",
                             )
                         else:
                             raise BedTypeException(
-                                reason=f"Bed type could not be determined due to CSV parse error {e}"
+                                reason=f"Data format could not be determined due to CSV parse error {e}"
                             )
             except (pandas.errors.ParserError, pandas.errors.EmptyDataError) as e:
                 if row_count <= max_rows:
@@ -87,12 +87,12 @@ def get_bed_classification(
                 else:
                     if no_fail:
                         _LOGGER.warning(
-                            f"Unable to parse bed file {bed}, due to error {e}, setting bed_format = unknown_bed_format"
+                            f"Unable to parse bed file {bed}, due to error {e}, setting data_format = unknown_data_format"
                         )
-                        return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
+                        return "unknown_bed_compliance", "unknown_data_format"
                     else:
                         raise BedTypeException(
-                            reason=f"Bed type could not be determined due to CSV parse error {e}"
+                            reason=f"Data format could not be determined due to CSV parse error {e}"
                         )
     elif isinstance(bed, pd.DataFrame):
         df = bed
@@ -102,7 +102,7 @@ def get_bed_classification(
         num_cols = len(df.columns)
         bedtype = 0
 
-        bed_type_named = "ucsc_bed"
+        bed_format_named = "ucsc_bed"
 
         for col in df:
             if col <= 2:
@@ -114,15 +114,15 @@ def get_bed_classification(
                     else:
                         if no_fail:
                             _LOGGER.warning(
-                                f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
+                                f"Data format could not be determined at column {0} with data type: {df[col].dtype}"
                             )
                             return (
-                                "unknown_ucsc_bed_spec_compliance",
-                                "unknown_bed_format",
+                                "unknown_bed_compliance",
+                                "unknown_data_format",
                             )
                         else:
                             raise BedTypeException(
-                                reason=f"Bed type could not be determined at column {0} with data type: {df[col].dtype}"
+                                reason=f"Data format could not be determined at column {0} with data type: {df[col].dtype}"
                             )
 
                 else:
@@ -131,15 +131,15 @@ def get_bed_classification(
                     else:
                         if no_fail:
                             _LOGGER.warning(
-                                f"Bed type could not be determined at column {col} with data type: {df[col].dtype}"
+                                f"Data format could not be determined at column {col} with data type: {df[col].dtype}"
                             )
                             return (
-                                "unknown_ucsc_bed_spec_compliance",
-                                "unknown_bed_format",
+                                "unknown_bed_compliance",
+                                "unknown_data_format",
                             )
                         else:
                             raise BedTypeException(
-                                reason=f"Bed type could not be determined at column 0 with data type: {df[col].dtype}"
+                                reason=f"Data format could not be determined at column 0 with data type: {df[col].dtype}"
                             )
             else:
                 if col == 3:
@@ -147,7 +147,7 @@ def get_bed_classification(
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 4:
                     if df[col].dtype == "int" and df[col].between(0, 1000).all():
                         bedtype += 1
@@ -159,13 +159,13 @@ def get_bed_classification(
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 5:
                     if df[col].isin(["+", "-", "."]).all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif 6 <= col <= 8:
                     if df[col].dtype == "int" and (df[col] >= 0).all():
                         bedtype += 1
@@ -180,11 +180,11 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_type_named = "encode_narrowpeak"
-                            return f"bed{bedtype}+{n}", bed_type_named
+                            bed_format_named = "encode_narrowpeak"
+                            return f"bed{bedtype}+{n}", bed_format_named
                         else:
                             n = num_cols - bedtype
-                            return f"bed{bedtype}+{n}", bed_type_named
+                            return f"bed{bedtype}+{n}", bed_format_named
 
                     elif num_cols == 9:
                         # This is a catch to see if this is actually a broadpeak file that is unnamed
@@ -196,8 +196,8 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_type_named = "encode_broadpeak"
-                            return f"bed{bedtype}+{n}", bed_type_named
+                            bed_format_named = "encode_broadpeak"
+                            return f"bed{bedtype}+{n}", bed_format_named
 
                         elif all(
                             [
@@ -207,26 +207,26 @@ def get_bed_classification(
                             ]
                         ):
                             n = num_cols - bedtype
-                            bed_type_named = "encode_rna_elements"
-                            return f"bed{bedtype}+{n}", bed_type_named
+                            bed_format_named = "encode_rna_elements"
+                            return f"bed{bedtype}+{n}", bed_format_named
                         else:
                             n = num_cols - bedtype
-                            return f"bed{bedtype}+{n}", bed_type_named
+                            return f"bed{bedtype}+{n}", bed_format_named
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 9:
                     if df[col].dtype == "int":
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif col == 10 or col == 11:
                     if df[col].str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all():
                         bedtype += 1
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 elif 12 <= col <= 14:
                     if (
                         col == 12
@@ -240,17 +240,17 @@ def get_bed_classification(
                         )
                     ):
                         n = num_cols - bedtype
-                        bed_type_named = "encode_gappedpeak"
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        bed_format_named = "encode_gappedpeak"
+                        return f"bed{bedtype}+{n}", bed_format_named
                     else:
                         n = num_cols - bedtype
-                        return f"bed{bedtype}+{n}", bed_type_named
+                        return f"bed{bedtype}+{n}", bed_format_named
                 else:
                     n = num_cols - bedtype
-                    return f"bed{bedtype}+{n}", bed_type_named
+                    return f"bed{bedtype}+{n}", bed_format_named
 
         # This is to catch any files that are assigned a bed number but don't adhere to the above conditions
-        return f"bed{bedtype}+0", bed_type_named
+        return f"bed{bedtype}+0", bed_format_named
 
     else:
-        return "unknown_ucsc_bed_spec_compliance", "unknown_bed_format"
+        return "unknown_bed_compliance", "unknown_data_format"

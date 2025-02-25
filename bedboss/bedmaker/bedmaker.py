@@ -36,7 +36,7 @@ def make_bigbed(
     bed_path: Union[str, Path],
     output_path: Union[str, Path],
     genome: str,
-    bed_type: str = None,
+    bed_compliance: str = None,
     rfg_config: Union[str, Path] = None,
     chrom_sizes: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
@@ -50,7 +50,7 @@ def make_bigbed(
     :param chrom_sizes: a full path to the chrom.sizes required for the
                         bedtobigbed conversion
     :param rfg_config: file path to the genome config file. [Default: None]
-    :param bed_type: bed type to be used for bigBed file generation "bed{bedtype}+{n}" [Default: None] (e.g bed3+1)
+    :param bed_compliance: bed column compliance used for bigBed file generation "bed{bed_compliance}+{n}" [Default: None] (e.g bed3+1)
     :param pm: pypiper object
 
     :return: path to the bigBed file
@@ -94,11 +94,11 @@ def make_bigbed(
                 "Instruction: "
                 "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
             )
-        if bed_type is not None:
+        if bed_compliance is not None:
             cmd = f"zcat {bed_path} | sort -k1,1 -k2,2n > {temp}"
             pm.run(cmd, temp, nofail=False)
 
-            cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_type} {temp} {chrom_sizes} {big_bed_path}"
+            cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_compliance} {temp} {chrom_sizes} {big_bed_path}"
             try:
                 _LOGGER.info(f"Running: {cmd}")
                 pm.run(cmd, big_bed_path, nofail=False)
@@ -348,8 +348,8 @@ def make_all(
 
     :return: dict with generated bed metadata - BedMakerOutput object:
         {
-            "bed_type": bed_type. e.g. bed, bigbed
-            "bed_format": bed_format. e.g. narrowpeak, broadpeak
+            "bed_compliance": bed_compliance. e.g. bed3+0
+            "data_format": data_format. e.g. narrowpeak, broadpeak
             "bed_file": path to the bed file
             "bigbed_file": path to the bigbed file
             "bed_digest": bed_digest
@@ -375,7 +375,7 @@ def make_all(
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
-    bed_type, bed_format = get_bed_classification(output_bed)
+    bed_compliance, data_format = get_bed_classification(output_bed)
     if check_qc:
         try:
             bedqc(
@@ -396,7 +396,7 @@ def make_all(
                 bed_path=output_bed,
                 output_path=output_path,
                 genome=genome,
-                bed_type=bed_type,
+                bed_compliance=bed_compliance,
                 rfg_config=rfg_config,
                 chrom_sizes=chrom_sizes,
                 pm=pm,
@@ -413,6 +413,6 @@ def make_all(
         bed_file=output_bed,
         bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
         bed_digest=RegionSet(output_bed).identifier,
-        bed_type=bed_type,
-        bed_format=bed_format,
+        bed_compliance=bed_compliance,
+        data_format=data_format,
     )
