@@ -339,6 +339,19 @@ def insert_pep(
     if standardize_pep:
         pep = pep_standardizer(pep)
 
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     bbagent = BedBaseAgent(bedbase_config)
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
@@ -430,7 +443,8 @@ def insert_pep(
 
     m.print_success(f"Processed samples: {processed_ids}")
     m.print_error(f"Failed samples: {failed_samples}")
-
+    if stop_pipeline:
+        pm.stop_pipeline()
     return None
 
 
@@ -440,6 +454,7 @@ def reprocess_all(
     output_folder: str,
     limit: int = 10,
     no_fail: bool = False,
+    pm: pypiper.PipelineManager = None,
 ) -> None:
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
@@ -448,9 +463,23 @@ def reprocess_all(
     :param output_folder: output folder of the pipeline
     :param limit: limit of the number of beds to process
     :param no_fail: whether to raise an error if bedset was not added to the database
+    :param pm: pypiper object
 
     :return: None
     """
+
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
@@ -523,6 +552,8 @@ def reprocess_all(
         success_files=unprocessed_beds.limit - len(failed_samples),
     )
     print(print_values)
+    if stop_pipeline:
+        pm.stop_pipeline()
 
 
 @calculate_time
