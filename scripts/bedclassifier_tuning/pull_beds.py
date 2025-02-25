@@ -133,7 +133,7 @@ for digest in DIGESTS[:]:
     else:
         result1 = get_bed_classification(file_path)
         print(result1)
-        #result2 = get_bed_classification(file_path, strict_score=False)
+        # result2 = get_bed_classification(file_path, strict_score=False)
         # if result1 != result2:
         #     print(f"{digest} {result1} -> {result2}")
         #     count_change += 1
