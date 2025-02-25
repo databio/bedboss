@@ -36,28 +36,28 @@ class TestBedClassifier:
         self,
     ):
         bedtype = get_bed_classification(bed=FILE_PATH_UNZIPPED)
-        assert bedtype == ("bed6+3", "encode_broadpeak")
+        assert bedtype == ("bed6+3", "encode_broadpeak",6,3)
 
     @pytest.mark.parametrize(
         "values",
         [
-            (BED1, ("bed6+4", "encode_narrowpeak")),
-            (BED2, ("bed6+3", "encode_broadpeak")),
-            (BED3, ("bed6+2", "ucsc_bed")),
-            (BED_4_PLUS_5, ("bed6+3", "encode_broadpeak_rs")), # labeled as they originally are classified, w/o rs
-            (BED_4_PLUS_6, ("bed6+4", "bed_like_rs")), # labeled as they originally are classified, w/o rs
-            (BED_6_PLUS_4, ("bed6+4", "ucsc_bed")),
-            (BED_7_PLUS_3, ("bed7+3", "ucsc_bed")),
-            (BED_10_PLUS_0, ("bed10+0", "ucsc_bed")),
-            (BED_12_PLUS_0, ("bed12+0", "ucsc_bed")),
-            (BED_12_PLUS_3, ("bed12+3", "ucsc_bed")),
-            (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak")),
+            (BED1, ("bed6+4", "encode_narrowpeak",6,4)),
+            (BED2, ("bed6+3", "encode_broadpeak",6,3)),
+            (BED3, ("bed6+2", "ucsc_bed",6,2)),
+            (BED_4_PLUS_5, ("bed6+3", "encode_broadpeak_rs",6,3)), # labeled as they originally are classified, w/o rs
+            (BED_4_PLUS_6, ("bed6+4", "bed_like_rs",6,4)), # labeled as they originally are classified, w/o rs
+            (BED_6_PLUS_4, ("bed6+4", "ucsc_bed",6,4)),
+            (BED_7_PLUS_3, ("bed7+3", "ucsc_bed",7,3)),
+            (BED_10_PLUS_0, ("bed10+0", "ucsc_bed",10,0)),
+            (BED_12_PLUS_0, ("bed12+0", "ucsc_bed",12,0)),
+            (BED_12_PLUS_3, ("bed12+3", "ucsc_bed",12,3)),
+            (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak",6,4)),
             (
                 BED_NONSTRICT_NARROWPEAK,
-                ("bed6+4", "encode_narrowpeak_rs"),
+                ("bed6+4", "encode_narrowpeak_rs",6,4),
             ),  # has score greater than 1000
-            (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements")),
-            (BED_BROADPEAK, ("bed6+3", "encode_broadpeak")),
+            (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements",6,3)),
+            (BED_BROADPEAK, ("bed6+3", "encode_broadpeak",6,3)),
         ],
     )
     def test_get_bed_classifications(self, values):
