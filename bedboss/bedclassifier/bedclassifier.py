@@ -192,6 +192,8 @@ def get_bed_classification(
                             bed_format_named = "bed_like_rs"
                         elif relaxed and nccols == 0:
                             bed_format_named = "bed_rs"
+                        elif not relaxed and nccols>0:
+                            bed_format_named = "bed_like"
                         return (
                             f"bed{compliant_columns}+{nccols}",
                             bed_format_named,
@@ -228,6 +230,8 @@ def get_bed_classification(
                                 bed_format_named = "bed_like_rs"
                             elif relaxed and nccols == 0:
                                 bed_format_named = "bed_rs"
+                            elif not relaxed and nccols > 0:
+                                bed_format_named = "bed_like"
                             return (
                                 f"bed{compliant_columns}+{nccols}",
                                 bed_format_named,
@@ -280,6 +284,8 @@ def get_bed_classification(
                                 bed_format_named = "bed_like_rs"
                             elif relaxed and nccols == 0:
                                 bed_format_named = "bed_rs"
+                            elif not relaxed and nccols > 0:
+                                bed_format_named = "bed_like"
                             return (
                                 f"bed{compliant_columns}+{nccols}",
                                 bed_format_named,
@@ -292,6 +298,8 @@ def get_bed_classification(
                             bed_format_named = "bed_like_rs"
                         elif relaxed and nccols == 0:
                             bed_format_named = "bed_rs"
+                        elif not relaxed and nccols>0:
+                            bed_format_named = "bed_like"
                         return (
                             f"bed{compliant_columns}+{nccols}",
                             bed_format_named,
@@ -307,6 +315,8 @@ def get_bed_classification(
                             bed_format_named = "bed_like_rs"
                         elif relaxed and nccols == 0:
                             bed_format_named = "bed_rs"
+                        elif not relaxed and nccols>0:
+                            bed_format_named = "bed_like"
                         return (
                             f"bed{compliant_columns}+{nccols}",
                             bed_format_named,
@@ -322,6 +332,8 @@ def get_bed_classification(
                             bed_format_named = "bed_like_rs"
                         elif relaxed and nccols == 0:
                             bed_format_named = "bed_rs"
+                        elif not relaxed and nccols>0:
+                            bed_format_named = "bed_like"
                         return (
                             f"bed{compliant_columns}+{nccols}",
                             bed_format_named,
@@ -357,6 +369,8 @@ def get_bed_classification(
                             bed_format_named = "bed_like_rs"
                         elif relaxed and nccols == 0:
                             bed_format_named = "bed_rs"
+                        elif not relaxed and nccols>0:
+                            bed_format_named = "bed_like"
                         return (
                             f"bed{compliant_columns}+{nccols}",
                             bed_format_named,
@@ -369,6 +383,8 @@ def get_bed_classification(
                         bed_format_named = "bed_like_rs"
                     elif relaxed and nccols == 0:
                         bed_format_named = "bed_rs"
+                    elif not relaxed and nccols > 0:
+                        bed_format_named = "bed_like"
                     return (
                         f"bed{compliant_columns}+{nccols}",
                         bed_format_named,

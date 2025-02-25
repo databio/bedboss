@@ -61,6 +61,12 @@ all_4_plus_6_digests = df_bed_types[(df_bed_types["bed_type"] == "bed4+6")][
 bed_types = ["bed4+1", "bed4+2", "bed4+3", "bed4+4", "bed4+5"]
 all_4_plus_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
 
+bed_types = ["bed3+1","bed3+2", "bed3+3", "bed3+4", "bed3+5","bed3+6", "bed3+7", "bed3+8", "bed3+9"]
+all_3_plus_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
+
+bed_types = ["bed5+0", "bed5+1", "bed6+0","bed6+1","bed7+0","bed7+1","bed7+2","bed7+3","bed8+0","bed8+1","bed9+0","bed9+1","bed10+1","bed10+2","bed12+3"]
+misc_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
+
 dest_folder = (
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks"
 )
@@ -84,6 +90,10 @@ dest_folder_6 = (
 
 dest_folder_7 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus"  # all other 4 plus
 
+dest_folder_8 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus"
+
+dest_folder_9 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/misc"
+
 # print(not_broadpeak_digests.shape)
 count_nt = 0
 count = 0
@@ -91,15 +101,15 @@ count_other = 0
 count_change = 0
 
 ## SET TYPES AND LOCALE FOR LOCAL STORAGE
-DIGESTS = all_4_plus_digests
-DESTINATION_FOLDER = dest_folder_7
+DIGESTS = misc_digests
+DESTINATION_FOLDER = dest_folder_9
 
 NARROWPEAK_RESULTS_FILE = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/narrowpeak_results.yaml"
 BROADPEAK_RESULTS_FILE = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/results/broadpeak_results.yaml"
 
 # psm = pipestat.PipestatManager(results_file_path=BROADPEAK_RESULTS_FILE)
 
-for digest in DIGESTS[:]:
+for digest in DIGESTS[:1400]:
     count += 1
     # https://data2.bedbase.org/files/2/3/233479aab145cffe46221475d5af5fae.bed.gz
     # print(digest)
@@ -107,7 +117,7 @@ for digest in DIGESTS[:]:
     url = f"https://data2.bedbase.org/files/{digest[0]}/{digest[1]}/{digest}.bed.gz"
     filename = url.split("/")[-1]  # Extract filename from URL
     file_path = os.path.join(DESTINATION_FOLDER, filename)
-    # print(file_path)
+    print(file_path)
     if not os.path.exists(file_path):
         try:
             response = requests.get(url, stream=True)
@@ -138,7 +148,8 @@ for digest in DIGESTS[:]:
         #     print(f"{digest} {result1} -> {result2}")
         #     count_change += 1
 
-print(f"TOTAL COUNT: {count} Changed Classification: {count_change}")
+# print(get_bed_classification("/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/misc/22a06163e6a9f4388ccef8d6061e02d9.bed.gz"))
+# print(f"TOTAL COUNT: {count} Changed Classification: {count_change}")
 # print(result)
 # psm.report(record_identifier=digest, values={"bed_type_60rws":result[0],"bed_format_60rws":result[1]})
 
