@@ -357,25 +357,25 @@ doItAall <- function(query, fileId, genome, cellMatrix) {
     ) 
   }
   
-  
-#   # Tissue specificity plot if open signal matrix is provided
-#   if (!exists("bedmeta") ){
-#     if (cellMatrix == "None") {
-#       message("open signal matrix not provided. Skipping tissue specificity plot ... ")
-#     } else {
-#       tryCatch(
-#         expr = {
-#           plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
-#           plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
-#           message("Successfully calculated and plot cell specific enrichment for open chromatin.")
-#         },
-#         error = function(e){
-#           message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
-#           print(e)
-#         }
-#       )
-#     }
-#   }
+  ## This part is heavy and if needed can be skipped
+  # Tissue specificity plot if open signal matrix is provided
+  if (!exists("bedmeta") ){
+    if (cellMatrix == "None") {
+      message("open signal matrix not provided. Skipping tissue specificity plot ... ")
+    } else {
+      tryCatch(
+        expr = {
+          plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(cellMatrix))))
+          plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin"))
+          message("Successfully calculated and plot cell specific enrichment for open chromatin.")
+        },
+        error = function(e){
+          message('Caught an error in creating: Cell specific enrichment for open chromatin plot!')
+          print(e)
+        }
+      )
+    }
+  }
  
   
   # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml

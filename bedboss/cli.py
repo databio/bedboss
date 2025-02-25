@@ -683,6 +683,15 @@ def verify_config(
         print("Configuration file is valid!")
 
 
+@app.command(help="Get available commands", hidden=True)
+def get_commands():
+    print(
+        " ".join([k.callback.__name__ for k in app.registered_commands]).replace(
+            "_", "-"
+        )
+    )
+
+
 @app.callback()
 def common(
     ctx: typer.Context,

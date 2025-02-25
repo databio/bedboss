@@ -62,6 +62,7 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
             path=osm_path,
             no_fail=True,
         )
+    _LOGGER.info(f"Open Signal Matrix file path: {osm_path}")
     return osm_path
 
 
@@ -102,14 +103,14 @@ def bedstat(
 
     # TODO: osm commented to speed up code
     # find/download open signal matrix
-    # if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-    #     try:
-    #         open_signal_matrix = get_osm_path(genome)
-    #     except OpenSignalMatrixException:
-    #         _LOGGER.warning(
-    #             f"Open Signal Matrix was not found for {genome}. Skipping..."
-    #         )
-    open_signal_matrix = None
+    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
+        try:
+            open_signal_matrix = get_osm_path(genome)
+        except OpenSignalMatrixException:
+            _LOGGER.warning(
+                f"Open Signal Matrix was not found for {genome}. Skipping..."
+            )
+    # open_signal_matrix = None
 
     # Used to stop pipeline bedstat is used independently
     if not pm:
