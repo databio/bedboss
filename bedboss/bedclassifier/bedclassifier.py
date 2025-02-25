@@ -393,6 +393,8 @@ def get_bed_classification(
                     )
 
         # This is to catch any files that are assigned a bed number but don't adhere to the above conditions
+        if relaxed:
+            bed_format_named = "bed_rs"
         return f"bed{compliant_columns}+0", bed_format_named, compliant_columns, 0
 
     else:
