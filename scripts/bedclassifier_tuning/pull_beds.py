@@ -61,10 +61,36 @@ all_4_plus_6_digests = df_bed_types[(df_bed_types["bed_type"] == "bed4+6")][
 bed_types = ["bed4+1", "bed4+2", "bed4+3", "bed4+4", "bed4+5"]
 all_4_plus_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
 
-bed_types = ["bed3+1","bed3+2", "bed3+3", "bed3+4", "bed3+5","bed3+6", "bed3+7", "bed3+8", "bed3+9"]
+bed_types = [
+    "bed3+1",
+    "bed3+2",
+    "bed3+3",
+    "bed3+4",
+    "bed3+5",
+    "bed3+6",
+    "bed3+7",
+    "bed3+8",
+    "bed3+9",
+]
 all_3_plus_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
 
-bed_types = ["bed5+0", "bed5+1", "bed6+0","bed6+1","bed7+0","bed7+1","bed7+2","bed7+3","bed8+0","bed8+1","bed9+0","bed9+1","bed10+1","bed10+2","bed12+3"]
+bed_types = [
+    "bed5+0",
+    "bed5+1",
+    "bed6+0",
+    "bed6+1",
+    "bed7+0",
+    "bed7+1",
+    "bed7+2",
+    "bed7+3",
+    "bed8+0",
+    "bed8+1",
+    "bed9+0",
+    "bed9+1",
+    "bed10+1",
+    "bed10+2",
+    "bed12+3",
+]
 misc_digests = df_bed_types[df_bed_types["bed_type"].isin(bed_types)]["id"]
 
 dest_folder = (
@@ -90,9 +116,13 @@ dest_folder_6 = (
 
 dest_folder_7 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus"  # all other 4 plus
 
-dest_folder_8 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus"
+dest_folder_8 = (
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus"
+)
 
-dest_folder_9 = "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/misc"
+dest_folder_9 = (
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/misc"
+)
 
 # print(not_broadpeak_digests.shape)
 count_nt = 0
