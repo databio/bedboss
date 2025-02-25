@@ -375,7 +375,7 @@ def make_all(
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
-    bed_compliance, data_format = get_bed_classification(output_bed)
+    bed_compliance, data_format, ccols, nccols = get_bed_classification(output_bed)
     if check_qc:
         try:
             bedqc(

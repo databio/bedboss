@@ -15,27 +15,35 @@ from bedboss.bedclassifier.bedclassifier import get_bed_classification
 # (BED_BROADPEAK, ("bed6+3", "encode_broadpeak")),"
 
 data_paths = []
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/"
-# )
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks/"
-# )
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/"
-# )
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notnarpks/"
-# )
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/"
-# )
-# data_paths.append(
-#     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus6/"
-# )
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/brdpks/"
+)
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notbrdpks/"
+)
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/narpks/"
+)
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/notnarpks/"
+)
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed6plus3/"
+)
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus6/"
+)
 
 data_paths.append(
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed4plus/"
+)
+
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/misc/"
+)
+
+data_paths.append(
+    "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus/"
 )
 
 
@@ -58,10 +66,10 @@ for data_path in data_paths:
     count_unknown = 0
     for file in all_files:
         total_files += 1
-        print(f"Opening file: {file}")
+        # print(f"Opening file: {file}")
         try:
             result = get_bed_classification(file)
-            print(result)
+            # print(result)
             if result[1] == "ucsc_bed":
                 count_bed += 1
             elif result[1] == "bed_like":
