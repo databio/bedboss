@@ -100,8 +100,12 @@ data_paths.append(
 
 # One-off testing
 
-result = get_bed_classification("/home/drc/Downloads/example_Gapped_peaks/example.gappedPeak.gz")
-result2 = get_bed_classification("/home/drc/Downloads/example_Gapped_peaks/example_2.gappedPeak.gz")
+result = get_bed_classification(
+    "/home/drc/Downloads/example_Gapped_peaks/example.gappedPeak.gz"
+)
+result2 = get_bed_classification(
+    "/home/drc/Downloads/example_Gapped_peaks/example_2.gappedPeak.gz"
+)
 # result = get_bed_classification("/home/drc/test/test_gappedPeaks_geofetched/data/GSE192575/GSM5751922_ATAC_resis_1_peaks.gappedPeak.gz")
 # result2 = get_bed_classification("/home/drc/test/test_gappedPeaks_geofetched/data/GSE192575/GSM5751923_ATAC_resis_2_peaks.gappedPeak.gz")
 

@@ -10,12 +10,6 @@ from pydantic import BaseModel
 _LOGGER = logging.getLogger("bedboss")
 
 
-class BedTypeException(Exception):
-    """Custom exception for BED file parsing errors."""
-
-    pass
-
-
 class BedClassification(BaseModel):
     bed_compliance: str
     data_format: str
@@ -29,7 +23,24 @@ def get_bed_classification(
 ) -> BedClassification:
     """
     Get the BED file classification as a Pydantic object.
+
+    :param bed: path to the bed file OR a dataframe
+    :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
+    :return BedClassification object
     """
+    #    column format for bed12
+    #    string chrom;       "Reference sequence chromosome or scaffold"
+    #    uint   chromStart;  "Start position in chromosome"
+    #    uint   chromEnd;    "End position in chromosome"
+    #    string name;        "Name of item."
+    #    uint score;          "Score (0-1000)"
+    #    char[1] strand;     "+ or - for strand"
+    #    uint thickStart;   "Start of where display should be thick (start codon)"
+    #    uint thickEnd;     "End of where display should be thick (stop codon)"
+    #    uint reserved;     "Used as itemRgb as of 2004-11-22"
+    #    int blockCount;    "Number of blocks"
+    #    int[blockCount] blockSizes; "Comma separated list of block sizes"
+    #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
     def _read_bed_file(filepath: str, skiprows: int = 0) -> Optional[pd.DataFrame]:
         """Helper function to read BED file with error handling."""
@@ -126,34 +137,23 @@ def get_bed_classification(
         11: [
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
         ],
-        12: [
-            lambda col: pd.api.types.is_float_dtype(col.dtype)
-            or (col == -1).all()
-        ],
-        13: [
-            lambda col: pd.api.types.is_float_dtype(col.dtype)
-            or (col == -1).all()
-        ],
-        14: [
-            lambda col: pd.api.types.is_float_dtype(col.dtype)
-            or (col == -1).all()
-        ],
-        15: [
-            lambda col: col.dtype == "int" and col.iloc[0] != -1
-        ],
+        12: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
+        13: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
+        14: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
+        15: [lambda col: col.dtype == "int" and col.iloc[0] != -1],
     }
 
     for col_index in range(num_cols):
         checks = column_checks.get(col_index, [])
-        if _check_column(col_index, checks) and col_index<12:
+        if _check_column(col_index, checks) and col_index < 12:
             compliant_columns += 1
 
-        elif(                col_index == 4
-                and df[col_index].dtype == "int"
-                and df[col_index].all() >= 0):
+        elif (
+            col_index == 4 and df[col_index].dtype == "int" and df[col_index].all() >= 0
+        ):
 
-                compliant_columns += 1
-                relaxed = True
+            compliant_columns += 1
+            relaxed = True
 
         else:
             nccols = num_cols - compliant_columns
@@ -193,9 +193,7 @@ def get_bed_classification(
                     elif (
                         _check_column(6, column_checks[12])
                         and _check_column(7, column_checks[13])
-                        and _check_column(
-                            8, column_checks[15]
-                        )
+                        and _check_column(8, column_checks[15])
                     ):
                         bed_format_named = (
                             "encode_rna_elements_rs"
