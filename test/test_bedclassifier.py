@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from bedboss.bedclassifier.bedclassifier import get_bed_classification
+from bedboss.bedclassifier.bedclassifier import get_bed_classification, BedClassification
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
@@ -39,37 +39,118 @@ class TestBedClassifier:
         self,
     ):
         bedtype = get_bed_classification(bed=FILE_PATH_UNZIPPED)
-        assert bedtype == ("bed6+3", "encode_broadpeak", 6, 3)
+        assert bedtype == BedClassification(
+                    bed_compliance="bed6+3",
+                    data_format="encode_broadpeak",
+                    compliant_columns=6,
+                    non_compliant_columns=3,
+                )
 
     @pytest.mark.parametrize(
         "values",
         [
-            (BED1, ("bed6+4", "encode_narrowpeak", 6, 4)),
-            (BED2, ("bed6+3", "encode_broadpeak", 6, 3)),
-            (BED3, ("bed6+2", "bed_like", 6, 2)),
-            (
-                BED_4_PLUS_5,
-                ("bed6+3", "encode_broadpeak_rs", 6, 3),
-            ),  # labeled as they originally are classified, w/o rs
-            (
-                BED_4_PLUS_6,
-                ("bed6+4", "bed_like_rs", 6, 4),
-            ),  # labeled as they originally are classified, w/o rs
-            (BED_6_PLUS_4, ("bed6+4", "bed_like", 6, 4)),
-            (BED_7_PLUS_3, ("bed7+3", "bed_like", 7, 3)),
-            (BED_7_01, ("bed7+0", "bed_rs", 7, 0)),
-            (BED_7_02, ("bed7+0", "ucsc_bed", 7, 0)),
-            (BED_7_03, ("bed6+1", "bed_like_rs", 6, 1)),
-            (BED_10_PLUS_0, ("bed10+0", "ucsc_bed", 10, 0)),
-            (BED_12_PLUS_0, ("bed12+0", "ucsc_bed", 12, 0)),
-            (BED_12_PLUS_3, ("bed12+3", "bed_like", 12, 3)),
-            (BED_NARROWPEAK, ("bed6+4", "encode_narrowpeak", 6, 4)),
-            (
-                BED_NONSTRICT_NARROWPEAK,
-                ("bed6+4", "encode_narrowpeak_rs", 6, 4),
-            ),  # has score greater than 1000
-            (BED_RNA_ELEMENTS, ("bed6+3", "encode_rna_elements", 6, 3)),
-            (BED_BROADPEAK, ("bed6+3", "encode_broadpeak", 6, 3)),
+            (BED1, BedClassification(
+                    bed_compliance="bed6+4",
+                    data_format="encode_narrowpeak",
+                    compliant_columns=6,
+                    non_compliant_columns=4,
+                )),
+            (BED2, BedClassification(
+                bed_compliance="bed6+3",
+                data_format="encode_broadpeak",
+                compliant_columns=6,
+                non_compliant_columns=3,
+            )),
+            (BED3, BedClassification(
+                bed_compliance="bed6+2",
+                data_format="bed_like",
+                compliant_columns=6,
+                non_compliant_columns=2,
+            )),
+            (BED_4_PLUS_5, BedClassification(
+                bed_compliance="bed6+3",
+                data_format="encode_broadpeak_rs",
+                compliant_columns=6,
+                non_compliant_columns=3,
+            )),
+            ( BED_4_PLUS_6, BedClassification(
+                bed_compliance="bed6+4",
+                data_format="bed_like_rs",
+                compliant_columns=6,
+                non_compliant_columns=4,
+            )),
+            (BED_6_PLUS_4, BedClassification(
+                bed_compliance="bed6+4",
+                data_format="bed_like",
+                compliant_columns=6,
+                non_compliant_columns=4,
+            )),
+            (BED_7_PLUS_3, BedClassification(
+                bed_compliance="bed7+3",
+                data_format="bed_like",
+                compliant_columns=7,
+                non_compliant_columns=3,
+            )),
+            (BED_7_01, BedClassification(
+                bed_compliance="bed7+0",
+                data_format="bed_rs",
+                compliant_columns=7,
+                non_compliant_columns=0,
+            )),
+            (BED_7_02, BedClassification(
+                bed_compliance="bed7+0",
+                data_format="ucsc_bed",
+                compliant_columns=7,
+                non_compliant_columns=0,
+            )),
+            (BED_7_03, BedClassification(
+                bed_compliance="bed6+1",
+                data_format="bed_like_rs",
+                compliant_columns=6,
+                non_compliant_columns=1,
+            )),
+            (BED_10_PLUS_0, BedClassification(
+                bed_compliance="bed10+0",
+                data_format="ucsc_bed",
+                compliant_columns=10,
+                non_compliant_columns=0,
+            )),
+            (BED_12_PLUS_0, BedClassification(
+                bed_compliance="bed12+0",
+                data_format="ucsc_bed",
+                compliant_columns=12,
+                non_compliant_columns=0,
+            )),
+            (BED_12_PLUS_3, BedClassification(
+                bed_compliance="bed12+3",
+                data_format="bed_like",
+                compliant_columns=12,
+                non_compliant_columns=3,
+            )),
+            (BED_NARROWPEAK, BedClassification(
+                bed_compliance="bed6+4",
+                data_format="encode_narrowpeak",
+                compliant_columns=6,
+                non_compliant_columns=4,
+            )),
+            (BED_NONSTRICT_NARROWPEAK, BedClassification(
+                bed_compliance="bed6+4",
+                data_format="encode_narrowpeak_rs",
+                compliant_columns=6,
+                non_compliant_columns=4,
+            )),
+            (BED_RNA_ELEMENTS, BedClassification(
+                bed_compliance="bed6+3",
+                data_format="encode_rna_elements",
+                compliant_columns=6,
+                non_compliant_columns=3,
+            )),
+            (BED_BROADPEAK, BedClassification(
+                bed_compliance="bed6+3",
+                data_format="encode_broadpeak",
+                compliant_columns=6,
+                non_compliant_columns=3,
+            )),
         ],
     )
     def test_get_bed_classifications(self, values):

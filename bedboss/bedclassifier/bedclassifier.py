@@ -114,7 +114,6 @@ def get_bed_classification(
         3: [lambda col: col.dtype == "O"],
         4: [
             lambda col: col.dtype == "int" and col.between(0, 1000).all(),
-            lambda col: col.dtype == "int" and col.all() >= 0,
         ],
         5: [lambda col: col.isin(["+", "-", "."]).all()],
         6: [lambda col: col.dtype == "int" and (col >= 0).all()],
@@ -129,15 +128,18 @@ def get_bed_classification(
         ],
         12: [
             lambda col: pd.api.types.is_float_dtype(col.dtype)
-            and (col.isnull().all() or (col == -1).all() or (col != -1).all())
+            or (col == -1).all()
         ],
         13: [
             lambda col: pd.api.types.is_float_dtype(col.dtype)
-            and (col.isnull().all() or (col == -1).all() or (col != -1).all())
+            or (col == -1).all()
         ],
         14: [
             lambda col: pd.api.types.is_float_dtype(col.dtype)
-            and (col.isnull().all() or (col == -1).all() or (col != -1).all())
+            or (col == -1).all()
+        ],
+        15: [
+            lambda col: col.dtype == "int" and col.iloc[0] != -1
         ],
     }
 
@@ -145,12 +147,14 @@ def get_bed_classification(
         checks = column_checks.get(col_index, [])
         if _check_column(col_index, checks):
             compliant_columns += 1
-            if (
-                col_index == 4
+
+        elif(                col_index == 4
                 and df[col_index].dtype == "int"
-                and df[col_index].all() >= 0
-            ):
+                and df[col_index].all() >= 0):
+
+                compliant_columns += 1
                 relaxed = True
+
         else:
             nccols = num_cols - compliant_columns
             if col_index >= 6:
@@ -190,7 +194,7 @@ def get_bed_classification(
                         _check_column(6, column_checks[12])
                         and _check_column(7, column_checks[13])
                         and _check_column(
-                            8, [lambda col: col.dtype == "int" and col.iloc[0] != -1]
+                            8, column_checks[15]
                         )
                     ):
                         bed_format_named = (
@@ -230,10 +234,10 @@ def get_bed_classification(
                 non_compliant_columns=nccols,
             )
 
-        bed_format_named = "bed_rs" if relaxed else bed_format_named
-        return BedClassification(
-            bed_compliance=f"bed{compliant_columns}+0",
-            data_format=bed_format_named,
-            compliant_columns=compliant_columns,
-            non_compliant_columns=0,
-        )
+    bed_format_named = "bed_rs" if relaxed else bed_format_named
+    return BedClassification(
+        bed_compliance=f"bed{compliant_columns}+0",
+        data_format=bed_format_named,
+        compliant_columns=compliant_columns,
+        non_compliant_columns=0,
+    )
