@@ -145,7 +145,7 @@ def get_bed_classification(
 
     for col_index in range(num_cols):
         checks = column_checks.get(col_index, [])
-        if _check_column(col_index, checks):
+        if _check_column(col_index, checks) and col_index<12:
             compliant_columns += 1
 
         elif(                col_index == 4

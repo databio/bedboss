@@ -27,6 +27,8 @@ BED_BROADPEAK = f"{SIMPLE_EXAMPLES_DIR}/test_brdpk.bed"
 BED_7_01 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7_01.bed"
 BED_7_02 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7_02.bed"
 BED_7_03 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7_03.bed"
+BED_GAPPED_PEAK = f"{SIMPLE_EXAMPLES_DIR}/example.gappedPeak.gz"
+BED_GAPPED_PEAK_RS = f"{SIMPLE_EXAMPLES_DIR}/example_2.gappedPeak.gz"
 
 
 class TestBedClassifier:
@@ -149,6 +151,18 @@ class TestBedClassifier:
                 bed_compliance="bed6+3",
                 data_format="encode_broadpeak",
                 compliant_columns=6,
+                non_compliant_columns=3,
+            )),
+            (BED_GAPPED_PEAK, BedClassification(
+                bed_compliance="bed12+3",
+                data_format="encode_gappedpeak",
+                compliant_columns=12,
+                non_compliant_columns=3,
+            )),
+            (BED_GAPPED_PEAK_RS, BedClassification(
+                bed_compliance="bed12+3",
+                data_format="encode_gappedpeak_rs",
+                compliant_columns=12,
                 non_compliant_columns=3,
             )),
         ],
