@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Dict, List, Optional, Union
 
-from bedboss.exceptions import ValidatorException
+from bedboss.exceptions import ValidatorException, BedBossException
 from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.models import (
@@ -241,8 +241,12 @@ class ReferenceValidator:
             for genome_model in self.genome_models:
                 if genome_model.genome_alias in ref_filter:
                     self.genome_models.remove(genome_model)
-
-        bed_chrom_info = get_bed_chrom_info(bedfile)
+        try:
+            bed_chrom_info = get_bed_chrom_info(bedfile)
+        except Exception as e:
+            raise BedBossException(
+                f"Unable to open bed file or determine compatibility. Error: {str(e)}"
+            )
 
         if not bed_chrom_info:
             raise ValidatorException("Incorrect bed file provided")
