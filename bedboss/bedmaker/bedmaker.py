@@ -375,7 +375,7 @@ def make_all(
         chrom_sizes=chrom_sizes,
         pm=pm,
     )
-    bed_compliance, data_format, ccols, nccols = get_bed_classification(output_bed)
+    bed_classification = get_bed_classification(output_bed)
     if check_qc:
         try:
             bedqc(
@@ -396,7 +396,7 @@ def make_all(
                 bed_path=output_bed,
                 output_path=output_path,
                 genome=genome,
-                bed_compliance=bed_compliance,
+                bed_compliance=bed_classification.bed_compliance,
                 rfg_config=rfg_config,
                 chrom_sizes=chrom_sizes,
                 pm=pm,
@@ -413,6 +413,6 @@ def make_all(
         bed_file=output_bed,
         bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
         bed_digest=RegionSet(output_bed).identifier,
-        bed_compliance=bed_compliance,
-        data_format=data_format,
+        bed_compliance=bed_classification.bed_compliance,
+        data_format=bed_classification.data_format,
     )

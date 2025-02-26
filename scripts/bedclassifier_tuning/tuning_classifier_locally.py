@@ -46,9 +46,7 @@ data_paths.append(
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus/"
 )
 
-data_paths.append(
-    "/home/drc/test/gappedPeaks/"
-)
+data_paths.append("/home/drc/test/gappedPeaks/")
 
 
 for data_path in data_paths:
@@ -64,7 +62,7 @@ for data_path in data_paths:
     count_nar = 0
     count_ns_nar = 0
     count_gapped = 0
-    count_gapped_rs =0
+    count_gapped_rs = 0
     count_rna = 0
     count_rna_ns = 0
     count_broad = 0
