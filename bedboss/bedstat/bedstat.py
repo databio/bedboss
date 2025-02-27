@@ -151,14 +151,14 @@ def bedstat(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "bedstat",
             "tools",
-            "regionstat.R",
+            "regionstat_cli.R",
         )
         assert os.path.exists(rscript_path), FileNotFoundError(
             f"'{rscript_path}' script not found"
         )
         command = (
             f"Rscript {rscript_path} --bedfilePath={bedfile} "
-            f"--fileId={bed_digest} --openSignalMatrix={open_signal_matrix} "
+            f"--openSignalMatrix={open_signal_matrix} "
             f"--outputFolder={outfolder_stats_results} --genome={genome} "
             f"--ensdb={ensdb} --digest={bed_digest}"
         )
