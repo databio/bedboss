@@ -542,11 +542,11 @@ def _upload_gse(
         else:
             file_abs_path = required_metadata.file_path
 
-        required_metadata.ref_genome = standardize_genome_name(
-            required_metadata.ref_genome, file_abs_path
-        )
-
         try:
+            required_metadata.ref_genome = standardize_genome_name(
+                required_metadata.ref_genome, file_abs_path
+            )
+
             file_digest = run_all(
                 name=required_metadata.title,
                 input_file=file_abs_path,

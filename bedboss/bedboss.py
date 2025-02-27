@@ -128,6 +128,7 @@ def run_all(
 
     _LOGGER.info(f"Input file = '{input_file}'")
     _LOGGER.info(f"Output folder = '{outfolder}'")
+    _LOGGER.info(f"Sample genome = '{genome}'")
 
     if not pm:
         pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
@@ -339,6 +340,19 @@ def insert_pep(
     if standardize_pep:
         pep = pep_standardizer(pep)
 
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     bbagent = BedBaseAgent(bedbase_config)
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
@@ -430,7 +444,8 @@ def insert_pep(
 
     m.print_success(f"Processed samples: {processed_ids}")
     m.print_error(f"Failed samples: {failed_samples}")
-
+    if stop_pipeline:
+        pm.stop_pipeline()
     return None
 
 
@@ -440,6 +455,7 @@ def reprocess_all(
     output_folder: str,
     limit: int = 10,
     no_fail: bool = False,
+    pm: pypiper.PipelineManager = None,
 ) -> None:
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
@@ -448,9 +464,23 @@ def reprocess_all(
     :param output_folder: output folder of the pipeline
     :param limit: limit of the number of beds to process
     :param no_fail: whether to raise an error if bedset was not added to the database
+    :param pm: pypiper object
 
     :return: None
     """
+
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
@@ -463,9 +493,12 @@ def reprocess_all(
 
     bbclient = BBClient()
     failed_samples = []
-    for bed_annot in unprocessed_beds.results:
+    for i, bed_annot in enumerate(unprocessed_beds.results):
         bed_file = bbclient.load_bed(bed_annot.id)
 
+        m.print_success(
+            f"\n#### Processing sample: {i + 1} / {len(unprocessed_beds.results)} ####"
+        )
         try:
             run_all(
                 input_file=bed_file.path,
@@ -491,7 +524,7 @@ def reprocess_all(
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
-                pm=None,
+                pm=pm,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
@@ -518,11 +551,16 @@ def reprocess_all(
 
     print_values = dict(
         unprocessed_files=unprocessed_beds.count,
-        processing_files=unprocessed_beds.limit,
+        processed_files=unprocessed_beds.limit,
         failed_files=len(failed_samples),
         success_files=unprocessed_beds.limit - len(failed_samples),
     )
-    print(print_values)
+    print_values["unprocessed_files_left"] = (
+        print_values["unprocessed_files"] - print_values["processed_files"]
+    )
+    m.print_success(str(print_values))
+    if stop_pipeline:
+        pm.stop_pipeline()
 
 
 @calculate_time
