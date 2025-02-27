@@ -54,7 +54,7 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
-        lite=True,
+        lite=False,
         overwrite=True,
         overwrite_bedset=True,
     )
