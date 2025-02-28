@@ -3,6 +3,18 @@ import socket
 import signal
 import os
 import re
+import time
+from typing import Union
+
+from bedboss.exceptions import BedBossException
+from bedboss.const import PKG_NAME
+from logging import getLogger
+
+_LOGGER = getLogger(PKG_NAME)
+
+script_path = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), "tools/r-service.R"
+)
 
 
 class RServiceManager:
@@ -16,7 +28,7 @@ class RServiceManager:
         process (subprocess.Popen): The process running the R service.
     """
 
-    def __init__(self, r_script_path="tools/r-service.R", host="127.0.0.1", port=8888):
+    def __init__(self, host="127.0.0.1", port=8888):
         """
         Initializes the RServiceManager with the given R script path, host, and port.
 
@@ -25,10 +37,12 @@ class RServiceManager:
             host (str): Host address for the socket connection. Default is "127.0.0.1".
             port (int): Port number for the socket connection. Default is 8888.
         """
-        self.r_script_path = r_script_path
+        self.r_script_path = script_path
         self.host = host
         self.port = port
         self.process = None
+
+        self.start_service()
 
     def start_service(self):
         """
@@ -36,23 +50,68 @@ class RServiceManager:
         """
         cmd = ["Rscript", self.r_script_path]
         self.process = subprocess.Popen(cmd, shell=False, preexec_fn=os.setsid)
-        print(f"Running R process with PID: {self.process.pid}")
 
-    def run_file(self, file_path):
+        while True:
+            if self.check_status() == "idle":
+                _LOGGER.info(
+                    f"RService: Running R process with PID: {self.process.pid}"
+                )
+                break
+            time.sleep(2)
+
+    def run_file(
+        self,
+        file_path: str,
+        digest: str,
+        outpath: str,
+        genome: str,
+        openSignalMatrix: Union[str, None],
+        gtffile: Union[str, None],
+    ):
         """
         Sends a file path to the R service for processing.
 
-        Args:
-            file_path (str): The path to the file to be processed by the R service.
+        :param file_path: Path to the file to be processed.
+        :param digest: Digest of the file.
+        :param outpath: Path to the output directory.
+        :param genome: Genome assembly.
+        :param openSignalMatrix: Path to the Open Signal Matrix file.
+        :param gtffile: Path to the GTF file.
+
+        :return: None
+        :exit: 1 if the connection is refused.
+        """
+        return self.run_command(
+            f"{file_path}, {digest}, {outpath}, {genome}, {openSignalMatrix}, {gtffile}\n"
+        )
+
+    def run_command(self, command):
+        """
+        Sends a command to the R service for processing.
         """
         try:
             s = socket.socket()
             s.connect((self.host, self.port))
-            s.send(f"{file_path}\n".encode())
+
+            _LOGGER.info(f"RService: Sending command: {command}")
+            s.send(command.encode())
+
+            while True:
+                msg = self.check_status()
+                if msg == "idle":
+                    _LOGGER.debug(f"RService: Message recieved: {msg}")
+                    break
+                else:
+                    _LOGGER.info(f"RService: Message recieved: {msg}")
+                time.sleep(1)
             s.close()
-            return s 
+            return s
         except ConnectionRefusedError:
-            print("Connection refused. Make sure the R service is running.")
+            # BedBossException("Connection refused. Make sure the R service is running.")
+            _LOGGER.error(
+                "RService: Connection refused. Make sure the R service is running. Unable to send command."
+            )
+            exit(1)
 
     def check_status(self):
         """
@@ -63,40 +122,79 @@ class RServiceManager:
             s.connect((self.host, self.port))
             s.send("check\n".encode())
             msg = s.recv(1024).decode()
-            key = re.split(r'[\r\n]', msg)[0]
-            print(f"Received message: {key}")
-            # s.shutdown(socket.SHUT_WR)
+            key = re.split(r"[\r\n]", msg)[0]
+
+            _LOGGER.debug(f"RService: Received message: {key}")
             s.close()
+
             return key
         except ConnectionRefusedError:
-            print("Connection refused. Make sure the R service is running.")
+            _LOGGER.warning("Connection refused. Make sure the R service is running.")
 
     def terminate_service(self):
         """
         Terminates the R service by sending a termination signal and ensuring the process is stopped.
         """
-        self.run_file("done")  # send secrete "terminate" code
+        self.run_command("done")  # send secrete "terminate" code
         if self.process:
             self.process.terminate()
             try:
                 self.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-            print("R process terminated.")
+            _LOGGER.info("RService: R process terminated.")
+
+    def __del__(self):
+        self.terminate_service()
 
 
-# TODO: "tools/r-service.R" needs to be embedded in the package
+if __name__ == "__main__":
+    # Start the R service at the beginning of the pipeline
+    rsm = RServiceManager()
+    # rsm.start_service()
 
+    # print("Checking status...")
+    # st = rsm.check_status()
 
-# Start the R service at the beginning of the pipeline
-rsm = RServiceManager("tools/r-service.R")
-rsm.start_service()
+    # Run any BED files through bedstat
+    # time this process:
+    time1 = time.time()
 
-st = rsm.check_status()
+    bed_path = (
+        "/home/bnt4me/.bbcache/bedfiles/3/6/36a43794bd488906a13bbf940095fd88.bed.gz"
+    )
+    digest = "36a43794bd488906a13bbf940095fd88"
+    outpath = "/home/bnt4me/virginia/repos/bbuploader/data/outputs/output/bedstat_output/36a43794bd488906a13bbf940095fd88"
+    genome = "hg38"
+    openSignalMatrix = "/home/bnt4me/openSignalMatrix/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
+    gtffile = None
 
-# Run any BED files through bedstat
-res = rsm.run_file("bedstat/data/beds/bed1.bed")
-rsm.run_file("../../test/data/bed/simpleexamples/bed1.bed")
+    res = rsm.run_file(
+        file_path=bed_path,
+        digest=digest,
+        outpath=outpath,
+        genome=genome,
+        openSignalMatrix=openSignalMatrix,
+        gtffile=gtffile,
+    )
 
-# After the pipeline finishes, terminate the R service
-rsm.terminate_service()
+    bed_path = (
+        "/home/bnt4me/.bbcache/bedfiles/5/6/564789442bc24c2e51fddcec99dda3eb.bed.gz"
+    )
+    digest = "564789442bc24c2e51fddcec99dda3eb"
+    outpath = "/home/bnt4me/virginia/repos/bbuploader/data/outputs/output/bedstat_output/564789442bc24c2e51fddcec99dda3eb"
+    genome = "hg38"
+    openSignalMatrix = "/home/bnt4me/openSignalMatrix/openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
+    gtffile = None
+
+    res = rsm.run_file(
+        file_path=bed_path,
+        digest=digest,
+        outpath=outpath,
+        genome=genome,
+        openSignalMatrix=openSignalMatrix,
+        gtffile=gtffile,
+    )
+    time2 = time.time()
+
+    print(f"Time taken: {time2 - time1}")
