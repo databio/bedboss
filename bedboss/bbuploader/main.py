@@ -30,6 +30,7 @@ from bedboss.exceptions import BedBossException
 from bedboss.skipper import Skipper
 from bedboss.utils import calculate_time, download_file, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
+from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -101,6 +102,12 @@ def upload_all(
 
     count = 0
     total_projects = len(pep_annotation_list.results)
+
+    if not lite:
+        r_service = RServiceManager()
+    else:
+        r_service = None
+
     for gse_pep in pep_annotation_list.results:
         count += 1
         with Session(bbagent.config.db_engine.engine) as session:
@@ -158,6 +165,7 @@ def upload_all(
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
                     lite=lite,
+                    r_service=r_service,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -414,6 +422,7 @@ def _upload_gse(
     reinit_skipper: bool = False,
     preload: bool = True,
     lite=False,
+    r_service: RServiceManager = None,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -433,6 +442,7 @@ def _upload_gse(
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
     :param preload: pre - download files to the local folder (used for faster reproducibility)
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
+    :param r_service: RServiceManager object
     :return: None
     """
     if isinstance(bedbase_config, str):
@@ -462,6 +472,11 @@ def _upload_gse(
         _LOGGER.info(f"Skipper initialized for: '{gse}'")
     else:
         skipper_obj = None
+
+    if not lite and not r_service:
+        r_service = RServiceManager()
+    else:
+        r_service = None
 
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
@@ -561,6 +576,7 @@ def _upload_gse(
                 upload_qdrant=True,
                 force_overwrite=overwrite,
                 lite=lite,
+                r_service=r_service,
             )
             uploaded_files.append(file_digest)
             if skipper_obj:

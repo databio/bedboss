@@ -1,9 +1,9 @@
 def unprocessed_run():
     from bedboss.bedboss import reprocess_all
 
-    run_unprocessed_beds(
+    reprocess_all(
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
-        limit=10,
+        limit=5,
         output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
     )
 
@@ -19,5 +19,5 @@ def reprocess_one():
 
 
 if __name__ == "__main__":
-    # unprocessed_run()
-    reprocess_one()
+    unprocessed_run()
+    # reprocess_one()

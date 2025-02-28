@@ -34,6 +34,7 @@ from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
 from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
+from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -82,6 +83,7 @@ def run_all(
     universe_method: str = None,
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
+    r_service: RServiceManager = None,
 ) -> str:
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
@@ -115,6 +117,7 @@ def run_all(
     :param str universe_method: method used to create the universe [Default: None]
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
+    :param RServiceManager r_service: RServiceManager object that will run R services
     :return str bed_digest: bed digest
     """
     if isinstance(bedbase_config, str):
@@ -171,6 +174,7 @@ def run_all(
             just_db_commit=just_db_commit,
             rfg_config=rfg_config,
             pm=pm,
+            r_service=r_service,
         )
     statistics_dict["bed_type"] = bed_metadata.bed_type
     statistics_dict["bed_format"] = bed_metadata.bed_format.value
@@ -363,6 +367,11 @@ def insert_pep(
     if rerun:
         skipper.reinitialize()
 
+    if not lite:
+        r_service = RServiceManager()
+    else:
+        r_service = None
+
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
         if is_processed:
@@ -408,6 +417,7 @@ def insert_pep(
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
+                r_service=r_service,
             )
 
             processed_ids.append(bed_id)
@@ -482,6 +492,8 @@ def reprocess_all(
     else:
         stop_pipeline = False
 
+    r_service = RServiceManager()
+
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
@@ -525,6 +537,7 @@ def reprocess_all(
                 universe_method=None,
                 universe_bedset=None,
                 pm=pm,
+                r_service=r_service,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")

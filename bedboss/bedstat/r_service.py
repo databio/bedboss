@@ -6,7 +6,6 @@ import re
 import time
 from typing import Union
 
-from bedboss.exceptions import BedBossException
 from bedboss.const import PKG_NAME
 from logging import getLogger
 
@@ -48,6 +47,7 @@ class RServiceManager:
         """
         Starts the R service by running the R script in a subprocess.
         """
+        _LOGGER.info("RService: Starting R service...")
         cmd = ["Rscript", self.r_script_path]
         self.process = subprocess.Popen(cmd, shell=False, preexec_fn=os.setsid)
 
