@@ -4,6 +4,9 @@ import os
 import time
 import urllib.request
 from functools import wraps
+import gzip
+from io import StringIO
+import pandas as pd
 
 import peppy
 import requests
@@ -13,6 +16,8 @@ from peppy.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
 from bedboss.refgenome_validator.main import ReferenceValidator
+from bedboss.exceptions import QualityException
+from bedboss.const import MIN_REGION_WIDTH
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -227,3 +232,34 @@ def calculate_time(func):
         return result
 
     return wrapper
+
+def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
+    """
+    Run initial QC on the bed file
+
+    :param url: URL of the file
+    :param min_region_width: Minimum region width threshold to pass the quality check. Default is 20
+
+    :return: bool. Always returns True
+    :raises: QualityException
+    """
+    _LOGGER.info(f"Running initial QC on the bed file: {url}")
+
+    try:
+        with urllib.request.urlopen(url) as response:
+            with gzip.GzipFile(fileobj=response) as f:
+                content = f.read(1024).decode()  # Read first 10KB after decompression
+
+        df = pd.read_csv(StringIO(content), sep ="\t", header=None)
+        mean_width = (df.iloc[:, 2] - df.iloc[:, 1])[:-1].mean()
+
+    except Exception as err:
+        _LOGGER.warning("Unable to read the file, initial QC failed, but continuing anyway..."
+                        f"Error: {str(err)}")
+        return False
+
+    if mean_width < min_region_width:
+        raise QualityException(f"Initial QC failed for '{url}'. Mean region width is '{mean_width}', where min region width is set to: '{min_region_width}'")
+
+    _LOGGER.info(f"Initial QC passed for {url}")
+    return True

@@ -26,9 +26,9 @@ from bedboss.bbuploader.models import (
 from bedboss.bbuploader.utils import create_gsm_sub_name
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
-from bedboss.exceptions import BedBossException
+from bedboss.exceptions import BedBossException, QualityException
 from bedboss.skipper import Skipper
-from bedboss.utils import calculate_time, download_file, standardize_genome_name
+from bedboss.utils import calculate_time, download_file, standardize_genome_name, run_initial_qc
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
 
@@ -422,6 +422,7 @@ def _upload_gse(
     reinit_skipper: bool = False,
     preload: bool = True,
     lite=False,
+    max_file_size: int = 20 * 1000000,
     r_service: RServiceManager = None,
 ) -> ProjectProcessingStatus:
     """
@@ -442,6 +443,7 @@ def _upload_gse(
     :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
     :param preload: pre - download files to the local folder (used for faster reproducibility)
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
+    :param max_file_size: maximum file size in bytes. Default: 20MB
     :param r_service: RServiceManager object
     :return: None
     """
@@ -481,12 +483,6 @@ def _upload_gse(
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
-
-        # if int(project_sample.get("file_size") or 0) > 10000000:
-        #     _LOGGER.info(f"Skipping: '{sample_gsm}' - file size is too big")
-        #     project_status.number_of_skipped += 1
-        #     skipper_obj.add_failed(sample_gsm, f"File size is too big. {int(project_sample.get('file_size'))/1000000} MB")
-        #     continue
 
         if skipper_obj:
             is_processed = skipper_obj.is_processed(sample_gsm)
@@ -545,6 +541,25 @@ def _upload_gse(
         )
         sample_status.status = STATUS.PROCESSING
         sa_session.commit()
+
+        try:
+            if int(project_sample.get("file_size") or 0) > max_file_size:
+                raise QualityException(f"File size is too big. {int(project_sample.get('file_size', 0)) / 1000000} MB")
+
+            # to speed up the process, we can run initial QC on the file
+            run_initial_qc(project_sample.file_url)
+        except QualityException as err:
+            _LOGGER.error(
+                f"Processing of '{sample_gsm}' failed with error: {str(err)}"
+            )
+            sample_status.status = STATUS.FAIL
+            sample_status.error = str(err)
+            project_status.number_of_failed += 1
+
+            if skipper_obj:
+                skipper_obj.add_failed(sample_gsm, f"Error: {str(err)}")
+            sa_session.commit()
+            continue
 
         if preload:
             gsm_folder = create_gsm_sub_name(sample_gsm)
