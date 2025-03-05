@@ -28,7 +28,12 @@ from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.skipper import Skipper
-from bedboss.utils import calculate_time, download_file, standardize_genome_name, run_initial_qc
+from bedboss.utils import (
+    calculate_time,
+    download_file,
+    standardize_genome_name,
+    run_initial_qc,
+)
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
 
@@ -544,14 +549,14 @@ def _upload_gse(
 
         try:
             if int(project_sample.get("file_size") or 0) > max_file_size:
-                raise QualityException(f"File size is too big. {int(project_sample.get('file_size', 0)) / 1000000} MB")
+                raise QualityException(
+                    f"File size is too big. {int(project_sample.get('file_size', 0)) / 1000000} MB"
+                )
 
             # to speed up the process, we can run initial QC on the file
             run_initial_qc(project_sample.file_url)
         except QualityException as err:
-            _LOGGER.error(
-                f"Processing of '{sample_gsm}' failed with error: {str(err)}"
-            )
+            _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(err)}")
             sample_status.status = STATUS.FAIL
             sample_status.error = str(err)
             project_status.number_of_failed += 1

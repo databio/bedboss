@@ -8,5 +8,4 @@ rs = RegionSet("/home/bnt4me/virginia/rustlings/sorted.bed")
 
 path = Path("/home/bnt4me/virginia/rustlings/sorted.bed")
 
-size = Path ("/home/bnt4me/virginia/rustlings/hg38.chrom.sizes")
-
+size = Path("/home/bnt4me/virginia/rustlings/hg38.chrom.sizes")

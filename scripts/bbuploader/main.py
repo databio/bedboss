@@ -87,7 +87,6 @@ if __name__ == "__main__":
     # upload_time()
 
 
-
 ## cmd
 # bedboss geo upload-all --outfolder /home/bnt4me/virginia/repos/bbuploader/data --start-date 2025/02/23 --end-date 2025/02/26 --no-use-skipper --lite --bedbase-config /home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml --no-use-skipper --no-preload
 ##
