@@ -10,8 +10,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install uv
 
 RUN uv pip install torch==2.3.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
-# RUN uv pip install git+https://github.com/databio/bedboss.git@dev#egg=bedboss # TODO: uncomment this line when the rservice is merged to the main branch
-RUN uv pip install git+https://github.com/databio/bedboss.git@rservice#egg=bedboss
+RUN uv pip install git+https://github.com/databio/bedboss.git@dev#egg=bedboss
 
 RUN bedboss install-requirements
 
