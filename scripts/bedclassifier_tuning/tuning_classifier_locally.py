@@ -46,6 +46,8 @@ data_paths.append(
     "/home/drc/GITHUB/bedboss/bedboss/scripts/bedclassifier_tuning/data/bed3plus/"
 )
 
+data_paths.append("/home/drc/test/gappedPeaks/")
+
 
 for data_path in data_paths:
     all_files = []
@@ -59,6 +61,8 @@ for data_path in data_paths:
     count_bedlike_rs = 0
     count_nar = 0
     count_ns_nar = 0
+    count_gapped = 0
+    count_gapped_rs = 0
     count_rna = 0
     count_rna_ns = 0
     count_broad = 0
@@ -70,37 +74,48 @@ for data_path in data_paths:
         try:
             result = get_bed_classification(file)
             # print(result)
-            if result[1] == "ucsc_bed":
+            if result.data_format == "ucsc_bed":
                 count_bed += 1
-            elif result[1] == "bed_like":
+            elif result.data_format == "bed_like":
                 count_bedlike += 1
-            elif result[1] == "bed_like_rs":
+            elif result.data_format == "bed_like_rs":
                 count_bedlike_rs += 1
-            elif result[1] == "encode_narrowpeak":
+            elif result.data_format == "encode_narrowpeak":
                 count_nar += 1
-            elif result[1] == "encode_narrowpeak_rs":
+            elif result.data_format == "encode_narrowpeak_rs":
                 count_ns_nar += 1
-            elif result[1] == "encode_broadpeak":
+            elif result.data_format == "encode_broadpeak":
                 count_broad += 1
-            elif result[1] == "encode_broadpeak_rs":
+            elif result.data_format == "encode_broadpeak_rs":
                 count_broad_ns += 1
-            elif result[1] == "encode_rna_elements":
+            elif result.data_format == "encode_rna_elements":
                 count_rna += 1
-            elif result[1] == "encode_rna_elements_rs":
+            elif result.data_format == "encode_rna_elements_rs":
                 count_rna_ns += 1
+            elif result.data_format == "encode_gappedpeak":
+                count_gapped += 1
+            elif result.data_format == "encode_gappedpeak_rs":
+                count_gapped_rs += 1
             else:
                 count_unknown += 1
         except Exception:
             pass
     print(data_path)
     print(
-        f"Total: {total_files}\nBED: {count_bed}\n bed-like: {count_bedlike}\nbed-like-rs: {count_bedlike_rs}\nNarrowPeak: {count_nar}\nNarrowPeakRelaxed: {count_ns_nar}\nBroadPeak: {count_broad}\nBroadPeakRelaxed: {count_broad_ns}\nRNA: {count_rna}\nRNARelaxed: {count_rna_ns} "
+        f"Total: {total_files}\nBED: {count_bed}\n bed-like: {count_bedlike}\nbed-like-rs: {count_bedlike_rs}\nNarrowPeak: {count_nar}\nNarrowPeakRelaxed: {count_ns_nar}\nBroadPeak: {count_broad}\nBroadPeakRelaxed: {count_broad_ns}\nRNA: {count_rna}\nRNARelaxed: {count_rna_ns}\nGappedPeak: {count_gapped}\nnGappedPeakRelaxed: {count_gapped_rs}"
     )
 
 
 # One-off testing
 
+# result = get_bed_classification(
+#     "/home/drc/Downloads/example_Gapped_peaks/example.gappedPeak.gz"
+# )
+# result2 = get_bed_classification(
+#     "/home/drc/Downloads/example_Gapped_peaks/example_2.gappedPeak.gz"
+# )
 # result = get_bed_classification("/home/drc/test/test_gappedPeaks_geofetched/data/GSE192575/GSM5751922_ATAC_resis_1_peaks.gappedPeak.gz")
-# result = get_bed_classification("/home/drc/test/test_gappedPeaks_geofetched/data/GSE192575/GSM5751923_ATAC_resis_2_peaks.gappedPeak.gz")
+# result2 = get_bed_classification("/home/drc/test/test_gappedPeaks_geofetched/data/GSE192575/GSM5751923_ATAC_resis_2_peaks.gappedPeak.gz")
 
 # print(result)
+# print(result2)
