@@ -5,7 +5,7 @@ import pandas as pd
 import pandas.errors
 
 from bedboss.exceptions import BedTypeException
-from bedboss.models import BedClassification
+from bedboss.models import BedClassification, DATA_FORMAT
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -101,7 +101,7 @@ def get_bed_classification(
     df = df.dropna(axis=1)
     num_cols = len(df.columns)
     compliant_columns = 0
-    bed_format_named = "ucsc_bed"
+    bed_format_named = DATA_FORMAT.UCSC_BED
     relaxed = False
 
     def _check_column(col_index: int, checks: list) -> bool:
@@ -168,7 +168,7 @@ def get_bed_classification(
                     and _check_column(9, column_checks[9])
                 ):
                     bed_format_named = (
-                        "encode_narrowpeak_rs" if relaxed else "encode_narrowpeak"
+                        DATA_FORMAT.ENCODE_NARROWPEAK_RS if relaxed else DATA_FORMAT.ENCODE_NARROWPEAK
                     )
                     return BedClassification(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -183,7 +183,7 @@ def get_bed_classification(
                         and _check_column(8, column_checks[14])
                     ):
                         bed_format_named = (
-                            "encode_broadpeak_rs" if relaxed else "encode_broadpeak"
+                           DATA_FORMAT.ENCODE_BROADPEAK_RS if relaxed else DATA_FORMAT.ENCODE_BROADPEAK
                         )
                         return BedClassification(
                             bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -197,9 +197,9 @@ def get_bed_classification(
                         and _check_column(8, column_checks[15])
                     ):
                         bed_format_named = (
-                            "encode_rna_elements_rs"
+                            DATA_FORMAT.ENCODE_RNA_ELEMENTS_RS
                             if relaxed
-                            else "encode_rna_elements"
+                            else DATA_FORMAT.ENCODE_RNA_ELEMENTS
                         )
                         return BedClassification(
                             bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -215,7 +215,7 @@ def get_bed_classification(
                     and _check_column(14, column_checks[14])
                 ):
                     bed_format_named = (
-                        "encode_gappedpeak_rs" if relaxed else "encode_gappedpeak"
+                        DATA_FORMAT.ENCODE_GAPPEDPEAK_RS if relaxed else DATA_FORMAT.ENCODE_GAPPEDPEAK
                     )
                     return BedClassification(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -223,9 +223,9 @@ def get_bed_classification(
                         compliant_columns=compliant_columns,
                         non_compliant_columns=nccols,
                     )
-            bed_format_named = "bed_like_rs" if relaxed else "bed_like"
+            bed_format_named = DATA_FORMAT.BED_LIKE_RS if relaxed else  DATA_FORMAT.BED_LIKE
             if relaxed and nccols == 0:
-                bed_format_named = "bed_rs"
+                bed_format_named = DATA_FORMAT.BED_RS
             return BedClassification(
                 bed_compliance=f"bed{compliant_columns}+{nccols}",
                 data_format=bed_format_named,
@@ -233,7 +233,7 @@ def get_bed_classification(
                 non_compliant_columns=nccols,
             )
 
-    bed_format_named = "bed_rs" if relaxed else bed_format_named
+    bed_format_named = DATA_FORMAT.BED_RS if relaxed else bed_format_named
     return BedClassification(
         bed_compliance=f"bed{compliant_columns}+0",
         data_format=bed_format_named,

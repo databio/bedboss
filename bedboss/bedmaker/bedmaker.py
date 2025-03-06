@@ -414,5 +414,8 @@ def make_all(
         bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
         bed_digest=RegionSet(output_bed).identifier,
         bed_compliance=bed_classification.bed_compliance,
+        compliant_columns=bed_classification.compliant_columns,
+        non_compliant_columns=bed_classification.non_compliant_columns,
         data_format=bed_classification.data_format,
+
     )

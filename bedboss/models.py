@@ -14,10 +14,20 @@ from pydantic import BaseModel, ConfigDict, Field
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 
 
-class FILE_TYPE(str, Enum):
-    BED = "bed"
-    NARROWPEAK = "narrowpeak"
-    BROADPEAK = "broadpeak"
+class DATA_FORMAT(str, Enum):
+    UNKNOWN = "unknown_data_format"
+    UCSC_BED = "ucsc_bed"
+    BED_RS = "bed_rs"
+    BED_LIKE = "bed_like"
+    BED_LIKE_RS = "bed_like_rs"
+    ENCODE_NARROWPEAK = "encode_narrowpeak"
+    ENCODE_NARROWPEAK_RS = "encode_narrowpeak_rs"
+    ENCODE_BROADPEAK = "encode_broadpeak"
+    ENCODE_BROADPEAK_RS = "encode_broadpeak_rs"
+    ENCODE_GAPPEDPEAK = "encode_gappedpeak"
+    ENCODE_GAPPEDPEAK_RS = "encode_gappedpeak_rs"
+    ENCODE_RNA_ELEMENTS = "encode_rna_elements"
+    ENCODE_RNA_ELEMENTS_RS = "encode_rna_elements_rs"
 
 
 class BedMetadata(BaseModel):
@@ -150,6 +160,6 @@ class BedSetAnnotations(BaseModel):
 
 class BedClassification(BaseModel):
     bed_compliance: str
-    data_format: str
+    data_format: DATA_FORMAT
     compliant_columns: int
     non_compliant_columns: int
