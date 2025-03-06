@@ -241,7 +241,7 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
     :param url: URL of the file
     :param min_region_width: Minimum region width threshold to pass the quality check. Default is 20
 
-    :return: bool. Always returns True
+    :return: bool. Returns True if QC passed, False if unable to open in pandas
     :raises: QualityException
     """
     _LOGGER.info(f"Running initial QC on the bed file: {url}")
@@ -249,7 +249,7 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
     try:
         with urllib.request.urlopen(url) as response:
             with gzip.GzipFile(fileobj=response) as f:
-                content = f.read(1024).decode()  # Read first 10KB after decompression
+                content = f.read(10240).decode()  # Read first 10KB after decompression
 
         df = pd.read_csv(StringIO(content), sep="\t", header=None)
         mean_width = (df.iloc[:, 2] - df.iloc[:, 1])[:-1].mean()
