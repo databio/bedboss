@@ -146,3 +146,10 @@ class BedSetAnnotations(BaseModel):
     source: Union[str, None] = None
 
     model_config = ConfigDict(extra="ignore")
+
+
+class BedClassification(BaseModel):
+    bed_compliance: str
+    data_format: str
+    compliant_columns: int
+    non_compliant_columns: int

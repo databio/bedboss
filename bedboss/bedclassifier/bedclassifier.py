@@ -5,16 +5,9 @@ import pandas as pd
 import pandas.errors
 
 from bedboss.exceptions import BedTypeException
-from pydantic import BaseModel
+from bedboss.models import BedClassification
 
 _LOGGER = logging.getLogger("bedboss")
-
-
-class BedClassification(BaseModel):
-    bed_compliance: str
-    data_format: str
-    compliant_columns: int
-    non_compliant_columns: int
 
 
 def get_bed_classification(
@@ -112,7 +105,15 @@ def get_bed_classification(
     relaxed = False
 
     def _check_column(col_index: int, checks: list) -> bool:
-        """Helper function to perform column checks."""
+        """
+        Helper function to perform column checks.
+
+        :param col_index: index of the column
+        :param checks: list of check functions
+
+        :return: True if all checks pass, False otherwise
+
+        """
         for check in checks:
             if not check(df[col_index]):
                 return False
