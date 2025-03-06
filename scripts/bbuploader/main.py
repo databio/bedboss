@@ -38,8 +38,8 @@ def another_test():
         # gse="gse261536",
         # gse="gse274130",
         # Genome hg19 and mm10
-        gse="gse280839",
-        # gse="gse246900",
+        # gse="gse280839",
+        gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
         # gse="gse266130",

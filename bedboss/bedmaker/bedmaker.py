@@ -4,11 +4,10 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 
 import pypiper
 from geniml.bbclient import BBClient
-from geniml.io import RegionSet
 from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
@@ -140,7 +139,7 @@ def make_bed(
     rfg_config: str = None,
     chrom_sizes: str = None,
     pm: pypiper.PipelineManager = None,
-) -> str:
+) -> Tuple[str, str]:
     """
     Convert the input file to BED format by construct the command based
     on input file type and execute the command.
@@ -307,7 +306,7 @@ def make_bed(
         f"Bed output file: {output_path}. BEDmaker: File processed successfully."
     )
 
-    return output_path
+    return output_path, bed_id
 
 
 def make_all(
@@ -365,7 +364,7 @@ def make_all(
         pm_clean = True
     else:
         pm_clean = False
-    output_bed = make_bed(
+    output_bed, bed_id = make_bed(
         input_file=input_file,
         input_type=input_type,
         output_path=output_path,
@@ -412,7 +411,7 @@ def make_all(
     return BedMakerOutput(
         bed_file=output_bed,
         bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
-        bed_digest=RegionSet(output_bed).identifier,
+        bed_digest=bed_id,
         bed_compliance=bed_classification.bed_compliance,
         compliant_columns=bed_classification.compliant_columns,
         non_compliant_columns=bed_classification.non_compliant_columns,
