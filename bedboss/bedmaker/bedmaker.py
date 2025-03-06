@@ -417,5 +417,4 @@ def make_all(
         compliant_columns=bed_classification.compliant_columns,
         non_compliant_columns=bed_classification.non_compliant_columns,
         data_format=bed_classification.data_format,
-
     )

@@ -168,7 +168,9 @@ def get_bed_classification(
                     and _check_column(9, column_checks[9])
                 ):
                     bed_format_named = (
-                        DATA_FORMAT.ENCODE_NARROWPEAK_RS if relaxed else DATA_FORMAT.ENCODE_NARROWPEAK
+                        DATA_FORMAT.ENCODE_NARROWPEAK_RS
+                        if relaxed
+                        else DATA_FORMAT.ENCODE_NARROWPEAK
                     )
                     return BedClassification(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -183,7 +185,9 @@ def get_bed_classification(
                         and _check_column(8, column_checks[14])
                     ):
                         bed_format_named = (
-                           DATA_FORMAT.ENCODE_BROADPEAK_RS if relaxed else DATA_FORMAT.ENCODE_BROADPEAK
+                            DATA_FORMAT.ENCODE_BROADPEAK_RS
+                            if relaxed
+                            else DATA_FORMAT.ENCODE_BROADPEAK
                         )
                         return BedClassification(
                             bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -215,7 +219,9 @@ def get_bed_classification(
                     and _check_column(14, column_checks[14])
                 ):
                     bed_format_named = (
-                        DATA_FORMAT.ENCODE_GAPPEDPEAK_RS if relaxed else DATA_FORMAT.ENCODE_GAPPEDPEAK
+                        DATA_FORMAT.ENCODE_GAPPEDPEAK_RS
+                        if relaxed
+                        else DATA_FORMAT.ENCODE_GAPPEDPEAK
                     )
                     return BedClassification(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
@@ -223,7 +229,9 @@ def get_bed_classification(
                         compliant_columns=compliant_columns,
                         non_compliant_columns=nccols,
                     )
-            bed_format_named = DATA_FORMAT.BED_LIKE_RS if relaxed else  DATA_FORMAT.BED_LIKE
+            bed_format_named = (
+                DATA_FORMAT.BED_LIKE_RS if relaxed else DATA_FORMAT.BED_LIKE
+            )
             if relaxed and nccols == 0:
                 bed_format_named = DATA_FORMAT.BED_RS
             return BedClassification(
