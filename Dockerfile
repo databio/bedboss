@@ -40,6 +40,5 @@ COPY ./production/config.yaml /workdir/config.yaml
 #RUN refgenie pull mm10/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
 #RUN refgenie pull hg19/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
 
-CMD ["sh", "-c", "bedboss reprocess-all --bedbase-config /workdir/config.yaml --outfolder /workdir/output --limit ${UPLOAD_LIMIT:-1}"]
-
 #CMD ["bash"]
+CMD ["sh", "-c", "bedboss reprocess-all --bedbase-config /workdir/config.yaml --outfolder /workdir/output --limit ${UPLOAD_LIMIT:-1}"]

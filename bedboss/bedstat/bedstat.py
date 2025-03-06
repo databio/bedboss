@@ -21,6 +21,7 @@ from bedboss.const import (
 )
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
+from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -76,6 +77,7 @@ def bedstat(
     just_db_commit: bool = False,
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
+    r_service: RServiceManager = None,
 ) -> dict:
     """
     Run bedstat pipeline - pipeline for obtaining statistics about bed files
@@ -92,6 +94,7 @@ def bedstat(
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
     :param pm: pypiper object
+    :param r_service: RServiceManager object
 
     :return: dict with statistics and plots metadata
     """
@@ -156,18 +159,30 @@ def bedstat(
         assert os.path.exists(rscript_path), FileNotFoundError(
             f"'{rscript_path}' script not found"
         )
-        command = (
-            f"Rscript {rscript_path} --bedfilePath={bedfile} "
-            f"--openSignalMatrix={open_signal_matrix} "
-            f"--outputFolder={outfolder_stats_results} --genome={genome} "
-            f"--ensdb={ensdb} --digest={bed_digest}"
-        )
 
-        try:
-            pm.run(cmd=command, target=json_file_path)
-        except Exception as e:
-            _LOGGER.error(f"Pipeline failed: {e}")
-            raise BedBossException(f"Pipeline failed: {e}")
+        if not r_service:
+            try:
+                _LOGGER.info("#=>>> Running local R instance!")
+                command = (
+                    f"Rscript {rscript_path} --bedfilePath={bedfile} "
+                    f"--openSignalMatrix={open_signal_matrix} "
+                    f"--outputFolder={outfolder_stats_results} --genome={genome} "
+                    f"--ensdb={ensdb} --digest={bed_digest}"
+                )
+                pm.run(cmd=command, target=json_file_path)
+            except Exception as e:
+                _LOGGER.error(f"Pipeline failed: {e}")
+                raise BedBossException(f"Pipeline failed: {e}")
+        else:
+            _LOGGER.info("#=>>> Running R service ")
+            r_service.run_file(
+                file_path=bedfile,
+                digest=bed_digest,
+                outpath=outfolder_stats_results,
+                genome=genome,
+                openSignalMatrix=open_signal_matrix,
+                gtffile=ensdb,
+            )
 
     data = {}
     if os.path.exists(json_file_path):

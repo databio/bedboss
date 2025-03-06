@@ -21,6 +21,7 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/rjson/rjson_0.2
 .install_pkg("ExperimentHub", bioc=TRUE)
 .install_pkg("AnnotationHub", bioc=TRUE)
 .install_pkg("conflicted")
+.install_pkg("svSocket")
 if(!require(package = "GenomicDistributions", character.only=TRUE)) {
     devtools::install_github("databio/GenomicDistributions")
 }

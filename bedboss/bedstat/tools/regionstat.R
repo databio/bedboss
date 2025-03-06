@@ -135,7 +135,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
     )
   }
 
-# We can calculate it differently
+# We are calculating this differently now
 #   # OPTIONAL: Plot GC content only if proper BSgenome package is installed.
 #   if (exists("bedmeta")){
 #     if ("gc_content" %in% names(bedmeta)){
@@ -375,13 +375,12 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
 runBEDStats = function (bedPath, digest, outfolder, genome, openSignalMatrix, gtffile) {
   # define values and output folder for doitall()
-  message("R: Running regionstat for: ", bedPath)
-    message("R: Values: ")
-    message("R: digest: ", digest)
-    message("R: outfolder: ", outfolder)
-    message("R: genome: ", genome)
-    message("R: openSignalMatrix: ", openSignalMatrix)
-    message("R: gtffile: ", gtffile)
+  message("R message =>  Running regionstat for: ", bedPath)
+    message("R message =>  digest: ", digest)
+    message("R message =>  outfolder: ", outfolder)
+    message("R message =>  genome: ", genome)
+    message("R message => openSignalMatrix: ", openSignalMatrix)
+    message("R message =>  gtffile: ", gtffile)
 
 
   # build BSgenome package ID to check whether it's installed
