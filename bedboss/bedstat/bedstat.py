@@ -162,7 +162,7 @@ def bedstat(
 
         if not r_service:
             try:
-                _LOGGER.info("#=>>> Running usual way!")
+                _LOGGER.info("#=>>> Running local R instance!")
                 command = (
                     f"Rscript {rscript_path} --bedfilePath={bedfile} "
                     f"--openSignalMatrix={open_signal_matrix} "
