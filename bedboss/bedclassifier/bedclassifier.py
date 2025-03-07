@@ -36,7 +36,12 @@ def get_bed_classification(
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
     def _read_bed_file(filepath: str, skiprows: int = 0) -> Optional[pd.DataFrame]:
-        """Helper function to read BED file with error handling."""
+        """
+        Helper function to read BED file with error handling.
+        :param str file_path: path to the bed file
+        :param int skip_rows: how many rows to skip during reading
+        :return pd.DataFrame
+        """
         try:
             df = pd.read_csv(
                 filepath, sep="\t", header=None, low_memory=False, skiprows=skiprows
