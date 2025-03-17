@@ -176,8 +176,9 @@ def run_all(
             pm=pm,
             r_service=r_service,
         )
-    statistics_dict["bed_type"] = bed_metadata.bed_type
-    statistics_dict["bed_format"] = bed_metadata.bed_format.value
+    # TODO: This should be changed after bbc is updated!!!
+    statistics_dict["bed_type"] = bed_metadata.bed_compliance
+    statistics_dict["bed_format"] = bed_metadata.data_format.value
 
     if bed_metadata.bigbed_file:
         genome_digest = get_genome_digest(genome)
@@ -206,12 +207,13 @@ def run_all(
         bigbed_file=big_bed,
     )
 
+    # TODO: This should be changed after bbc is updated!!!
     classification = BedClassificationUpload(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
         genome_alias=genome,
-        bed_type=bed_metadata.bed_type,
-        bed_format=bed_metadata.bed_format.value,
+        bed_type=bed_metadata.bed_compliance,
+        bed_format=bed_metadata.data_format.value,
     )
 
     if validate_reference:
