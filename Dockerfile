@@ -14,7 +14,7 @@ RUN uv pip install git+https://github.com/databio/bedboss.git@dev#egg=bedboss
 
 RUN bedboss install-requirements
 
-RUN R -e "options(timeout = 2000); install.packages('http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.2.tar.gz', repos=NULL, type='source')"
+#RUN R -e "options(timeout = 2000); install.packages('http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.2.tar.gz', repos=NULL, type='source')"
 
 
 # Download bedToBigBed binary from UCSC

@@ -23,9 +23,9 @@ install.packages("https://cran.r-project.org/src/contrib/Archive/rjson/rjson_0.2
 .install_pkg("conflicted")
 .install_pkg("svSocket")
 if(!require(package = "GenomicDistributions", character.only=TRUE)) {
-    devtools::install_github("databio/GenomicDistributions")
+    devtools::install_github("databio/GenomicDistributions", ref="dev_kinga")
 }
-options(timeout=1000)
+options(timeout=2000)
 if(!require(package = "GenomicDistributionsData", character.only=TRUE)) {
     install.packages("http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.2.tar.gz", repos=NULL)
 }
