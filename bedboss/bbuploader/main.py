@@ -488,11 +488,16 @@ def _upload_gse(
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
+        sample_sample_name = project_sample.get("sample_name", "").lower()
 
         if skipper_obj:
-            is_processed = skipper_obj.is_processed(sample_gsm)
+            is_processed = skipper_obj.is_processed(
+                f"{sample_gsm}_{sample_sample_name}"
+            )
             if is_processed:
-                _LOGGER.info(f"Skipping: '{sample_gsm}' - already processed")
+                _LOGGER.info(
+                    f"Skipping: '{sample_gsm}_{sample_sample_name}' - already processed"
+                )
                 uploaded_files.append(is_processed)
                 continue
 
@@ -564,7 +569,9 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(err)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(err)}"
+                )
             sa_session.commit()
             continue
 
@@ -602,7 +609,9 @@ def _upload_gse(
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
-                skipper_obj.add_processed(sample_gsm, file_digest)
+                skipper_obj.add_processed(
+                    f"{sample_gsm}_{sample_sample_name}", file_digest
+                )
             sample_status.status = STATUS.SUCCESS
             sample_status.bed_id = file_digest
             project_status.number_of_processed += 1
@@ -614,7 +623,9 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(exc)}"
+                )
 
         except GenimlBaseError as exc:
             _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
@@ -623,7 +634,9 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(exc)}"
+                )
 
         sa_session.commit()
 
