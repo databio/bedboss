@@ -547,6 +547,8 @@ def _upload_gse(
         sample_status.status = STATUS.PROCESSING
         sa_session.commit()
 
+        sample_status.file_size = project_sample.get("file_size", 0)
+
         try:
             if int(project_sample.get("file_size") or 0) > max_file_size:
                 raise QualityException(
