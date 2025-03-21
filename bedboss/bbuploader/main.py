@@ -553,6 +553,9 @@ def _upload_gse(
         sa_session.commit()
 
         sample_status.file_size = project_sample.get("file_size", 0)
+        sample_status.source_submission_date = project_sample.get(
+            "sample_submission_date", None
+        )
 
         try:
             if int(project_sample.get("file_size") or 0) > max_file_size:

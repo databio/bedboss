@@ -197,6 +197,7 @@ def run_all(
             path=bed_metadata.bigbed_file,
             description="Path to the bigbed file",
             thumbnail_path=None,
+            file_digest=None,  # TODO: add file digest
         )
     else:
         big_bed = None
@@ -207,11 +208,11 @@ def run_all(
             path=bed_metadata.bed_file,
             description="Path to the BED file",
             thumbnail_path=None,
+            file_digest=None,  # TODO: add file digest
         ),
         bigbed_file=big_bed,
     )
 
-    # TODO: This should be changed after bbc is updated!!!
     classification = BedClassificationUpload(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
