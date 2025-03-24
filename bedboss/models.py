@@ -158,7 +158,7 @@ class BedSetAnnotations(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
-class BedClassification(BaseModel):
+class BedClassificationOutput(BaseModel):
     bed_compliance: str
     data_format: DATA_FORMAT
     compliant_columns: int

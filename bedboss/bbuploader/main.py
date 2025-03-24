@@ -223,7 +223,11 @@ def process_pep_sample(
     return BedBossRequired(
         sample_name=bed_sample.sample_name,
         file_path=bed_sample.file_url,
-        ref_genome=bed_sample.ref_genome,
+        ref_genome=(
+            bed_sample.ref_genome.strip()
+            if bed_sample.ref_genome
+            else bed_sample.ref_genome
+        ),
         type=file_type,
         narrowpeak=is_narrowpeak,
         pep=project_metadata,
@@ -645,6 +649,9 @@ def _upload_gse(
 
     if create_bedset and uploaded_files:
         _LOGGER.info(f"Creating bedset for: '{gse}'")
+
+        experiment_metadata = project.config.get("experiment_metadata", {})
+
         run_bedbuncher(
             bedbase_config=bedbase_config,
             record_id=gse,
@@ -658,6 +665,16 @@ def _upload_gse(
             no_fail=True,
             force_overwrite=overwrite_bedset,
             lite=lite,
+            annotation={
+                "summary": experiment_metadata.get("series_summary", ""),
+                "author": ", ".join(
+                    filter(
+                        None,
+                        experiment_metadata.get("series_contact_name", "").split(","),
+                    )
+                ),
+                "source": gse,
+            },
         )
 
     else:

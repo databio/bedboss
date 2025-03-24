@@ -39,8 +39,9 @@ def another_test():
         # gse="gse274130",
         # Genome hg19 and mm10
         # gse="gse280839",
-        # gse="gse246900", -- this is good. allways using it
-        gse="gse106049",  # This is interesting reference genome.
+        # gse="gse246900", ## -- this is good. allways using it
+        # gse="gse106049",  # This is interesting reference genome.
+        gse="gse292153",  # This is interesting reference genome.
         # gse="gse247593",
         # gse="gse241222",
         # gse="gse266130",

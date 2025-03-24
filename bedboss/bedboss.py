@@ -197,7 +197,7 @@ def run_all(
             path=bed_metadata.bigbed_file,
             description="Path to the bigbed file",
             thumbnail_path=None,
-            file_digest=None,  # TODO: add file digest
+            file_digest="TODO",  # TODO: add file digest
         )
     else:
         big_bed = None
@@ -208,7 +208,7 @@ def run_all(
             path=bed_metadata.bed_file,
             description="Path to the BED file",
             thumbnail_path=None,
-            file_digest=None,  # TODO: add file digest
+            file_digest="TODO",  # TODO: add file digest
         ),
         bigbed_file=big_bed,
     )
@@ -221,6 +221,7 @@ def run_all(
         data_format=bed_metadata.data_format.value,
         compliant_columns=bed_metadata.compliant_columns,
         non_compliant_columns=bed_metadata.non_compliant_columns,
+        header="Regionset header TODO",  # TODO: add header
     )
 
     if validate_reference:
