@@ -163,7 +163,7 @@ def upload_all(
                     sa_session=session,
                     gse_status_sa_model=gse_status,
                     standardize_pep=standardize_pep,
-                    # rerun=rerun,
+                    rerun=rerun,
                     use_skipper=use_skipper,
                     reinit_skipper=reinit_skipper,
                     preload=preload,
@@ -374,6 +374,7 @@ def upload_gse(
                 standardize_pep=standardize_pep,
                 preload=preload,
                 overwrite=overwrite,
+                rerun=rerun,
                 overwrite_bedset=overwrite_bedset,
                 use_skipper=use_skipper,
                 reinit_skipper=reinit_skipper,
@@ -425,6 +426,7 @@ def _upload_gse(
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
     standardize_pep: bool = False,
+    rerun: bool = False,
     overwrite: bool = False,
     overwrite_bedset: bool = False,
     use_skipper: bool = True,
@@ -445,6 +447,7 @@ def _upload_gse(
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
     :param standardize_pep: standardize pep metadata using BEDMS
+    :param rerun: rerun processing of the series
     :param overwrite: overwrite existing bedfiles
     :param overwrite_bedset: overwrite existing bedset
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
@@ -528,7 +531,7 @@ def _upload_gse(
             sa_session.add(sample_status)
             sa_session.commit()
         else:
-            if sample_status.status == STATUS.SUCCESS and not overwrite:
+            if sample_status.status == STATUS.SUCCESS and not rerun:
                 _LOGGER.info(
                     f"Skipping: '{required_metadata.sample_name}' - already processed"
                 )
