@@ -7,8 +7,8 @@ library(GenomicDistributions)
 
 library(tools)
 library(R.utils)
-# library(rjson)
-library(jsonlite)
+library(rjson)
+# library(jsonlite)
 
 trim <- IRanges::trim
 
@@ -63,10 +63,14 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   # check if json file exist for the input bed file
   meta_path = paste0(outfolder, "/", digest, ".json")
   plot_path = paste0(outfolder, "/", digest, "_plots.json")
+  values_path = paste0(outfolder, "/", digest, "_values.json")
   if (file.exists(meta_path)){
     bedmeta = fromJSON(file=meta_path)
     plots = fromJSON(file=plot_path)
     plots = as.data.frame(do.call(rbind, plots))
+    if (file.exists(values_path)) {
+      values = fromJSON(file=values_path)
+    }
   } else{
     plots = data.frame(stringsAsFactors=F)
   }
@@ -114,7 +118,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Chromosomes region distribution plot
-  if (!exists("bedmeta") ){
+  # if (!exists("bedmeta") ){
     tryCatch(
       expr = {
         if (genome %in% c("mm39", "dm3", "dm6", "ce10", "ce11", "danRer10", "danRer10", "T2T")){
@@ -134,7 +138,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
         print(e)
       }
     )
-  }
+  # }
 
 # We are calculating this differently now
 #   # OPTIONAL: Plot GC content only if proper BSgenome package is installed.
@@ -224,7 +228,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
 
   # Expected partition plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("values")){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
@@ -251,7 +255,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Cumulative partition plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("values")){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
@@ -306,7 +310,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Neighbor regions distance plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("values")){
     tryCatch(
       expr = {
         neighborDist = calcNeighborDist(query)
@@ -323,7 +327,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
   ## This part is heavy and if needed can be skipped
   # Tissue specificity plot if open signal matrix is provided
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("values")){
     if (openSignalMatrix == "None") {
       message("open signal matrix not provided. Skipping tissue specificity plot ... ")
     } else {
@@ -344,7 +348,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
 
   # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
-  if (exists("bedmeta")){
+  if (exists("bedmeta")) {
     write(jsonlite::toJSON(bedmeta, pretty=TRUE), meta_path)
     write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
   } else {
@@ -354,46 +358,52 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
       mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
       md5sum=digest
     )
-    if (exists('gcvec') && !isEmpty(gcvec)){
+    if (exists('gcvec') && !isEmpty(gcvec)) {
       gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
       bedmeta = append(bedmeta, gc_content)
     }
-    if (exists('TSSdist') && !all(is.na(TSSdist))){
+    if (exists('TSSdist') && !all(is.na(TSSdist))) {
       tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
       bedmeta = append(bedmeta, tss)
     }
-    if (exists('chromBinsValues')) {
-      chromBinsValues = list(values_chrombins = jsonlite::toJSON(chromBins, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, chromBinsValues)
-    }
-    if (exists('gpValues')){
-      gpValues = list(values_partitions = jsonlite::toJSON(gp, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, partitionsList, gpValues)
-    }
-    if (exists('expectedPartitionsValues')){
-      expectedPartitionsValues = list(values_expected_partitions = jsonlite::toJSON(expectedPartitions, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, expectedPartitionsValues)
-    }
-    if (exists('cumulativePartitionsValues')){
-      cumulativePartitionsValues = list(values_expected_partitions = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, cumulativePartitionsValues)
-    }
-    if (exists('neighborDistValues')){
-      neighborDistValues = list(values_neighbor_dist = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, neighborDistValues)
-    }
-    if (exists('summarySignalValues')){
-      summarySignalValues = list(values_summary_signal = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
-      bedmeta = append(bedmeta, summarySignalValues)
-    }
-    if (exists('partitionsList')){
+    if (exists('partitionsList')) {
       write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), meta_path)
     } else {
       write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), meta_path)
     }
-    if (exists('plots')){
+    if (exists('plots')) {
       write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
     }
+  }
+
+  if (exists("values")) {
+    write(jsonlite::toJSON(values, pretty=TRUE), values_path)
+  } else {
+    if (exists('chromBinsValues')) {
+      chromBinsValues = list(values_chrombins = jsonlite::toJSON(chromBins, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, chromBinsValues)
+    }
+    if (exists('gpValues')) {
+      gpValues = list(values_partitions = jsonlite::toJSON(gp, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, gpValues)
+    }
+    if (exists('expectedPartitionsValues')) {
+      expectedPartitionsValues = list(values_expected_partitions = jsonlite::toJSON(expectedPartitions, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, expectedPartitionsValues)
+    }
+    if (exists('cumulativePartitionsValues')) {
+      cumulativePartitionsValues = list(values_cumulative_partitions = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, cumulativePartitionsValues)
+    }
+    if (exists('neighborDistValues')) {
+      neighborDistValues = list(values_neighbor_dist = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, neighborDistValues)
+    }
+    if (exists('summarySignalValues')) {
+      summarySignalValues = list(values_summary_signal = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
+      values = append(values, summarySignalValues)
+    }
+    write(jsonlite::toJSON(values, pretty=TRUE), values_path)
   }
   }
 
