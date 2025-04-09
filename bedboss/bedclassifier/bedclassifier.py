@@ -237,7 +237,7 @@ def get_bed_classification(
                 DATA_FORMAT.BED_LIKE_RS if relaxed else DATA_FORMAT.BED_LIKE
             )
             if relaxed and nccols == 0:
-                bed_format_named = DATA_FORMAT.BED_RS
+                bed_format_named = DATA_FORMAT.UCSC_BED_RS
             return BedClassificationOutput(
                 bed_compliance=f"bed{compliant_columns}+{nccols}",
                 data_format=bed_format_named,
@@ -245,7 +245,7 @@ def get_bed_classification(
                 non_compliant_columns=nccols,
             )
 
-    bed_format_named = DATA_FORMAT.BED_RS if relaxed else bed_format_named
+    bed_format_named = DATA_FORMAT.UCSC_BED_RS if relaxed else bed_format_named
     return BedClassificationOutput(
         bed_compliance=f"bed{compliant_columns}+0",
         data_format=bed_format_named,

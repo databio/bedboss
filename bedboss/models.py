@@ -17,7 +17,7 @@ from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 class DATA_FORMAT(str, Enum):
     UNKNOWN = "unknown_data_format"
     UCSC_BED = "ucsc_bed"
-    BED_RS = "bed_rs"
+    UCSC_BED_RS = "ucsc_bed_rs"
     BED_LIKE = "bed_like"
     BED_LIKE_RS = "bed_like_rs"
     ENCODE_NARROWPEAK = "encode_narrowpeak"
