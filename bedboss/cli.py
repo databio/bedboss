@@ -5,6 +5,7 @@ import typer
 
 from bedboss import __version__
 from bedboss.bbuploader.cli import app_bbuploader
+from pephubclient.helpers import MessageHandler as printm
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -619,7 +620,7 @@ def install_requirements():
 
 @app.command(help="Verify configuration file")
 def verify_config(
-    config: str = typer.Option(
+    config: str = typer.Argument(
         ...,
         help="Path to the bedbase config file",
         exists=True,
@@ -629,8 +630,12 @@ def verify_config(
 ):
     from bbconf.config_parser.utils import config_analyzer
 
-    if config_analyzer(config):
-        print("Configuration file is valid!")
+    try:
+        config_analyzer(config)
+    except Exception as e:
+        printm.print_error(f"Error in provided configuration file: {e}")
+        raise typer.Exit(code=1)
+    typer.Exit(code=0)
 
 
 @app.command(help="Get available commands", hidden=True)
