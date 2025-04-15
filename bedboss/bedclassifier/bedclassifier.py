@@ -123,11 +123,14 @@ def get_bed_classification(
                 return False
         return True
 
+    # regex patterns for 255,255,255 or 0 for colors: ([0, 255], [0, 255], [0, 255]) | 0
+    REGEX_COLORS = r"^(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(?:,(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])){0,2}$"
+
     column_checks = {
-        0: [lambda col: col.dtype == "O" or col.dtype == "int" or col.dtype == "float"],
+        0: [lambda col: col.astype(str).str.match(r"[A-Za-z0-9_]{1,255}").all()],
         1: [lambda col: col.dtype == "int" and (col >= 0).all()],
         2: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        3: [lambda col: col.dtype == "O"],
+        3: [lambda col: col.astype(str).str.match(r"[\x20-\x7e]{1,255}").all()],
         4: [
             lambda col: col.dtype == "int" and col.between(0, 1000).all(),
         ],
@@ -135,7 +138,7 @@ def get_bed_classification(
         6: [lambda col: col.dtype == "int" and (col >= 0).all()],
         7: [lambda col: col.dtype == "int" and (col >= 0).all()],
         8: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        9: [lambda col: col.dtype == "int"],
+        9: [lambda col: col.astype(str).str.match(REGEX_COLORS).all()],
         10: [
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
         ],
