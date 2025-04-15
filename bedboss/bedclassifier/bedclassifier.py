@@ -137,8 +137,8 @@ def get_bed_classification(
         5: [lambda col: col.isin(["+", "-", "."]).all()],
         6: [lambda col: col.dtype == "int" and (col >= 0).all()],
         7: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        8: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        9: [lambda col: col.astype(str).str.match(REGEX_COLORS).all()],
+        8: [lambda col: col.astype(str).str.match(REGEX_COLORS).all()],
+        9: [lambda col: col.dtype == "int"],
         10: [
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
         ],
@@ -146,9 +146,7 @@ def get_bed_classification(
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
         ],
         12: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        13: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        14: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        15: [lambda col: col.dtype == "int" and col.iloc[0] != -1],
+        13: [lambda col: col.dtype == "int" and col.iloc[0] != -1],
     }
 
     for col_index in range(num_cols):
@@ -170,8 +168,8 @@ def get_bed_classification(
                     num_cols == 10
                     and col_index == 6
                     and _check_column(6, column_checks[12])
-                    and _check_column(7, column_checks[13])
-                    and _check_column(8, column_checks[14])
+                    and _check_column(7, column_checks[12])
+                    and _check_column(8, column_checks[12])
                     and _check_column(9, column_checks[9])
                 ):
                     bed_format_named = (
@@ -188,8 +186,8 @@ def get_bed_classification(
                 elif num_cols == 9 and col_index == 6:
                     if (
                         _check_column(6, column_checks[12])
-                        and _check_column(7, column_checks[13])
-                        and _check_column(8, column_checks[14])
+                        and _check_column(7, column_checks[12])
+                        and _check_column(8, column_checks[12])
                     ):
                         bed_format_named = (
                             DATA_FORMAT.ENCODE_BROADPEAK_RS
@@ -204,8 +202,8 @@ def get_bed_classification(
                         )
                     elif (
                         _check_column(6, column_checks[12])
-                        and _check_column(7, column_checks[13])
-                        and _check_column(8, column_checks[15])
+                        and _check_column(7, column_checks[12])
+                        and _check_column(8, column_checks[13])
                     ):
                         bed_format_named = (
                             DATA_FORMAT.ENCODE_RNA_ELEMENTS_RS
@@ -222,8 +220,8 @@ def get_bed_classification(
                     num_cols == 15
                     and col_index == 12
                     and _check_column(12, column_checks[12])
-                    and _check_column(13, column_checks[13])
-                    and _check_column(14, column_checks[14])
+                    and _check_column(13, column_checks[12])
+                    and _check_column(14, column_checks[12])
                 ):
                     bed_format_named = (
                         DATA_FORMAT.ENCODE_GAPPEDPEAK_RS
