@@ -378,6 +378,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   if (exists("bedvalues")) {
     write(jsonlite::toJSON(bedvalues, pretty=TRUE), values_path)
   } else {
+    max_rows = 512
     bedvalues = list(
       name=digest,
       md5sum=digest
@@ -394,12 +395,53 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
       expectedPartitionsValues = list(values_expected_partitions = jsonlite::toJSON(expectedPartitions, dataframe = "rows", auto_unbox = TRUE))
       bedvalues = append(bedvalues, expectedPartitionsValues)
     }
-    # if (exists('cumulativePartitions')) { ### TOO MASSIVE
-    #   cumulativePartitionsValues = list(values_cumulative_partitions = jsonlite::toJSON(cumulativePartitions, dataframe = "rows", auto_unbox = TRUE))
-    #   bedvalues = append(bedvalues, cumulativePartitionsValues)
-    # }
+    if (exists('cumulativePartitions')) { ### TOO MASSIVE
+      groups <- unique(cumulativePartitions$partition)
+      cumulativePartitionsSampled <- data.frame()
+      n_samples <- floor(max_rows / length(groups))
+      for (group in groups) {
+        group_data <- cumulativePartitions[cumulativePartitions$partition== group, ]
+        n_rows <- nrow(group_data)
+
+        if (n_rows <= n_samples) {
+          sampled_group <- group_data
+        } else {
+          keep_indices <- c(1, n_rows)
+          if (n_samples > 2) {
+            remaining <- n_samples - 2  # -2 for first and last points
+            log_indices <- round(exp(seq(log(1), log(n_rows-2), length.out = remaining)) + 1)
+            log_indices <- unique(log_indices)
+            keep_indices <- c(keep_indices, log_indices)
+          }
+          if (length(keep_indices) < n_samples) {
+            remaining <- n_samples - length(keep_indices)
+            candidate_indices <- setdiff(1:n_rows, keep_indices)
+            if (length(candidate_indices) > 0) {
+              step <- length(candidate_indices) / remaining
+              additional_indices <- candidate_indices[round(seq(1, length(candidate_indices), by = step))]
+              additional_indices <- additional_indices[1:min(remaining, length(additional_indices))]
+
+              keep_indices <- c(keep_indices, additional_indices)
+            }
+          }
+          keep_indices <- sort(unique(keep_indices))
+          sampled_group <- group_data[keep_indices, ]
+        }
+
+        cumulativePartitionsSampled <- rbind(cumulativePartitionsSampled, sampled_group)
+      }
+
+      cumulativePartitionsValues = list(values_cumulative_partitions = jsonlite::toJSON(cumulativePartitionsSampled[,c('cumsize', 'score', 'partition')], dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, cumulativePartitionsValues)
+    }
+    if (exists('widths')) {
+      widthValues = list(values_widths = jsonlite::toJSON(widths, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, widthValues)
+    }
     if (exists('neighborDist')) {
-      neighborDistValues = list(values_neighbor_dist = jsonlite::toJSON(neighborDist, dataframe = "rows", auto_unbox = TRUE))
+      neighborDistDensity <- density(neighborDist, n = max_rows)
+      neighborDistSampled <- data.frame('x' = neighborDistDensity$x, 'y' = neighborDistDensity$y)
+      neighborDistValues = list(values_neighbor_dist = jsonlite::toJSON(neighborDistSampled, dataframe = "rows", auto_unbox = TRUE))
       bedvalues = append(bedvalues, neighborDistValues)
     }
     if (exists('summarySignal')) {
