@@ -1,0 +1,1 @@
+from .bedclassifier import get_bed_classification

@@ -2,6 +2,8 @@ import logging
 import os
 from typing import Literal, Union
 
+import pypiper
+
 import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
@@ -36,6 +38,7 @@ from bedboss.utils import (
 )
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
+from bedboss._version import __version__
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -108,6 +111,15 @@ def upload_all(
     count = 0
     total_projects = len(pep_annotation_list.results)
 
+    pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
+    _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+    pm = pypiper.PipelineManager(
+        name="bedboss-pipeline",
+        outfolder=pm_out_folder,
+        version=__version__,
+        recover=True,
+    )
+
     if not lite:
         r_service = RServiceManager()
     else:
@@ -171,6 +183,7 @@ def upload_all(
                     overwrite_bedset=overwrite_bedset,
                     lite=lite,
                     r_service=r_service,
+                    pm=pm,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -186,6 +199,10 @@ def upload_all(
 
             if count >= download_limit:
                 break
+
+    pm.stop_pipeline()
+
+    return None
 
 
 def process_pep_sample(
@@ -435,6 +452,7 @@ def _upload_gse(
     lite=False,
     max_file_size: int = 20 * 1000000,
     r_service: RServiceManager = None,
+    pm: pypiper.PipelineManager = None,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -456,6 +474,7 @@ def _upload_gse(
     :param preload: pre - download files to the local folder (used for faster reproducibility)
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     :param max_file_size: maximum file size in bytes. Default: 20MB
+    :param pypiper.PipelineManager pm: pypiper object
     :param r_service: RServiceManager object
     :return: None
     """
@@ -487,10 +506,25 @@ def _upload_gse(
     else:
         skipper_obj = None
 
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     if not lite and not r_service:
         r_service = RServiceManager()
-    else:
+    elif lite:
         r_service = None
+    else:
+        r_service = r_service
 
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
@@ -615,6 +649,7 @@ def _upload_gse(
                 upload_qdrant=True,
                 force_overwrite=overwrite,
                 lite=lite,
+                pm=pm,
                 r_service=r_service,
             )
             uploaded_files.append(file_digest)
@@ -682,6 +717,9 @@ def _upload_gse(
 
     else:
         _LOGGER.info(f"Skipping bedset creation for: '{gse}'")
+
+    if stop_pipeline:
+        pm.stop_pipeline()
 
     _LOGGER.info(f"Processing of '{gse}' is finished with success!")
     return project_status
