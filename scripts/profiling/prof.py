@@ -81,7 +81,22 @@ def time_widht():
     print(end - start1)
 
 
+def bigbed_rs_():
+    f = GRegionSet(
+        "/home/bnt4me/virginia/repos/bedboss/test/data/bed/hg38/test_big_hg38_wrong.bed"
+    )
+    try:
+        f.to_bigbed(
+            "./wrong_bb",
+            "/home/bnt4me/virginia/repos/bedboss/bedboss/refgenome_validator/chrom_sizes/ensembl_hg38.chrom.sizes",
+        )
+    except BaseException as e:
+        f
+
+
 if __name__ == "__main__":
     # regionset_prof()
     # runn()
-    time_widht()
+    # time_widht()
+
+    bigbed_rs_()

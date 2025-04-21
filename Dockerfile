@@ -16,13 +16,11 @@ RUN bedboss install-requirements
 
 #RUN R -e "options(timeout = 2000); install.packages('http://big.databio.org/GenomicDistributionsData/GenomicDistributionsData_0.0.2.tar.gz', repos=NULL, type='source')"
 
-
-# Download bedToBigBed binary from UCSC
-RUN wget -O /usr/local/bin/bedToBigBed http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed \
-    && chmod +x /usr/local/bin/bedToBigBed \
-
-# Verify installation
-RUN bedToBigBed 2>&1 | grep "bedToBigBed"
+## Download bedToBigBed binary from UCSC
+#RUN wget -O /usr/local/bin/bedToBigBed http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed \
+#    && chmod +x /usr/local/bin/bedToBigBed \
+## Verify installation
+#RUN bedToBigBed 2>&1 | grep "bedToBigBed"
 
 # -p flag creates the directory if it doesn't exist
 RUN mkdir -p /workdir/output
