@@ -1,21 +1,27 @@
-from bedboss.bbuploader.main import upload_gse
+from bedboss.bbuploader.main import upload_all
 
 
 def runn():
-    upload_gse(
+    upload_all(
         # gse="gse246900",
         # gse="gse247593",
         # gse="gse241222",
         # gse="gse266130",
-        gse="gse256031",
+        # gse="gse256031",
         # gse="gse240325", # TODO: check if qc works
         # gse="gse229592", # mice
+        start_date="2020/04/23",
+        end_date="2021/01/26",
+        search_limit=1000,
+        download_limit=1000,
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
         # genome="HG38",
-        rerun=True,
+        # rerun=True,
         run_failed=True,
         run_skipped=True,
+        reinit_skipper=True,
+        lite=False,
     )
     # import pandas as pd
 
@@ -58,7 +64,7 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
-        lite=True,
+        lite=False,
         # overwrite=True,
         overwrite_bedset=True,
     )
@@ -67,11 +73,10 @@ def another_test():
 
 
 if __name__ == "__main__":
-    # runn()
+    runn()
 
-    another_test()
+    # another_test()
     # upload_time()
-
 
 ## cmd
 # bedboss geo upload-all --outfolder /home/bnt4me/virginia/repos/bbuploader/data --start-date 2025/02/23 --end-date 2025/02/26 --no-use-skipper --lite --bedbase-config /home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml --no-use-skipper --no-preload
