@@ -5,7 +5,7 @@ import typer
 
 from bedboss import __version__
 from bedboss.bbuploader.cli import app_bbuploader
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+from pephubclient.helpers import MessageHandler as printm
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -349,18 +349,9 @@ def make_bigbed(
         file_okay=True,
         readable=True,
     ),
-    bed_type: str = typer.Option(
-        ...,
-        help="bed type to be used for bigBed file generation 'bed{bedtype}+{n}' [Default: None] (e.g bed3+1)",
-    ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
-    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
-    # PipelineManager
-    multi: bool = typer.Option(False, help="Run multiple samples"),
-    recover: bool = typer.Option(True, help="Recover from previous run"),
-    dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
     """
 
@@ -369,50 +360,10 @@ def make_bigbed(
     from bedboss.bedmaker.bedmaker import make_bigbed as mk_bigbed_func
 
     mk_bigbed_func(
-        bed_path=bed_file,
+        bed=bed_file,
         output_path=outfolder,
         genome=genome,
-        bed_type=bed_type,
         rfg_config=rfg_config,
-        chrom_sizes=chrom_sizes,
-        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
-    )
-
-
-@app.command(help="Run the quality control for a bed file")
-def run_qc(
-    bed_file: str = typer.Option(
-        ...,
-        help="Path to the bed file to check the quality control on.",
-        exists=True,
-        file_okay=True,
-        readable=True,
-    ),
-    outfolder: str = typer.Option(..., help="Path to the output folder"),
-    max_file_size: int = typer.Option(
-        MAX_FILE_SIZE, help="Maximum file size threshold to pass the quality"
-    ),
-    max_region_number: int = typer.Option(
-        MAX_REGION_NUMBER,
-        help="Maximum number of regions threshold to pass the quality",
-    ),
-    min_region_width: int = typer.Option(
-        MIN_REGION_WIDTH, help="Minimum region width threshold to pass the quality"
-    ),
-    # PipelineManager
-    multi: bool = typer.Option(False, help="Run multiple samples"),
-    recover: bool = typer.Option(True, help="Recover from previous run"),
-    dirty: bool = typer.Option(False, help="Run without removing existing files"),
-):
-    from bedboss.bedqc.bedqc import bedqc
-
-    bedqc(
-        bedfile=bed_file,
-        outfolder=outfolder,
-        max_file_size=max_file_size,
-        max_region_number=max_region_number,
-        min_region_width=min_region_width,
-        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
 
@@ -669,7 +620,7 @@ def install_requirements():
 
 @app.command(help="Verify configuration file")
 def verify_config(
-    config: str = typer.Option(
+    config: str = typer.Argument(
         ...,
         help="Path to the bedbase config file",
         exists=True,
@@ -679,8 +630,12 @@ def verify_config(
 ):
     from bbconf.config_parser.utils import config_analyzer
 
-    if config_analyzer(config):
-        print("Configuration file is valid!")
+    try:
+        config_analyzer(config)
+    except Exception as e:
+        printm.print_error(f"Error in provided configuration file: {e}")
+        raise typer.Exit(code=1)
+    typer.Exit(code=0)
 
 
 @app.command(help="Get available commands", hidden=True)

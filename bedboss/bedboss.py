@@ -161,6 +161,8 @@ def run_all(
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
+    other_metadata["original_file_name"] = os.path.basename(input_file)
+
     if lite:
         statistics_dict = {}
     else:
@@ -176,9 +178,9 @@ def run_all(
             pm=pm,
             r_service=r_service,
         )
-    # TODO: This should be changed after bbc is updated!!!
-    statistics_dict["bed_type"] = bed_metadata.bed_compliance
-    statistics_dict["bed_format"] = bed_metadata.data_format.value
+
+    statistics_dict["bed_compliance"] = bed_metadata.bed_compliance
+    statistics_dict["data_format"] = bed_metadata.data_format.value
 
     if bed_metadata.bigbed_file:
         genome_digest = get_genome_digest(genome)
@@ -194,6 +196,8 @@ def run_all(
             title="BigBed file",
             path=bed_metadata.bigbed_file,
             description="Path to the bigbed file",
+            thumbnail_path=None,
+            file_digest=None,
         )
     else:
         big_bed = None
@@ -203,17 +207,21 @@ def run_all(
             title="BED file",
             path=bed_metadata.bed_file,
             description="Path to the BED file",
+            thumbnail_path=None,
+            file_digest=bed_metadata.bed_object.file_digest,
         ),
         bigbed_file=big_bed,
     )
 
-    # TODO: This should be changed after bbc is updated!!!
     classification = BedClassificationUpload(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
         genome_alias=genome,
-        bed_type=bed_metadata.bed_compliance,
-        bed_format=bed_metadata.data_format.value,
+        bed_compliance=bed_metadata.bed_compliance,
+        data_format=bed_metadata.data_format.value,
+        compliant_columns=bed_metadata.compliant_columns,
+        non_compliant_columns=bed_metadata.non_compliant_columns,
+        header=bed_metadata.bed_object.header,
     )
 
     if validate_reference:

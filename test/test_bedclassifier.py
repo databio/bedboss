@@ -2,10 +2,11 @@ import os
 
 import pytest
 
-from bedboss.bedclassifier.bedclassifier import (
+from bedboss.bedclassifier import (
     get_bed_classification,
-    BedClassification,
 )
+from bedboss.models import BedClassificationOutput, DATA_FORMAT
+
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")
@@ -44,9 +45,9 @@ class TestBedClassifier:
         self,
     ):
         bedtype = get_bed_classification(bed=FILE_PATH_UNZIPPED)
-        assert bedtype == BedClassification(
+        assert bedtype == BedClassificationOutput(
             bed_compliance="bed6+3",
-            data_format="encode_broadpeak",
+            data_format=DATA_FORMAT.ENCODE_BROADPEAK,
             compliant_columns=6,
             non_compliant_columns=3,
         )
@@ -56,171 +57,171 @@ class TestBedClassifier:
         [
             (
                 BED1,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+4",
-                    data_format="encode_narrowpeak",
+                    data_format=DATA_FORMAT.ENCODE_NARROWPEAK,
                     compliant_columns=6,
                     non_compliant_columns=4,
                 ),
             ),
             (
                 BED2,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+3",
-                    data_format="encode_broadpeak",
+                    data_format=DATA_FORMAT.ENCODE_BROADPEAK,
                     compliant_columns=6,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED3,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+2",
-                    data_format="bed_like",
+                    data_format=DATA_FORMAT.BED_LIKE,
                     compliant_columns=6,
                     non_compliant_columns=2,
                 ),
             ),
             (
                 BED_4_PLUS_5,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+3",
-                    data_format="encode_broadpeak_rs",
+                    data_format=DATA_FORMAT.ENCODE_BROADPEAK_RS,
                     compliant_columns=6,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_4_PLUS_6,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+4",
-                    data_format="bed_like_rs",
+                    data_format=DATA_FORMAT.BED_LIKE_RS,
                     compliant_columns=6,
                     non_compliant_columns=4,
                 ),
             ),
             (
                 BED_6_PLUS_4,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+4",
-                    data_format="bed_like",
+                    data_format=DATA_FORMAT.BED_LIKE,
                     compliant_columns=6,
                     non_compliant_columns=4,
                 ),
             ),
             (
                 BED_7_PLUS_3,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed7+3",
-                    data_format="bed_like",
+                    data_format=DATA_FORMAT.BED_LIKE,
                     compliant_columns=7,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_7_01,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed7+0",
-                    data_format="bed_rs",
+                    data_format=DATA_FORMAT.UCSC_BED_RS,
                     compliant_columns=7,
                     non_compliant_columns=0,
                 ),
             ),
             (
                 BED_7_02,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed7+0",
-                    data_format="ucsc_bed",
+                    data_format=DATA_FORMAT.UCSC_BED,
                     compliant_columns=7,
                     non_compliant_columns=0,
                 ),
             ),
             (
                 BED_7_03,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+1",
-                    data_format="bed_like_rs",
+                    data_format=DATA_FORMAT.BED_LIKE_RS,
                     compliant_columns=6,
                     non_compliant_columns=1,
                 ),
             ),
             (
                 BED_10_PLUS_0,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed10+0",
-                    data_format="ucsc_bed",
+                    data_format=DATA_FORMAT.UCSC_BED,
                     compliant_columns=10,
                     non_compliant_columns=0,
                 ),
             ),
             (
                 BED_12_PLUS_0,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed12+0",
-                    data_format="ucsc_bed",
+                    data_format=DATA_FORMAT.UCSC_BED,
                     compliant_columns=12,
                     non_compliant_columns=0,
                 ),
             ),
             (
                 BED_12_PLUS_3,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed12+3",
-                    data_format="bed_like",
+                    data_format=DATA_FORMAT.BED_LIKE,
                     compliant_columns=12,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_NARROWPEAK,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+4",
-                    data_format="encode_narrowpeak",
+                    data_format=DATA_FORMAT.ENCODE_NARROWPEAK,
                     compliant_columns=6,
                     non_compliant_columns=4,
                 ),
             ),
             (
                 BED_NONSTRICT_NARROWPEAK,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+4",
-                    data_format="encode_narrowpeak_rs",
+                    data_format=DATA_FORMAT.ENCODE_NARROWPEAK_RS,
                     compliant_columns=6,
                     non_compliant_columns=4,
                 ),
             ),
             (
                 BED_RNA_ELEMENTS,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+3",
-                    data_format="encode_rna_elements",
+                    data_format=DATA_FORMAT.ENCODE_RNA_ELEMENTS,
                     compliant_columns=6,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_BROADPEAK,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed6+3",
-                    data_format="encode_broadpeak",
+                    data_format=DATA_FORMAT.ENCODE_BROADPEAK,
                     compliant_columns=6,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_GAPPED_PEAK,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed12+3",
-                    data_format="encode_gappedpeak",
+                    data_format=DATA_FORMAT.ENCODE_GAPPEDPEAK,
                     compliant_columns=12,
                     non_compliant_columns=3,
                 ),
             ),
             (
                 BED_GAPPED_PEAK_RS,
-                BedClassification(
+                BedClassificationOutput(
                     bed_compliance="bed12+3",
-                    data_format="encode_gappedpeak_rs",
+                    data_format=DATA_FORMAT.ENCODE_GAPPEDPEAK_RS,
                     compliant_columns=12,
                     non_compliant_columns=3,
                 ),

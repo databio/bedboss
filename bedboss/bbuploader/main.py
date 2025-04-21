@@ -2,6 +2,8 @@ import logging
 import os
 from typing import Literal, Union
 
+import pypiper
+
 import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
@@ -36,6 +38,7 @@ from bedboss.utils import (
 )
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
+from bedboss._version import __version__
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -108,6 +111,15 @@ def upload_all(
     count = 0
     total_projects = len(pep_annotation_list.results)
 
+    pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
+    _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+    pm = pypiper.PipelineManager(
+        name="bedboss-pipeline",
+        outfolder=pm_out_folder,
+        version=__version__,
+        recover=True,
+    )
+
     if not lite:
         r_service = RServiceManager()
     else:
@@ -163,7 +175,7 @@ def upload_all(
                     sa_session=session,
                     gse_status_sa_model=gse_status,
                     standardize_pep=standardize_pep,
-                    # rerun=rerun,
+                    rerun=rerun,
                     use_skipper=use_skipper,
                     reinit_skipper=reinit_skipper,
                     preload=preload,
@@ -171,6 +183,7 @@ def upload_all(
                     overwrite_bedset=overwrite_bedset,
                     lite=lite,
                     r_service=r_service,
+                    pm=pm,
                 )
             except Exception as err:
                 _LOGGER.error(
@@ -186,6 +199,10 @@ def upload_all(
 
             if count >= download_limit:
                 break
+
+    pm.stop_pipeline()
+
+    return None
 
 
 def process_pep_sample(
@@ -223,7 +240,11 @@ def process_pep_sample(
     return BedBossRequired(
         sample_name=bed_sample.sample_name,
         file_path=bed_sample.file_url,
-        ref_genome=bed_sample.ref_genome,
+        ref_genome=(
+            bed_sample.ref_genome.strip()
+            if bed_sample.ref_genome
+            else bed_sample.ref_genome
+        ),
         type=file_type,
         narrowpeak=is_narrowpeak,
         pep=project_metadata,
@@ -370,6 +391,7 @@ def upload_gse(
                 standardize_pep=standardize_pep,
                 preload=preload,
                 overwrite=overwrite,
+                rerun=rerun,
                 overwrite_bedset=overwrite_bedset,
                 use_skipper=use_skipper,
                 reinit_skipper=reinit_skipper,
@@ -421,6 +443,7 @@ def _upload_gse(
     sa_session: Session = None,
     gse_status_sa_model: GeoGseStatus = None,
     standardize_pep: bool = False,
+    rerun: bool = False,
     overwrite: bool = False,
     overwrite_bedset: bool = False,
     use_skipper: bool = True,
@@ -429,6 +452,7 @@ def _upload_gse(
     lite=False,
     max_file_size: int = 20 * 1000000,
     r_service: RServiceManager = None,
+    pm: pypiper.PipelineManager = None,
 ) -> ProjectProcessingStatus:
     """
     Upload bed files from GEO series to BedBase
@@ -441,6 +465,7 @@ def _upload_gse(
     :param sa_session: opened session to the database
     :param gse_status_sa_model: sqlalchemy model for project status
     :param standardize_pep: standardize pep metadata using BEDMS
+    :param rerun: rerun processing of the series
     :param overwrite: overwrite existing bedfiles
     :param overwrite_bedset: overwrite existing bedset
     :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
@@ -449,6 +474,7 @@ def _upload_gse(
     :param preload: pre - download files to the local folder (used for faster reproducibility)
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     :param max_file_size: maximum file size in bytes. Default: 20MB
+    :param pypiper.PipelineManager pm: pypiper object
     :param r_service: RServiceManager object
     :return: None
     """
@@ -480,19 +506,39 @@ def _upload_gse(
     else:
         skipper_obj = None
 
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     if not lite and not r_service:
         r_service = RServiceManager()
-    else:
+    elif lite:
         r_service = None
+    else:
+        r_service = r_service
 
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
+        sample_sample_name = project_sample.get("sample_name", "").lower()
 
         if skipper_obj:
-            is_processed = skipper_obj.is_processed(sample_gsm)
+            is_processed = skipper_obj.is_processed(
+                f"{sample_gsm}_{sample_sample_name}"
+            )
             if is_processed:
-                _LOGGER.info(f"Skipping: '{sample_gsm}' - already processed")
+                _LOGGER.info(
+                    f"Skipping: '{sample_gsm}_{sample_sample_name}' - already processed"
+                )
                 uploaded_files.append(is_processed)
                 continue
 
@@ -519,7 +565,7 @@ def _upload_gse(
             sa_session.add(sample_status)
             sa_session.commit()
         else:
-            if sample_status.status == STATUS.SUCCESS and not overwrite:
+            if sample_status.status == STATUS.SUCCESS and not rerun:
                 _LOGGER.info(
                     f"Skipping: '{required_metadata.sample_name}' - already processed"
                 )
@@ -547,6 +593,11 @@ def _upload_gse(
         sample_status.status = STATUS.PROCESSING
         sa_session.commit()
 
+        sample_status.file_size = project_sample.get("file_size", 0)
+        sample_status.source_submission_date = project_sample.get(
+            "sample_submission_date", None
+        )
+
         try:
             if int(project_sample.get("file_size") or 0) > max_file_size:
                 raise QualityException(
@@ -562,7 +613,9 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(err)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(err)}"
+                )
             sa_session.commit()
             continue
 
@@ -596,11 +649,14 @@ def _upload_gse(
                 upload_qdrant=True,
                 force_overwrite=overwrite,
                 lite=lite,
+                pm=pm,
                 r_service=r_service,
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
-                skipper_obj.add_processed(sample_gsm, file_digest)
+                skipper_obj.add_processed(
+                    f"{sample_gsm}_{sample_sample_name}", file_digest
+                )
             sample_status.status = STATUS.SUCCESS
             sample_status.bed_id = file_digest
             project_status.number_of_processed += 1
@@ -612,7 +668,9 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(exc)}"
+                )
 
         except GenimlBaseError as exc:
             _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
@@ -621,12 +679,17 @@ def _upload_gse(
             project_status.number_of_failed += 1
 
             if skipper_obj:
-                skipper_obj.add_failed(sample_gsm, f"Error: {str(exc)}")
+                skipper_obj.add_failed(
+                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(exc)}"
+                )
 
         sa_session.commit()
 
     if create_bedset and uploaded_files:
         _LOGGER.info(f"Creating bedset for: '{gse}'")
+
+        experiment_metadata = project.config.get("experiment_metadata", {})
+
         run_bedbuncher(
             bedbase_config=bedbase_config,
             record_id=gse,
@@ -640,10 +703,23 @@ def _upload_gse(
             no_fail=True,
             force_overwrite=overwrite_bedset,
             lite=lite,
+            annotation={
+                "summary": experiment_metadata.get("series_summary", ""),
+                "author": ", ".join(
+                    filter(
+                        None,
+                        experiment_metadata.get("series_contact_name", "").split(","),
+                    )
+                ),
+                "source": gse,
+            },
         )
 
     else:
         _LOGGER.info(f"Skipping bedset creation for: '{gse}'")
+
+    if stop_pipeline:
+        pm.stop_pipeline()
 
     _LOGGER.info(f"Processing of '{gse}' is finished with success!")
     return project_status

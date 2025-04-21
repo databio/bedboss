@@ -1,11 +1,10 @@
 import logging
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import pandas as pd
-import pandas.errors
 
 from bedboss.exceptions import BedTypeException
-from bedboss.models import BedClassification, DATA_FORMAT
+from bedboss.models import BedClassificationOutput, DATA_FORMAT
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -13,13 +12,13 @@ _LOGGER = logging.getLogger("bedboss")
 def get_bed_classification(
     bed: Union[str, pd.DataFrame],
     no_fail: Optional[bool] = True,
-) -> BedClassification:
+) -> BedClassificationOutput:
     """
     Get the BED file classification as a Pydantic object.
 
     :param bed: path to the bed file OR a dataframe
     :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
-    :return BedClassification object
+    :return BedClassificationOutput object
     """
     #    column format for bed12
     #    string chrom;       "Reference sequence chromosome or scaffold"
@@ -80,7 +79,7 @@ def get_bed_classification(
                 _LOGGER.warning(
                     f"Unable to parse bed file {bed}, setting data_format = unknown_data_format"
                 )
-                return BedClassification(
+                return BedClassificationOutput(
                     bed_compliance="unknown_bed_compliance",
                     data_format="unknown_data_format",
                     compliant_columns=0,
@@ -94,7 +93,7 @@ def get_bed_classification(
         df = bed
     else:
         if no_fail:
-            return BedClassification(
+            return BedClassificationOutput(
                 bed_compliance="unknown_bed_compliance",
                 data_format="unknown_data_format",
                 compliant_columns=0,
@@ -124,18 +123,21 @@ def get_bed_classification(
                 return False
         return True
 
+    # regex patterns for 255,255,255 or 0 for colors: ([0, 255], [0, 255], [0, 255]) | 0
+    REGEX_COLORS = r"^(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(?:,(?:\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])){0,2}$"
+
     column_checks = {
-        0: [lambda col: col.dtype == "O" or col.dtype == "int" or col.dtype == "float"],
+        0: [lambda col: col.astype(str).str.match(r"[A-Za-z0-9_]{1,255}").all()],
         1: [lambda col: col.dtype == "int" and (col >= 0).all()],
         2: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        3: [lambda col: col.dtype == "O"],
+        3: [lambda col: col.astype(str).str.match(r"[\x20-\x7e]{1,255}").all()],
         4: [
             lambda col: col.dtype == "int" and col.between(0, 1000).all(),
         ],
         5: [lambda col: col.isin(["+", "-", "."]).all()],
         6: [lambda col: col.dtype == "int" and (col >= 0).all()],
         7: [lambda col: col.dtype == "int" and (col >= 0).all()],
-        8: [lambda col: col.dtype == "int" and (col >= 0).all()],
+        8: [lambda col: col.astype(str).str.match(REGEX_COLORS).all()],
         9: [lambda col: col.dtype == "int"],
         10: [
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
@@ -144,9 +146,7 @@ def get_bed_classification(
             lambda col: col.astype(str).str.match(r"^(0(,\d+)*|\d+(,\d+)*)?,?$").all()
         ],
         12: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        13: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        14: [lambda col: pd.api.types.is_float_dtype(col.dtype) or (col == -1).all()],
-        15: [lambda col: col.dtype == "int" and col.iloc[0] != -1],
+        13: [lambda col: col.dtype == "int" and col.iloc[0] != -1],
     }
 
     for col_index in range(num_cols):
@@ -168,8 +168,8 @@ def get_bed_classification(
                     num_cols == 10
                     and col_index == 6
                     and _check_column(6, column_checks[12])
-                    and _check_column(7, column_checks[13])
-                    and _check_column(8, column_checks[14])
+                    and _check_column(7, column_checks[12])
+                    and _check_column(8, column_checks[12])
                     and _check_column(9, column_checks[9])
                 ):
                     bed_format_named = (
@@ -177,7 +177,7 @@ def get_bed_classification(
                         if relaxed
                         else DATA_FORMAT.ENCODE_NARROWPEAK
                     )
-                    return BedClassification(
+                    return BedClassificationOutput(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
                         data_format=bed_format_named,
                         compliant_columns=compliant_columns,
@@ -186,15 +186,15 @@ def get_bed_classification(
                 elif num_cols == 9 and col_index == 6:
                     if (
                         _check_column(6, column_checks[12])
-                        and _check_column(7, column_checks[13])
-                        and _check_column(8, column_checks[14])
+                        and _check_column(7, column_checks[12])
+                        and _check_column(8, column_checks[12])
                     ):
                         bed_format_named = (
                             DATA_FORMAT.ENCODE_BROADPEAK_RS
                             if relaxed
                             else DATA_FORMAT.ENCODE_BROADPEAK
                         )
-                        return BedClassification(
+                        return BedClassificationOutput(
                             bed_compliance=f"bed{compliant_columns}+{nccols}",
                             data_format=bed_format_named,
                             compliant_columns=compliant_columns,
@@ -202,15 +202,15 @@ def get_bed_classification(
                         )
                     elif (
                         _check_column(6, column_checks[12])
-                        and _check_column(7, column_checks[13])
-                        and _check_column(8, column_checks[15])
+                        and _check_column(7, column_checks[12])
+                        and _check_column(8, column_checks[13])
                     ):
                         bed_format_named = (
                             DATA_FORMAT.ENCODE_RNA_ELEMENTS_RS
                             if relaxed
                             else DATA_FORMAT.ENCODE_RNA_ELEMENTS
                         )
-                        return BedClassification(
+                        return BedClassificationOutput(
                             bed_compliance=f"bed{compliant_columns}+{nccols}",
                             data_format=bed_format_named,
                             compliant_columns=compliant_columns,
@@ -220,15 +220,15 @@ def get_bed_classification(
                     num_cols == 15
                     and col_index == 12
                     and _check_column(12, column_checks[12])
-                    and _check_column(13, column_checks[13])
-                    and _check_column(14, column_checks[14])
+                    and _check_column(13, column_checks[12])
+                    and _check_column(14, column_checks[12])
                 ):
                     bed_format_named = (
                         DATA_FORMAT.ENCODE_GAPPEDPEAK_RS
                         if relaxed
                         else DATA_FORMAT.ENCODE_GAPPEDPEAK
                     )
-                    return BedClassification(
+                    return BedClassificationOutput(
                         bed_compliance=f"bed{compliant_columns}+{nccols}",
                         data_format=bed_format_named,
                         compliant_columns=compliant_columns,
@@ -238,16 +238,16 @@ def get_bed_classification(
                 DATA_FORMAT.BED_LIKE_RS if relaxed else DATA_FORMAT.BED_LIKE
             )
             if relaxed and nccols == 0:
-                bed_format_named = DATA_FORMAT.BED_RS
-            return BedClassification(
+                bed_format_named = DATA_FORMAT.UCSC_BED_RS
+            return BedClassificationOutput(
                 bed_compliance=f"bed{compliant_columns}+{nccols}",
                 data_format=bed_format_named,
                 compliant_columns=compliant_columns,
                 non_compliant_columns=nccols,
             )
 
-    bed_format_named = DATA_FORMAT.BED_RS if relaxed else bed_format_named
-    return BedClassification(
+    bed_format_named = DATA_FORMAT.UCSC_BED_RS if relaxed else bed_format_named
+    return BedClassificationOutput(
         bed_compliance=f"bed{compliant_columns}+0",
         data_format=bed_format_named,
         compliant_columns=compliant_columns,

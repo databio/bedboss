@@ -2,12 +2,12 @@ import gzip
 import logging
 import os
 import shutil
-import tempfile
 from pathlib import Path
 from typing import Union, Tuple
 
 import pypiper
 from geniml.bbclient import BBClient
+from gtars.models import RegionSet
 from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
@@ -22,111 +22,51 @@ from bedboss.bedmaker.const import (
     QC_FOLDER_NAME,
     WIG_TEMPLATE,
 )
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
 from bedboss.bedqc.bedqc import bedqc
-from bedboss.exceptions import BedBossException, RequirementsException
+from bedboss.exceptions import BedBossException, RequirementsException, QualityException
 from bedboss.utils import cleanup_pm_temp
 
 _LOGGER = logging.getLogger("bedboss")
 
 
 def make_bigbed(
-    bed_path: Union[str, Path],
-    output_path: Union[str, Path],
+    bed: Union[str, RegionSet],
+    output_path: str,
     genome: str,
-    bed_compliance: str = None,
     rfg_config: Union[str, Path] = None,
-    chrom_sizes: Union[str, Path] = None,
-    pm: pypiper.PipelineManager = None,
-) -> str:
+) -> None:
     """
     Generate bigBed file for the BED file.
 
-    :param bed_path: path to the BED file
-    :param output_path: parent folder to save the bigBed file. (function will create a subfolder for bigBed files)
+    :param bed: path to the BED file, or RegionSet object from Rust
     :param genome: reference genome (e.g. hg38, mm10, etc.)
-    :param chrom_sizes: a full path to the chrom.sizes required for the
-                        bedtobigbed conversion
-    :param rfg_config: file path to the genome config file. [Default: None]
-    :param bed_compliance: bed column compliance used for bigBed file generation "bed{bed_compliance}+{n}" [Default: None] (e.g bed3+1)
-    :param pm: pypiper object
+    :param output_path: full path to the output bigBed file
 
-    :return: path to the bigBed file
+    :return: None
     """
-    if not pm:
-        pm = pypiper.PipelineManager(
-            name="bedmaker",
-            outfolder=os.path.join(output_path, "bedmaker_logs"),
-            recover=True,
-            multi=True,
+    try:
+        chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
+    except MissingGenomeError:
+        raise BedBossException("Could not find Genome in refgenie. Skipping...")
+
+    if isinstance(bed, str):
+        bed = RegionSet(bed)
+    elif not isinstance(bed, RegionSet):
+        raise BedBossException("Invalid bed object. Must be a path or RegionSet.")
+
+    try:
+        if not chrom_sizes:
+            raise BedBossException("Chrom sizes not found. Skipping...")
+        bed.to_bigbed(output_path, chrom_sizes)
+    except BaseException as err:
+        raise BedBossException(
+            f"Failed to generate bigBed file for {output_path}: Error: {err}"
         )
-        pm_clean = True
-    else:
-        pm_clean = False
-    _LOGGER.info(f"Generating bigBed files for: {bed_path}")
 
-    bigbed_output_folder = os.path.join(output_path, BIGBED_FILE_NAME)
-    if not os.path.exists(bigbed_output_folder):
-        os.makedirs(bigbed_output_folder)
-
-    bedfile_name = os.path.split(bed_path)[1]
-    fileid = os.path.splitext(os.path.splitext(bedfile_name)[0])[0]
-    # Produce bigBed (big_narrow_peak) file from peak file
-    big_bed_path = os.path.join(bigbed_output_folder, fileid + ".bigBed")
-    if not chrom_sizes:
-        try:
-            chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
-        except MissingGenomeError:
-            raise BedBossException("Could not find Genome in refgenie. Skipping...")
-
-    temp = os.path.join(output_path, next(tempfile._get_candidate_names()))
-
-    if not os.path.exists(big_bed_path):
-        pm.clean_add(temp)
-
-        if not is_command_callable(f"{BED_TO_BIGBED_PROGRAM}"):
-            raise RequirementsException(
-                "To convert bed to BigBed file You must first install "
-                "bedToBigBed add in your PATH. "
-                "Instruction: "
-                "https://genome.ucsc.edu/goldenpath/help/bigBed.html"
-            )
-        if bed_compliance is not None:
-            cmd = f"zcat {bed_path} | sort -k1,1 -k2,2n > {temp}"
-            pm.run(cmd, temp, nofail=False)
-
-            cmd = f"{BED_TO_BIGBED_PROGRAM} -type={bed_compliance} {temp} {chrom_sizes} {big_bed_path}"
-            try:
-                _LOGGER.info(f"Running: {cmd}")
-                pm.run(cmd, big_bed_path, nofail=False)
-            except Exception as err:
-                cleanup_pm_temp(pm)
-                raise BedBossException(
-                    f"Fail to generating bigBed files for {bed_path}: " f"Error: {err}"
-                )
-        else:
-            cmd = (
-                "zcat "
-                + bed_path
-                + " | awk '{ print $1, $2, $3 }'| sort -k1,1 -k2,2n > "
-                + temp
-            )
-            pm.run(cmd, temp)
-            cmd = f"{BED_TO_BIGBED_PROGRAM} -type=bed3 {temp} {chrom_sizes} {big_bed_path}"
-
-            try:
-                pm.run(cmd, big_bed_path, nofail=True)
-            except Exception as err:
-                cleanup_pm_temp(pm)
-                _LOGGER.info(
-                    f"Fail to generating bigBed files for {bed_path}: "
-                    f"unable to validate genome assembly with Refgenie. "
-                    f"Error: {err}"
-                )
-    if pm_clean:
-        pm.stop_pipeline()
-    return big_bed_path
+    _LOGGER.info(f"BigBed file generated: {output_path}")
 
 
 def make_bed(
@@ -138,7 +78,7 @@ def make_bed(
     rfg_config: str = None,
     chrom_sizes: str = None,
     pm: pypiper.PipelineManager = None,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, RegionSet]:
     """
     Convert the input file to BED format by construct the command based
     on input file type and execute the command.
@@ -152,12 +92,14 @@ def make_bed(
                         implies narrow, histone mark implies broad peaks)
     :param rfg_config: file path to the genome config file
     :param chrom_sizes: a full path to the chrom.sizes required for the
-                        bedtobigbed conversion
+                        wig files conversion
     :param pm: pypiper object
 
     :return: path to the BED file
     """
     _LOGGER.info(f"Processing {input_file} file in bedmaker...")
+
+    bbclient = BBClient()
 
     input_type = input_type.lower()
     if input_type not in [member.value for member in InputTypes]:
@@ -187,9 +129,8 @@ def make_bed(
     # creat cmd to run that convert non bed file to bed file
     if input_type == InputTypes.BED.value:
         try:
-            # If bed file was provided:
-            bbclient = BBClient()
-            bed_id = bbclient.add_bed_to_cache(input_file)
+            bed_obj = bbclient.add_bed_to_cache(input_file)
+            bed_id = bed_obj.identifier
             output_path = bbclient.seek(bed_id)
         except FileNotFoundError as e:
             raise BedBossException(f"File not found: {input_file} Error: {e}")
@@ -293,8 +234,8 @@ def make_bed(
 
         pm.run(cmd, temp_bed_path, nofail=False)
 
-        bbclient = BBClient()
-        bed_id = bbclient.add_bed_to_cache(input_file)
+        bed_obj = bbclient.add_bed_to_cache(input_file)
+        bed_id = bed_obj.identifier
         output_path = bbclient.seek(bed_id)
 
     pm._cleanup()
@@ -305,7 +246,7 @@ def make_bed(
         f"Bed output file: {output_path}. BEDmaker: File processed successfully."
     )
 
-    return output_path, bed_id
+    return output_path, bed_id, bed_obj
 
 
 def make_all(
@@ -363,7 +304,7 @@ def make_all(
         pm_clean = True
     else:
         pm_clean = False
-    output_bed, bed_id = make_bed(
+    output_bed, bed_id, bed_obj = make_bed(
         input_file=input_file,
         input_type=input_type,
         output_path=output_path,
@@ -376,31 +317,46 @@ def make_all(
     bed_classification = get_bed_classification(output_bed)
     if check_qc:
         try:
-            bedqc(
-                output_bed,
-                outfolder=os.path.join(output_path, QC_FOLDER_NAME),
-                pm=pm,
-            )
-        except Exception as e:
-            raise BedBossException(
+            file_size = os.path.getsize(output_bed)
+            if file_size >= MAX_FILE_SIZE:
+                raise QualityException(
+                    f"File size is larger than {MAX_FILE_SIZE} bytes. File size= {file_size} bytes."
+                )
+
+            mean_region_width = bed_obj.mean_region_width()
+            if mean_region_width < MIN_REGION_WIDTH:
+                raise QualityException(
+                    f"Mean region width is less than {MIN_REGION_WIDTH} bp. File mean region width= {mean_region_width} bp."
+                )
+            number_of_regions = len(bed_obj)
+            if number_of_regions > MAX_REGION_NUMBER:
+                raise QualityException(
+                    f"Number of regions is greater than {MAX_REGION_NUMBER}. File number of regions= {number_of_regions}."
+                )
+        except QualityException as e:
+            raise QualityException(
                 f"Quality control failed for {output_path}. Error: {e}"
             )
-    try:
-        if lite:
-            _LOGGER.info("Skipping bigBed generation due to lite mode.")
-            output_bigbed = None
-        else:
-            output_bigbed = make_bigbed(
-                bed_path=output_bed,
-                output_path=output_path,
-                genome=genome,
-                bed_compliance=bed_classification.bed_compliance,
-                rfg_config=rfg_config,
-                chrom_sizes=chrom_sizes,
-                pm=pm,
-            )
-    except BedBossException:
+
+        _LOGGER.info(f"File ({output_bed}) has passed Quality Control!")
+
+    if lite:
+        _LOGGER.info("Skipping bigBed generation due to lite mode.")
         output_bigbed = None
+    else:
+        try:
+            bigbed_folder_path = os.path.join(output_path, BIGBED_FILE_NAME)
+            os.makedirs(bigbed_folder_path, exist_ok=True)
+            output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
+
+            make_bigbed(
+                bed=bed_obj,
+                output_path=output_bigbed,
+                genome=genome,
+                rfg_config=rfg_config,
+            )
+        except BedBossException:
+            output_bigbed = None
     if pm_clean:
         pm.stop_pipeline()
 
@@ -408,6 +364,7 @@ def make_all(
     _LOGGER.info(f"BigBed output file: {output_bigbed}")
 
     return BedMakerOutput(
+        bed_object=bed_obj,
         bed_file=output_bed,
         bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
         bed_digest=bed_id,

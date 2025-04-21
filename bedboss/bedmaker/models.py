@@ -2,7 +2,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from gtars.models import RegionSet
 
 from bedboss.models import DATA_FORMAT
 
@@ -15,13 +16,8 @@ class InputTypes(Enum):
     BED = "bed"
 
 
-# class BedType(str, Enum):
-#     BED = "bed"
-#     NARROWPEAK = "narrowpeak"
-#     BROADPEAK = "broadpeak"
-
-
 class BedMakerOutput(BaseModel):
+    bed_object: Union[str, RegionSet]
     bed_file: Union[str, Path]
     bigbed_file: Union[str, Path, None] = None
     bed_digest: str = None
@@ -31,3 +27,5 @@ class BedMakerOutput(BaseModel):
     compliant_columns: int
     non_compliant_columns: int
     data_format: DATA_FORMAT
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
