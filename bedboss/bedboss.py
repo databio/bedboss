@@ -466,6 +466,8 @@ def insert_pep(
     m.print_error(f"Failed samples: {failed_samples}")
     if stop_pipeline:
         pm.stop_pipeline()
+
+    m.print_success(f"Processing of '{pep.name}' completed successfully")
     return None
 
 

@@ -13,21 +13,17 @@ from ubiquerg import is_command_callable
 
 from bedboss.bedclassifier.bedclassifier import get_bed_classification
 from bedboss.bedmaker.const import (
-    BED_TO_BIGBED_PROGRAM,
     BEDGRAPH_TEMPLATE,
     BIGBED_FILE_NAME,
     BIGBED_TEMPLATE,
     BIGBED_TO_BED_PROGRAM,
     BIGWIG_TEMPLATE,
-    QC_FOLDER_NAME,
     WIG_TEMPLATE,
 )
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
-from bedboss.bedqc.bedqc import bedqc
 from bedboss.exceptions import BedBossException, RequirementsException, QualityException
-from bedboss.utils import cleanup_pm_temp
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -132,7 +128,7 @@ def make_bed(
             bed_obj = bbclient.add_bed_to_cache(input_file)
             bed_id = bed_obj.identifier
             output_path = bbclient.seek(bed_id)
-        except FileNotFoundError as e:
+        except BaseException as e:
             raise BedBossException(f"File not found: {input_file} Error: {e}")
 
     else:
