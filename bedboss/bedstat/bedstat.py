@@ -21,6 +21,7 @@ from bedboss.const import (
 )
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
+from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -62,6 +63,7 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
             path=osm_path,
             no_fail=True,
         )
+    _LOGGER.info(f"Open Signal Matrix file path: {osm_path}")
     return osm_path
 
 
@@ -75,6 +77,7 @@ def bedstat(
     just_db_commit: bool = False,
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
+    r_service: RServiceManager = None,
 ) -> dict:
     """
     Run bedstat pipeline - pipeline for obtaining statistics about bed files
@@ -91,6 +94,7 @@ def bedstat(
     :param str ensdb: a full path to the ensdb gtf file required for genomes
         not in GDdata
     :param pm: pypiper object
+    :param r_service: RServiceManager object
 
     :return: dict with statistics and plots metadata
     """
@@ -102,14 +106,14 @@ def bedstat(
 
     # TODO: osm commented to speed up code
     # find/download open signal matrix
-    # if not open_signal_matrix or not os.path.exists(open_signal_matrix):
-    #     try:
-    #         open_signal_matrix = get_osm_path(genome)
-    #     except OpenSignalMatrixException:
-    #         _LOGGER.warning(
-    #             f"Open Signal Matrix was not found for {genome}. Skipping..."
-    #         )
-    open_signal_matrix = None
+    if not open_signal_matrix or not os.path.exists(open_signal_matrix):
+        try:
+            open_signal_matrix = get_osm_path(genome)
+        except OpenSignalMatrixException:
+            _LOGGER.warning(
+                f"Open Signal Matrix was not found for {genome}. Skipping..."
+            )
+    # open_signal_matrix = None
 
     # Used to stop pipeline bedstat is used independently
     if not pm:
@@ -150,23 +154,35 @@ def bedstat(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "bedstat",
             "tools",
-            "regionstat.R",
+            "regionstat_cli.R",
         )
         assert os.path.exists(rscript_path), FileNotFoundError(
             f"'{rscript_path}' script not found"
         )
-        command = (
-            f"Rscript {rscript_path} --bedfilePath={bedfile} "
-            f"--fileId={bed_digest} --openSignalMatrix={open_signal_matrix} "
-            f"--outputFolder={outfolder_stats_results} --genome={genome} "
-            f"--ensdb={ensdb} --digest={bed_digest}"
-        )
 
-        try:
-            pm.run(cmd=command, target=json_file_path)
-        except Exception as e:
-            _LOGGER.error(f"Pipeline failed: {e}")
-            raise BedBossException(f"Pipeline failed: {e}")
+        if not r_service:
+            try:
+                _LOGGER.info("#=>>> Running local R instance!")
+                command = (
+                    f"Rscript {rscript_path} --bedfilePath={bedfile} "
+                    f"--openSignalMatrix={open_signal_matrix} "
+                    f"--outputFolder={outfolder_stats_results} --genome={genome} "
+                    f"--ensdb={ensdb} --digest={bed_digest}"
+                )
+                pm.run(cmd=command, target=json_file_path)
+            except Exception as e:
+                _LOGGER.error(f"Pipeline failed: {e}")
+                raise BedBossException(f"Pipeline failed: {e}")
+        else:
+            _LOGGER.info("#=>>> Running R service ")
+            r_service.run_file(
+                file_path=bedfile,
+                digest=bed_digest,
+                outpath=outfolder_stats_results,
+                genome=genome,
+                openSignalMatrix=open_signal_matrix,
+                gtffile=ensdb,
+            )
 
     data = {}
     if os.path.exists(json_file_path):

@@ -34,6 +34,7 @@ from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
 from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
+from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -82,6 +83,7 @@ def run_all(
     universe_method: str = None,
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
+    r_service: RServiceManager = None,
 ) -> str:
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
@@ -115,6 +117,7 @@ def run_all(
     :param str universe_method: method used to create the universe [Default: None]
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
+    :param RServiceManager r_service: RServiceManager object that will run R services
     :return str bed_digest: bed digest
     """
     if isinstance(bedbase_config, str):
@@ -128,6 +131,7 @@ def run_all(
 
     _LOGGER.info(f"Input file = '{input_file}'")
     _LOGGER.info(f"Output folder = '{outfolder}'")
+    _LOGGER.info(f"Sample genome = '{genome}'")
 
     if not pm:
         pm_out_folder = os.path.join(os.path.abspath(outfolder), "pipeline_manager")
@@ -157,6 +161,8 @@ def run_all(
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
+    other_metadata["original_file_name"] = os.path.basename(input_file)
+
     if lite:
         statistics_dict = {}
     else:
@@ -170,9 +176,11 @@ def run_all(
             just_db_commit=just_db_commit,
             rfg_config=rfg_config,
             pm=pm,
+            r_service=r_service,
         )
-    statistics_dict["bed_type"] = bed_metadata.bed_type
-    statistics_dict["bed_format"] = bed_metadata.bed_format.value
+
+    statistics_dict["bed_compliance"] = bed_metadata.bed_compliance
+    statistics_dict["data_format"] = bed_metadata.data_format.value
 
     if bed_metadata.bigbed_file:
         genome_digest = get_genome_digest(genome)
@@ -188,6 +196,8 @@ def run_all(
             title="BigBed file",
             path=bed_metadata.bigbed_file,
             description="Path to the bigbed file",
+            thumbnail_path=None,
+            file_digest=None,
         )
     else:
         big_bed = None
@@ -197,6 +207,8 @@ def run_all(
             title="BED file",
             path=bed_metadata.bed_file,
             description="Path to the BED file",
+            thumbnail_path=None,
+            file_digest=bed_metadata.bed_object.file_digest,
         ),
         bigbed_file=big_bed,
     )
@@ -205,8 +217,11 @@ def run_all(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
         genome_alias=genome,
-        bed_type=bed_metadata.bed_type,
-        bed_format=bed_metadata.bed_format.value,
+        bed_compliance=bed_metadata.bed_compliance,
+        data_format=bed_metadata.data_format.value,
+        compliant_columns=bed_metadata.compliant_columns,
+        non_compliant_columns=bed_metadata.non_compliant_columns,
+        header=bed_metadata.bed_object.header,
     )
 
     if validate_reference:
@@ -339,6 +354,19 @@ def insert_pep(
     if standardize_pep:
         pep = pep_standardizer(pep)
 
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
     bbagent = BedBaseAgent(bedbase_config)
 
     validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
@@ -348,6 +376,11 @@ def insert_pep(
 
     if rerun:
         skipper.reinitialize()
+
+    if not lite:
+        r_service = RServiceManager()
+    else:
+        r_service = None
 
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
@@ -394,6 +427,7 @@ def insert_pep(
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
+                r_service=r_service,
             )
 
             processed_ids.append(bed_id)
@@ -430,7 +464,8 @@ def insert_pep(
 
     m.print_success(f"Processed samples: {processed_ids}")
     m.print_error(f"Failed samples: {failed_samples}")
-
+    if stop_pipeline:
+        pm.stop_pipeline()
     return None
 
 
@@ -440,6 +475,7 @@ def reprocess_all(
     output_folder: str,
     limit: int = 10,
     no_fail: bool = False,
+    pm: pypiper.PipelineManager = None,
 ) -> None:
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
@@ -448,9 +484,25 @@ def reprocess_all(
     :param output_folder: output folder of the pipeline
     :param limit: limit of the number of beds to process
     :param no_fail: whether to raise an error if bedset was not added to the database
+    :param pm: pypiper object
 
     :return: None
     """
+
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
+
+    r_service = RServiceManager()
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
@@ -463,9 +515,12 @@ def reprocess_all(
 
     bbclient = BBClient()
     failed_samples = []
-    for bed_annot in unprocessed_beds.results:
+    for i, bed_annot in enumerate(unprocessed_beds.results):
         bed_file = bbclient.load_bed(bed_annot.id)
 
+        m.print_success(
+            f"\n#### Processing sample: {i + 1} / {len(unprocessed_beds.results)} ####"
+        )
         try:
             run_all(
                 input_file=bed_file.path,
@@ -491,7 +546,8 @@ def reprocess_all(
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
-                pm=None,
+                pm=pm,
+                r_service=r_service,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
@@ -518,11 +574,16 @@ def reprocess_all(
 
     print_values = dict(
         unprocessed_files=unprocessed_beds.count,
-        processing_files=unprocessed_beds.limit,
+        processed_files=unprocessed_beds.limit,
         failed_files=len(failed_samples),
         success_files=unprocessed_beds.limit - len(failed_samples),
     )
-    print(print_values)
+    print_values["unprocessed_files_left"] = (
+        print_values["unprocessed_files"] - print_values["processed_files"]
+    )
+    m.print_success(str(print_values))
+    if stop_pipeline:
+        pm.stop_pipeline()
 
 
 @calculate_time

@@ -98,11 +98,12 @@ if ! pip_check "refgenconf"; then
     INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 
-# Check bedmaker packages
-if ! is_executable "bedToBigBed"; then
-    INSTALL_ERROR=$((INSTALL_ERROR+1))
-    echo $(fail "ERROR: 'bedToBigBed' is not installed. To install 'bedToBigBed' check bedboss documentation: https://bedboss.databio.org/")
-fi
+## Check bedmaker packages (Moved to RegionSet in rust)
+#if ! is_executable "bedToBigBed"; then
+#    INSTALL_ERROR=$((INSTALL_ERROR+1))
+#    echo $(fail "ERROR: 'bedToBigBed' is not installed. To install 'bedToBigBed' check bedboss documentation: https://bedboss.databio.org/")
+#fi
+
 
 if ! is_executable "bigBedToBed"; then
     INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))

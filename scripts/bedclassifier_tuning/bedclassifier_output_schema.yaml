@@ -4,20 +4,22 @@ type: object
 properties:
   pipeline_name: "bedclassifier"
   samples:
-    type: object
-    properties:
-      bedfile_named:
-        type: string
-        description: "reported bedfile name e.g. narrowpeak"
-      bedfile_type:
-        type: string
-        description: "reported bedfile type"
-      given_bedfile_type:
-        type: string
-        description: "given bed file type"
-      types_match:
-        type: boolean
-        description: "Do the types match?"
-      gsm:
-        type: string
-        description: "given gsm"
+    type: array
+    items:
+      type: object
+      properties:
+        bed_format:
+          type: string
+          description: "reported bedfile name e.g. narrowpeak"
+        bed_type:
+          type: string
+          description: "reported bedfile type"
+        given_bedfile_type:
+          type: string
+          description: "given bed file type"
+        types_match:
+          type: boolean
+          description: "Do the types match?"
+        gsm:
+          type: string
+          description: "given gsm"
