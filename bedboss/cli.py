@@ -197,6 +197,14 @@ def run_pep(
     """
     from bedboss.bedboss import insert_pep
 
+    pm = create_pm(
+        outfolder=outfolder,
+        multi=multi,
+        recover=recover,
+        dirty=dirty,
+        pipeline_name=pep.replace("/", "_").replace(":", "_"),
+    )
+
     insert_pep(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
@@ -218,14 +226,10 @@ def run_pep(
         standardize_pep=standardize_pep,
         lite=lite,
         rerun=rerun,
-        pm=create_pm(
-            outfolder=outfolder,
-            multi=multi,
-            recover=recover,
-            dirty=dirty,
-            pipeline_name=pep.replace("/", "_").replace(":", "_"),
-        ),
+        pm=pm,
     )
+
+    pm.stop_pipeline()
 
 
 @app.command(help="Run unprocessed files, or reprocess them")
