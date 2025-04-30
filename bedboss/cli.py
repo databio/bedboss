@@ -301,6 +301,31 @@ def reprocess_bedset(
     )
 
 
+@app.command(help="Create a list of unprocessed files")
+def create_unprocessed_pep(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    out_file: str = typer.Option(
+        "./bedbase_unprocessed_list.csv",
+        help="File path to save the list of unprocessed files",
+    ),
+    limit: int = typer.Option(100, help="Limit the number of files to reprocess"),
+):
+    from bedboss.bedboss import create_unprocessed_pep as create_reprocess_list_function
+
+    create_reprocess_list_function(
+        bedbase_config=bedbase_config,
+        file_path=out_file,
+        limit=limit,
+    )
+    printm.print_success("Successfully created unprocessed files")
+
+
 @app.command(help=f"Create a bed files form a [{', '.join(options_list)}] file")
 def make_bed(
     input_file: str = typer.Option(
