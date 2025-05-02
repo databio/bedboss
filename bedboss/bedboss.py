@@ -161,7 +161,8 @@ def run_all(
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
-    other_metadata["original_file_name"] = os.path.basename(input_file)
+    if not update:
+        other_metadata["original_file_name"] = os.path.basename(input_file)
 
     if lite:
         statistics_dict = {}
