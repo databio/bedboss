@@ -607,7 +607,7 @@ def reprocess_one(
     :return: None
     """
 
-    if not pm:
+    if pm is None:
         pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
         _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
         pm = pypiper.PipelineManager(
