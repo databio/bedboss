@@ -58,7 +58,6 @@ processBED = function(path, client, port) {
         runAnalysis(path)
     }, error = function(e) {
         message("R message => Error: ", conditionMessage(e))
-        setStatus("idle")
     }, finally = {
         # message("R message => Finished processing")
     })
