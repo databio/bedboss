@@ -266,6 +266,10 @@ def reprocess_one(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     identifier: str = typer.Option(..., help="Identifier of the bed file"),
+    # PipelineManager
+    multi: bool = typer.Option(True, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
     from bedboss.bedboss import reprocess_one as reprocess_one_function
 
@@ -273,6 +277,7 @@ def reprocess_one(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         identifier=identifier,
+        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
 

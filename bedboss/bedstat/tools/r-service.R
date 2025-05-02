@@ -53,7 +53,14 @@ processBED = function(path, client, port) {
 	}
 
 	setStatus("processing")
-    runAnalysis(path)
+
+    tryCatch({
+        runAnalysis(path)
+    }, error = function(e) {
+        message("R message => Error: ", conditionMessage(e))
+    }, finally = {
+        # message("R message => Finished processing")
+    })
 
 	setStatus("idle")
 	return(1)

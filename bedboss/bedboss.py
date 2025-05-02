@@ -161,7 +161,8 @@ def run_all(
     if not other_metadata:
         other_metadata = {"sample_name": name}
 
-    other_metadata["original_file_name"] = os.path.basename(input_file)
+    if not update:
+        other_metadata["original_file_name"] = os.path.basename(input_file)
 
     if lite:
         statistics_dict = {}
@@ -593,6 +594,7 @@ def reprocess_one(
     bedbase_config: Union[str, BedBaseAgent],
     output_folder: str,
     identifier: str,
+    pm: pypiper.PipelineManager = None,
 ) -> None:
     """
     Run bedboss pipeline for one bed in the bedbase [Reprocess]
@@ -600,9 +602,23 @@ def reprocess_one(
     :param bedbase_config: bedbase configuration file path
     :param output_folder: output folder of the pipeline
     :param identifier: bed identifier
+    :param pm: pypiper object
 
     :return: None
     """
+
+    if not pm:
+        pm_out_folder = os.path.join(os.path.abspath(output_folder), "pipeline_manager")
+        _LOGGER.info(f"Pipeline info folder = '{pm_out_folder}'")
+        pm = pypiper.PipelineManager(
+            name="bedboss-pipeline",
+            outfolder=pm_out_folder,
+            version=__version__,
+            recover=True,
+        )
+        stop_pipeline = True
+    else:
+        stop_pipeline = False
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
@@ -644,6 +660,9 @@ def reprocess_one(
     )
 
     _LOGGER.info(f"Successfully processed {identifier}")
+
+    if stop_pipeline:
+        pm.stop_pipeline()
 
 
 @calculate_time
