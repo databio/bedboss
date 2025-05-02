@@ -715,33 +715,3 @@ def reprocess_bedset(
         },
         lite=False,
     )
-
-
-def create_unprocessed_pep(
-    bedbase_config: Union[str, BedBaseAgent],
-    file_path: str,
-    limit: int = 100,
-):
-    """
-    Create a pep file with unprocessed beds from the bedbase
-
-    :param bedbase_config: bedbase configuration file path
-    :param file_path: path to the output pep file
-    :param limit: number of unprocessed beds to include in the pep file
-
-    :return: None
-    """
-    if isinstance(bedbase_config, str):
-        bbagent = BedBaseAgent(config=bedbase_config)
-    elif isinstance(bedbase_config, bbconf.BedBaseAgent):
-        bbagent = bedbase_config
-    else:
-        raise BedBossException("Incorrect bedbase_config type. Exiting...")
-
-    unprocessed_beds = bbagent.bed.get_unprocessed(limit=limit)
-
-    with open(file_path, "w") as f:
-        f.write("sample_name\n")
-        for bed in unprocessed_beds.results:
-            f.write(f"{bed.id}\n")
-    _LOGGER.info(f"Unprocessed beds saved to {file_path}")
