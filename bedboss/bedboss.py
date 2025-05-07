@@ -166,6 +166,7 @@ def run_all(
 
     if lite:
         statistics_dict = {}
+        statistics_dict["number_of_regions"] = len(bed_metadata.bed_object)
     else:
         statistics_dict = bedstat(
             bedfile=bed_metadata.bed_file,
@@ -178,6 +179,11 @@ def run_all(
             rfg_config=rfg_config,
             pm=pm,
             r_service=r_service,
+        )
+
+    if "mean_region_width" not in statistics_dict:
+        statistics_dict["mean_region_width"] = (
+            bed_metadata.bed_object.mean_region_width()
         )
 
     statistics_dict["bed_compliance"] = bed_metadata.bed_compliance
