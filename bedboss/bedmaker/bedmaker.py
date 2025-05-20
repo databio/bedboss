@@ -14,7 +14,7 @@ from ubiquerg import is_command_callable
 from bedboss.bedclassifier.bedclassifier import get_bed_classification
 from bedboss.bedmaker.const import (
     BEDGRAPH_TEMPLATE,
-    BIGBED_FILE_NAME,
+    BIGBED_FOLDER_NAME,
     BIGBED_TEMPLATE,
     BIGBED_TO_BED_PROGRAM,
     BIGWIG_TEMPLATE,
@@ -341,7 +341,9 @@ def make_all(
         output_bigbed = None
     else:
         try:
-            bigbed_folder_path = os.path.join(output_path, BIGBED_FILE_NAME)
+            bigbed_folder_path = os.path.join(
+                output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
+            )
             os.makedirs(bigbed_folder_path, exist_ok=True)
             output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
 

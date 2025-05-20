@@ -27,4 +27,4 @@ STANDARD_CHROM_LIST[len(STANDARD_CHROM_LIST) :] = ["chrX", "chrY", "chrM"]
 
 QC_FOLDER_NAME = "bed_qc"
 
-BIGBED_FILE_NAME = "bigbed_files"
+BIGBED_FOLDER_NAME = "bigbed_files"
