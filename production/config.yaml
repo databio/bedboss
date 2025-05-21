@@ -9,7 +9,7 @@ database:
   port: 5432
   password: $POSTGRES_PASSWORD
   user: $POSTGRES_USER
-  database: bedbase2
+  database: bedbase
 qdrant:
   host: $QDRANT_API_HOST
   port: 6333
