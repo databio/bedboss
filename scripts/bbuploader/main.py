@@ -10,10 +10,10 @@ def runn():
         # gse="gse256031",
         # gse="gse240325", # TODO: check if qc works
         # gse="gse229592", # mice
-        start_date="2020/04/23",
-        end_date="2021/01/26",
-        search_limit=1000,
-        download_limit=1000,
+        start_date="2021/10/25",
+        end_date="2021/11/30",
+        search_limit=1,
+        download_limit=5,
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
         # genome="HG38",
@@ -21,15 +21,8 @@ def runn():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
-        lite=False,
+        lite=True,
     )
-    # import pandas as pd
-
-    # df = pd.read_csv("/home/bnt4me/Downloads/test_b.bed.gz", sep="\t",
-    #                       header=None, nrows=4)
-    # rf = pd.read_csv("/home/bnt4me/.bbcache/bedfiles/4/f/test.bed.gz", sep="\t",
-    #                       header=None, nrows=4)
-    # rf
 
 
 def another_test():
@@ -45,7 +38,10 @@ def another_test():
         # gse="gse274130",
         # Genome hg19 and mm10
         # gse="gse280839",
-        gse="gse246900",  ## -- this is good. allways using it
+        # gse="gse218680",  ### -- this is example in the api
+        gse="gse38163",  ### -- without genome
+        # gse="gse246900",  ## -- this is good. allways using it
+        # gse="gse32970", # - this data is encode https://www.encodeproject.org/experiments/ENCSR000ELR/
         # gse="gse106049",  # This is interesting reference genome.
         # gse="gse292153",  # This is interesting reference genome.
         # gse="gse247593", # Big dataset
@@ -64,7 +60,7 @@ def another_test():
         run_failed=True,
         run_skipped=True,
         reinit_skipper=True,
-        lite=False,
+        lite=True,
         # overwrite=True,
         overwrite_bedset=True,
     )
@@ -72,13 +68,38 @@ def another_test():
     print(f"Time taken: {time2 - time1}")
 
 
+def reprocess_id():
+    from bedboss.bedboss import reprocess_one
+
+    reprocess_one(
+        identifier="abae2832670c57f61d2708f964dac268",
+        bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+        output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
+    )
+
+
 if __name__ == "__main__":
     # runn()
 
-    another_test()
-    # upload_time()
+    # another_test()
+    reprocess_id()
 
 ## cmd
 # bedboss geo upload-all --outfolder /home/bnt4me/virginia/repos/bbuploader/data --start-date 2025/02/23 --end-date 2025/02/26 --no-use-skipper --lite --bedbase-config /home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml --no-use-skipper --no-preload
 ##
 # bedboss run-pep --pep databio/excluderanges:default --outfolder /home/bnt4me/virginia/bedbase_output/ --bedbase-config /home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml
+#
+# from geniml.region2vec.main import Region2VecExModel
+#
+# model = Region2VecExModel("databio/r2v-encode-hg38")
+# from gtars.models import RegionSet
+#
+# rs = RegionSet(
+#     "/home/bnt4me/Downloads/cf90c0bc424838cf4f720a024ca917b3.bed.gz"
+# )  # --killed
+# rs = RegionSet(
+#     "/home/bnt4me/Downloads/55caa8fc3a1bcfa4643f9b7d964d84b4.bed.gz"
+# )  # --killed
+#
+# rs = RegionSet("/home/bnt4me/Downloads/cfd43bfd74fe3b35ca1bd2d274362511.bed.gz")
+# f = model.encode(rs)
