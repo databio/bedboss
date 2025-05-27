@@ -489,6 +489,8 @@ def reprocess_all(
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
 
+    ! At this moment, it only processes beds with hg38, hg19, and mm10 genomes
+
     :param bedbase_config: bedbase configuration file path
     :param output_folder: output folder of the pipeline
     :param limit: limit of the number of beds to process
@@ -520,7 +522,9 @@ def reprocess_all(
     else:
         raise BedBossException("Incorrect bedbase_config type. Exiting...")
 
-    unprocessed_beds = bbagent.bed.get_unprocessed(limit=limit)
+    unprocessed_beds = bbagent.bed.get_unprocessed(
+        limit=limit, genome=["hg38", "hg19", "mm10"]
+    )
 
     bbclient = BBClient()
     failed_samples = []
