@@ -232,7 +232,9 @@ def run_pep(
     pm.stop_pipeline()
 
 
-@app.command(help="Run unprocessed files, or reprocess them")
+@app.command(
+    help="Run unprocessed files or reprocess them. Currently, only hg38, hg19, and mm10 genomes are supported."
+)
 def reprocess_all(
     bedbase_config: str = typer.Option(
         ...,

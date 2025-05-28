@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+
+# [0.7.3] - 2025-06-28
+## Added:
+- Added filter for rerunning unprocessed bed files based on genome
+
+
 # [0.7.2] - 2025-06-21
 ## Changed:
 - Updated path to the bigbed output folder
