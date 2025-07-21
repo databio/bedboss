@@ -1,21 +1,15 @@
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Literal
 
 import numpy as np
 import json
-import requests
-from pephubclient.helpers import RequestManager
 from bbconf import bbagent
 from tqdm import tqdm
+from bbconf.models.bed_models import QdrantSearchResult
 
-
-# BASE_URL = "https://api.bedbase.org/v1/bed/search/text"
-# BASE_URL = "http://localhost:8000/v1/bed/search/text"
 
 bbagent = bbagent.BedBaseAgent(
     "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml"
 )
-
-req_man = RequestManager()
 
 
 def single_query_eval(
@@ -139,63 +133,57 @@ def open_relevance_dict(path: str) -> Dict[str, List[str]]:
     return query_relevance
 
 
-def run_search_bedbase(query: str, limit: int = 100) -> List[Dict[str, Any]]:
+def run_search_bedbase(
+    query: str, limit: int = 100, search: Literal["bivec", "semantic"] = "semantic"
+) -> List[QdrantSearchResult]:
     """
-    ...
+    Run a search in BedBase with the provided query and return the results.
+    Choose between 'bivec' or 'semantic' search.
+
+    :param query: the query string to search for
+    :param limit: the maximum number of results to return
+    :param search: the type of search to perform, either 'bivec' or 'semantic'
+
+    :return: a dictionary with the query as key and a list of search results as value
     """
+
+    if search == "semantic":
+        found_dict[query] = bbagent.bed.semantic_search(
+            query=query,
+            genome_alias="hg38",
+            limit=limit,
+            with_metadata=False,
+        ).model_dump()["results"]
+
+    elif search == "bivec":
+        found_dict[query] = bbagent.bed.text_to_bed_search(
+            query=query,
+            limit=limit,
+            with_metadata=False,
+        ).results
+
+    else:
+        raise ValueError(
+            f"Unknown search type provided: {search}. Choose 'bivec' or 'semantic'."
+        )
+
+    return found_dict
 
 
 if __name__ == "__main__":
-    # Example usage
-    # query_relevance_example = {
-    #     "query1": ["id1", "id2"],
-    #     "query2": ["id3"],
-    # }
-    # search_results_example = {
-    #     "query1": [{"id": "id1"}, {"id": "id2"}, {"id": "id4"}],
-    #     "query2": [{"id": "id3"}, {"id": "id5"}],
-    # }
-    #
-    # results = eval(query_relevance_example, search_results_example)
-    # print(results)
-    p = open_relevance_dict(
-        "/home/bnt4me/virginia/repos/bedboss/scripts/eval/queries_ids/biosample_synonyms_target.json"
-    )
-    # get first 20 elements from dict :
 
-    p = dict(list(p.items()))
-    # p = dict(list(p.items())[:500])
+    SEARCH_TERM_FILE = "/home/bnt4me/virginia/repos/bedboss/scripts/eval/queries_ids/biosample_synonyms_target.json"
+    SEARCH_TERM_LIMIT = 50 # or None
+    SEARCH_RETURN_LIMIT = 100
+
+    p = open_relevance_dict(SEARCH_TERM_FILE)
+
+    if SEARCH_TERM_LIMIT is not None and 0 < SEARCH_TERM_LIMIT < len(p):
+        p = dict(list(p.items())[:SEARCH_TERM_LIMIT])
 
     found_dict = {}
-
     for one_query in tqdm(p.keys(), desc="Processing queries", unit="query"):
-
-        # response = req_man.send_request(
-        #     method="POST",
-        #     url=BASE_URL,
-        #     params={
-        #         "query": one_query,
-        #         "genome": "hg38",
-        #         "limit": 200,
-        #     },
-        # )
-        #
-        # response_json = req_man.decode_response(response, output_json=True)
-        #
-        # found_dict[one_query] = response_json["results"]
-
-        found_dict[one_query] = bbagent.bed.comp_search(
-            query=one_query,
-            genome_alias="hg38",
-            limit=200,
-        ).model_dump()["results"]
-
-        # found_dict[one_query] = bbagent.bed.text_to_bed_search(
-        #     query=one_query,
-        #     # genome="hg38",
-        #     limit=200,
-        # ).results
+        found_dict = run_search_bedbase(one_query, limit=SEARCH_RETURN_LIMIT, search="semantic")
 
     eval_dict = eval(p, found_dict)
-
     print(eval_dict)
