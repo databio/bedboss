@@ -489,7 +489,7 @@ def reprocess_all(
     """
     Run bedboss pipeline for all unprocessed beds in the bedbase
 
-    ! At this moment, it only processes beds with hg38, hg19, and mm10 genomes
+    Currently only beds with genomes hg19, hg38, and mm10 are processed.
 
     :param bedbase_config: bedbase configuration file path
     :param output_folder: output folder of the pipeline
