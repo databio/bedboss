@@ -429,6 +429,27 @@ def reindex(
     add_to_qdrant(config=bedbase_config)
 
 
+@app.command(help="Reindex semantic (text) search.")
+def reindex_text(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    purge: bool = typer.Option(False, help="Purge existing index before reindexing"),
+    batch: int = typer.Option(1000, help="Number of items to upload in one batch"),
+):
+    from bedboss.qdrant_index.qdrant_index import reindex_semantic_search
+
+    return reindex_semantic_search(
+        config=bedbase_config,
+        purge=purge,
+        batch=batch,
+    )
+
+
 @app.command(
     help="Create a bedset from a pep file, and insert it to the bedbase database."
 )
