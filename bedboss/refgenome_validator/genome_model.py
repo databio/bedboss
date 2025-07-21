@@ -1,3 +1,6 @@
+from typing import Union, Dict
+
+
 class GenomeModel:
     """
         Initialize genome model
@@ -9,7 +12,7 @@ class GenomeModel:
     def __init__(
         self,
         genome_alias: str,
-        chrom_sizes_file: str,
+        chrom_sizes_file: Union[str, Dict[str, int]],
         # common_aliases: Optional[List] = None,
         # refgenomeconf: Optional[refgenconf.refgenconf.RefGenConf] = None,
         # exclude_ranges_names: Optional[List] = None,
@@ -44,14 +47,18 @@ class GenomeModel:
         #         seek_key="chrom_sizes",
         #     )
 
-        chrom_sizes_path = self.chrom_sizes_file
+        if isinstance(self.chrom_sizes_file, str):
+            chrom_sizes_path = self.chrom_sizes_file
 
-        chrom_sizes = {}
+            chrom_sizes = {}
 
-        with open(chrom_sizes_path, "r") as f:
-            for line in f:
-                chrom, size = line.strip().split("\t")
-                chrom_sizes[chrom] = int(size)
+            with open(chrom_sizes_path, "r") as f:
+                for line in f:
+                    chrom, size = line.strip().split("\t")
+                    chrom_sizes[chrom] = int(size)
+        else:
+            # TODO: needs to be validated
+            chrom_sizes = self.chrom_sizes_file
 
         return chrom_sizes
 
