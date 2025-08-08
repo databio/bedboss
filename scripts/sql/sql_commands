@@ -1,0 +1,112 @@
+select a.* from bed as b join bed_metadata as a on a.id = b.id where b.name like '%encode_%' limit 1000;
+
+-- select * from bed_metadata;
+
+-- select * from bed where header is not null;
+-- select * from bed where header is not null and header like '#%';
+-- select * from bed where header is not null and header like 'track name%';
+-- select * from bed where header is not null and header like 'track type%';
+-- select * from bed where header is not null and header like 'browser%';
+-- select * from bed where header is not null and header not like 'track%' and header not like '#%' and header not like 'browser%';
+
+-- UPDATE bed_metadata
+-- SET cell_line = '' where cell_line is null;
+
+-- select sample_name, count (*) from geo_gsm_status where status = 'FAIL' and error not like '%File size is too big.%' and error not like '%Initial QC failed for%' and error not like '%Quality control failed%' group by sample_name;
+
+-- select * from geo_gsm_status where status = 'FAIL' and error like '%Initial QC failed for%' or error like '%Quality control failed%';
+
+-- select * from geo_gsm_status where status = 'FAIL' and error like '%File size is too big.%';
+
+-- select * from geo_gsm_status where status = 'FAIL' and error not like '%File size is too big.%' and error not like '%Initial QC failed for%' and error not like '%Quality control failed%';
+
+select sample_name, count (*) from geo_gsm_status where EXTRACT(YEAR FROM source_submission_date) = 2024 group by sample_name;
+-- select * from geo_gsm_status limit 10;
+
+ --and error like '%File size is too big.%'
+ -- and error like '%Initial QC failed for%' and error like '%Quality control failed%';
+
+-- select distinct on (sample_name) * from geo_gsm_status;
+
+-- select * from bed_metadata where cardinality(global_sample_id) > 1;
+
+-- select species_name, species_id, count(*) as number_of_ids from bed_metadata group by (species_name, species_id) order by number_of_ids desc;
+
+-- select species_name, count(*) as number_of_ids from bed_metadata group by species_name order by number_of_ids desc;
+-- select * from bed_metadata where species_name = 'Columba livia';
+
+-- select status, count(*) from geo_gse_status group by status;
+-- select * from usage_bed_meta;
+
+-- select * from usage_files;
+-- select * from usage_bed_meta;
+
+-- select bed_id, sum(count) from usage_bed_meta group by bed_id order by sum(count) desc limit 20;
+
+-- select * from usage_search;
+
+-- select * from bed_metadata where cell_line ilike '%k562%';
+
+-- select sample_name, count(*) from geo_gsm_status group by sample_name;
+
+-- select status, count(*) from geo_gsm_status group by (status, sample_name);
+
+
+-- SELECT status, COUNT(*) AS sample_count
+-- FROM (
+--     SELECT status, sample_name
+--     FROM geo_gsm_status
+--     GROUP BY status, sample_name
+-- ) AS grouped
+-- GROUP BY status;
+
+-- select * from bed as a join bed_metadata as b on a.id = b.id join genome_ref_stats as c on a.id =c.bed_id  where a.genome_alias = 'hg38' and c.compared_genome = 'ucsc_hg38.chrom.sizes' and c.tier_ranking = 1;
+
+-- -- GEO files sizes
+-- select distinct on (sample_name) bed_id, file_size/ 1048576.0 AS file_size_mb from geo_gsm_status;
+
+-- -- FILE sizes
+-- select bedfile_id, size / 1048576.0 AS file_size_mb from files where name = 'bed_file' order by file_size_mb limit 1000 ;
+-- select a.number_of_regions, a.id, b.global_sample_id from bed_stats as a join bed_metadata as b on a.id=b.id where number_of_regions = 300000;
+
+-- select id, mean_region_width from bed_stats;
+
+-- FILE NUMBER 0F REGIONS
+-- select id, number_of_regions from bed_stats;
+
+
+-- select * from bed;
+-- select * from bedsets;
+-- select b.id, a.gsm, a.sample_name, a.genome, b.genome_alias, a.error, a.source_submission_date from geo_gsm_status as a left join bed as b on b.id = a.bed_id;
+-- select * from bed;
+-- select * from bedsets;
+
+-- select file_path, count(file_path) from usage_files group by file_path;
+
+-- select * from Files limit 100;
+
+-- select * from bedsets limit 10;
+
+
+-- SELECT
+--   b.id,
+--   COUNT(b.id)
+-- FROM bed b
+-- LEFT JOIN bedfile_bedset_relation btb ON b.id = btb.bedfile_id
+-- LEFT JOIN bedsets bs ON btb.bedset_id = bs.id
+--   AND (bs.summary IS NULL OR bs.summary NOT ILIKE 'This SuperSeries%')
+-- GROUP BY b.id;
+
+
+SELECT * FROM bed_metadata
+WHERE global_sample_id @> ARRAY['encode:ENCFF602YIK']::varchar[];
+
+-- select * from geo_gse_status where gse='gse60141';
+
+-- select b.*, m.* from bed as b join bed_metadata as m on b.id=m.id;
+
+
+-- select * from geo_gsm_status limit 20;
+
+-- select id, name from bed where name like 'encode_%' order by name;
+-- select * from bed_metadata where treatment != '' limit 10000;

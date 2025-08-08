@@ -69,13 +69,19 @@ def another_test():
 
 
 def reprocess_id():
-    from bedboss.bedboss import reprocess_one
+    from bedboss.bedboss import reprocess_one, reprocess_all
 
     reprocess_one(
-        identifier="abae2832670c57f61d2708f964dac268",
+        identifier="b4712e0051aa975d450baf576a9aa6a2",
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
     )
+
+    # reprocess_all(
+    #     bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+    #     output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
+    #     limit=2,
+    # )
 
 
 if __name__ == "__main__":
