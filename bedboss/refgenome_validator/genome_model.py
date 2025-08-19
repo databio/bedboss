@@ -13,12 +13,14 @@ class GenomeModel:
         self,
         genome_alias: str,
         chrom_sizes_file: Union[str, Dict[str, int]],
+        genome_digest: Union[str, None] = None,
         # common_aliases: Optional[List] = None,
         # refgenomeconf: Optional[refgenconf.refgenconf.RefGenConf] = None,
         # exclude_ranges_names: Optional[List] = None,
     ):
         self._genome_alias = genome_alias
         self.chrom_sizes_file = chrom_sizes_file
+        self._genome_digest = genome_digest
         self._chrom_sizes = self.get_chrom_sizes()
         # self.common_aliases = common_aliases  # What are the other names for the other this reference genomes
         # self.rgc = refgenomeconf
@@ -26,7 +28,12 @@ class GenomeModel:
 
     @property
     def genome_alias(self):
+        # return self._genome_digest # TODO: update everything
         return self._genome_alias
+
+    @property
+    def genome_digest(self):
+        return self._genome_digest
 
     @property
     def chrom_sizes(self):
