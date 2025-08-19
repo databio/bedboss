@@ -19,7 +19,9 @@ BASE_URL = "https://api.refgenie.org"
 SEQ_COL_URL = "https://api.refgenie.org/seqcol/collection/{digest}?collated=true&attribute=name_length_pairs"
 
 
-identifier = "dcc005e8761ad5599545cc538f6a2a4d"
+# identifier = "dcc005e8761ad5599545cc538f6a2a4d"
+# bed_file_path = f"/home/bnt4me/Downloads/{identifier}.bed.gz"
+identifier = "dbd6d5414b4403c05099d02fd5298c4e"
 bed_file_path = f"/home/bnt4me/Downloads/{identifier}.bed.gz"
 
 
@@ -159,15 +161,15 @@ def modify_for_analysis(genomes: Genomes) -> List[GenomeModel]:
 
 
 if __name__ == "__main__":
-    try:
-        ret = read_seq_col_from_json()
-    except FileNotFoundError:
-        print("No genome_seqcol.json found, downloading from refgenie...")
-        ret = get_seq_col()
-        save_seq_col_to_json(ret, output_path="genome_seqcol.json")
-    modified_list = modify_for_analysis(ret)
-
-    modified_list
+    # try:
+    #     ret = read_seq_col_from_json()
+    # except FileNotFoundError:
+    #     print("No genome_seqcol.json found, downloading from refgenie...")
+    #     ret = get_seq_col()
+    #     save_seq_col_to_json(ret, output_path="genome_seqcol.json")
+    # modified_list = modify_for_analysis(ret)
+    #
+    # modified_list
 
     from bbconf.db_utils import Session, ReferenceGenome
 
@@ -184,9 +186,13 @@ if __name__ == "__main__":
 
     ###
 
-    rv = ReferenceValidator(
-        genome_models=modified_list,
-    )
+    from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
+
+    update_db_genomes(bbagent)
+
+    rv = ReferenceValidator()
+    # genome_models=modified_list,
+    # )
 
     import time
 

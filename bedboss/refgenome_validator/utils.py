@@ -5,6 +5,9 @@ from typing import List, Union
 from geniml.io import RegionSet
 from gtars.models import RegionSet as GRegionSet
 
+# from genome_model import GenomeModel
+import requests
+
 _LOGGER = logging.getLogger("bedboss")
 
 

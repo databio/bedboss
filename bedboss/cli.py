@@ -423,10 +423,12 @@ def reindex(
         file_okay=True,
         readable=True,
     ),
+    purge: bool = typer.Option(False, help="Purge existing index before reindexing"),
+    batch: int = typer.Option(1000, help="Number of items to upload in one batch"),
 ):
     from bedboss.qdrant_index.qdrant_index import add_to_qdrant
 
-    add_to_qdrant(config=bedbase_config)
+    add_to_qdrant(config=bedbase_config, batch=batch, purge=purge)
 
 
 @app.command(help="Reindex semantic (text) search.")
@@ -625,6 +627,25 @@ def convert_universe(
         bedset_id=bedset,
         construct_method=method,
     )
+
+
+@app.command(help="Update reference genomes in the database")
+def update_genomes(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bbconf.bbagent import BedBaseAgent
+    from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
+
+    bbagent = BedBaseAgent(config)
+    update_db_genomes(bbagent)
+
+    print("Genomes updated successfully.")
 
 
 @app.command(help="Check installed R packages")

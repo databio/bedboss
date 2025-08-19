@@ -3,7 +3,6 @@
 import logging
 
 import coloredlogs
-import logmuse
 
 from bedboss._version import __version__
 
@@ -25,7 +24,7 @@ __all__ = [
     "__author__",
 ]
 
-_LOGGER = logmuse.init_logger("bedboss")
+_LOGGER = logging.getLogger("bedboss")
 coloredlogs.install(
     logger=_LOGGER,
     datefmt="%H:%M:%S",

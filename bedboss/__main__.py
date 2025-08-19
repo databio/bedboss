@@ -1,14 +1,15 @@
 import sys
 
-import logmuse
+import logging
 
 from bedboss.cli import app
+from bedboss.const import PKG_NAME
 
-_LOGGER = logmuse.init_logger("bedboss")
+_LOGGER = logging.getLogger(PKG_NAME)
 
 
 def main():
-    app(prog_name="bedboss")
+    app(prog_name=PKG_NAME)
 
 
 if __name__ == "__main__":
