@@ -648,6 +648,53 @@ def update_genomes(
     print("Genomes updated successfully.")
 
 
+@app.command(help="Download UMAP")
+def download_umap(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    output_file: str = typer.Option(
+        ...,
+        help="Path to the output file where UMAP embeddings will be saved",
+    ),
+    n_components: int = typer.Option(
+        3,
+        help="Number of UMAP components",
+    ),
+    plot_name: str = typer.Option(
+        None,
+        help="Name of the plot file",
+    ),
+    plot_label: str = typer.Option(
+        None,
+        help="Label for the plot",
+    ),
+    top_assays: int = typer.Option(
+        15,
+        help="Number of top assays to include",
+    ),
+    top_cell_lines: int = typer.Option(
+        15,
+        help="Number of top cell lines to include",
+    ),
+):
+    from bedboss.scripts.make_umap import get_embeddings
+
+    get_embeddings(
+        bbconf=config,
+        output_file=output_file,
+        n_components=n_components,
+        plot_name=plot_name,
+        plot_label=plot_label,
+        top_assays=top_assays,
+        top_cell_lines=top_cell_lines,
+    )
+
+
 @app.command(help="Check installed R packages")
 def check_requirements():
     from bedboss.bedboss import requirements_check

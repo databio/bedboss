@@ -172,7 +172,7 @@ def run_search_bedbase(
 
 if __name__ == "__main__":
 
-    SEARCH_TERM_FILE = "/home/bnt4me/virginia/repos/bedboss/scripts/eval/queries_ids/biosample_classifications_organs_targets.json"
+    SEARCH_TERM_FILE = "/home/bnt4me/virginia/repos/bedboss/scripts/eval/queries_ids/biosample_diseases_target.json"
     SEARCH_TERM_LIMIT = None  # or None
     SEARCH_RETURN_LIMIT = 100
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     found_dict = {}
     for one_query in tqdm(p.keys(), desc="Processing queries", unit="query"):
         found_dict = run_search_bedbase(
-            one_query, limit=SEARCH_RETURN_LIMIT, search="semantic"
+            one_query, limit=SEARCH_RETURN_LIMIT, search="bivec"
         )
 
     eval_dict = eval(p, found_dict)
