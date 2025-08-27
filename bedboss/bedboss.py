@@ -234,7 +234,7 @@ def run_all(
     if validate_reference:
         _LOGGER.info("Validating reference genome")
         ref_valid_stats = ReferenceValidator().determine_compatibility(
-            bedfile=bed_metadata.bed_file, concise=True
+            bedfile=bed_metadata.bed_file, concise=True  # TODO: give bed_object instead
         )
     else:
         ref_valid_stats = None

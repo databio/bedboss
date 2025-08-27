@@ -118,7 +118,7 @@ class ReferenceValidator:
             passed_chrom_names=passed_chrom_names,
         )
 
-        # Layer 2:  Check Lengths, but only if layer 1 is passing
+        # Layer 2:  Check Lengths, but only if layer 1 is passing [all chroms are in ref genome]
         if passed_chrom_names:
             chroms_beyond_range = False
             num_of_chrom_beyond = 0
@@ -241,7 +241,9 @@ class ReferenceValidator:
             # Filter out unwanted reference genomes to assess
             for genome_model in self.genome_models:
                 if genome_model.genome_alias in ref_filter:
-                    self.genome_models.remove(genome_model)
+                    self.genome_models.remove(
+                        genome_model
+                    )  # TODO: remove it only for this analysis, not permanently
         try:
             bed_chrom_info = get_bed_chrom_info(bedfile)
         except Exception as e:
