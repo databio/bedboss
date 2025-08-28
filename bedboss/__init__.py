@@ -25,6 +25,7 @@ __all__ = [
 ]
 
 _LOGGER = logging.getLogger("bedboss")
+_LOGGER.propagate = False
 coloredlogs.install(
     logger=_LOGGER,
     datefmt="%H:%M:%S",

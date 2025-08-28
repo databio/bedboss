@@ -2,6 +2,8 @@ import logging
 import os
 from typing import Dict, List, Optional, Union
 
+from gtars.models import Region as GRegionSet
+
 from bedboss.exceptions import ValidatorException, BedBossException
 from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
@@ -222,7 +224,7 @@ class ReferenceValidator:
 
     def determine_compatibility(
         self,
-        bedfile: str,
+        bedfile: Union[GRegionSet, str],
         ref_filter: Optional[List[str]] = None,
         concise: Optional[bool] = False,
     ) -> Union[Dict[str, CompatibilityStats], Dict[str, CompatibilityConcise]]:
@@ -449,6 +451,6 @@ class ReferenceValidator:
                 if prediction.tier_ranking == 2:
                     best_rankings.append(genome)
 
-        if len(best_rankings) == 1:
+        if len(best_rankings) >= 1:
             return GENOME_FILES.get(best_rankings[0])
         return None

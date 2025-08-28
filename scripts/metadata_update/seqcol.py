@@ -21,7 +21,11 @@ SEQ_COL_URL = "https://api.refgenie.org/seqcol/collection/{digest}?collated=true
 
 # identifier = "dcc005e8761ad5599545cc538f6a2a4d"
 # bed_file_path = f"/home/bnt4me/Downloads/{identifier}.bed.gz"
-identifier = "dbd6d5414b4403c05099d02fd5298c4e"
+# identifier = "dbd6d5414b4403c05099d02fd5298c4e"
+identifier = "003c91fed233b4def93aa1fcb743a317"
+# identifier = "e82d49e376b002fa39a205a4e63d0caf"
+# identifier = "combined_unsorted"
+
 bed_file_path = f"/home/bnt4me/Downloads/{identifier}.bed.gz"
 
 
@@ -194,29 +198,31 @@ if __name__ == "__main__":
     # genome_models=modified_list,
     # )
 
+    from gtars.models import RegionSet as GRegionSet
     import time
+    from bedboss.utils import standardize_genome_name
 
     start_time = time.time()
 
-    compat = rv.determine_compatibility(bed_file_path, concise=True)
-    compatitil = {}
+    bed_object = GRegionSet(bed_file_path)
 
-    for k, v in compat.items():
-        if v.tier_ranking < 4:
-            compatitil[k] = v
+    compat = rv.determine_compatibility(bed_object, concise=True)
 
     import pprint
 
-    pp = pprint.pprint(compatitil)
+    # pp = pprint.pprint(compat)
 
-    bbagent.bed.update(
-        identifier=identifier,
-        ref_validation=compatitil,
-        upload_pephub=False,
-    )
     end_time = time.time()
 
     print(f"Time taken: {end_time - start_time} seconds")
+
+    with Session(bbagent.bed._sa_engine) as session:
+
+        bbagent.bed._update_ref_validation(session, bed_object.identifier, compat)
+
+    end_time1 = time.time()
+
+    print(f"Time taken: {end_time1 - end_time} seconds")
 
 
 # def get_chrom_genome_index(list_of_genomes: Genomes) -> dict:

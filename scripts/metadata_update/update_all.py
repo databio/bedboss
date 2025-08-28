@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session
 from bbconf.db_utils import Bed
 from geniml.bbclient import BBClient
 
+LIMIT = 20
+
 
 def update_all_bedbase(purge: bool = False):
     """
@@ -26,16 +28,16 @@ def update_all_bedbase(purge: bool = False):
 
     bbclient = BBClient()
 
-    select_not_updated = select(Bed).where(Bed.indexed == False).limit(20)
+    select_not_updated = select(Bed).where(Bed.indexed == False).limit(LIMIT)
     with Session(bbagent.bed._sa_engine) as session:
 
         if purge:
             session.query(Bed).update({Bed.indexed: False})
             session.commit()
 
-        beds_to_update: List[Bed] = session.scalars(select_not_updated)
+        beds_to_update = session.scalars(select_not_updated)
 
-        beds_to_update = [bed for bed in beds_to_update]
+        beds_to_update: List[Bed] = [bed for bed in beds_to_update]
 
         updated_number = 0
 
@@ -45,8 +47,7 @@ def update_all_bedbase(purge: bool = False):
                 bed_path = bbclient.seek(identifier)
             except FileNotFoundError:
                 print(f"Bed file for {identifier} not found.")
-                bbclient.load_bed(identifier)
-                bed_path = bbclient.seek(identifier)
+                bed_path = bbclient.load_bed(identifier)
 
             compat = rv.determine_compatibility(bed_path, concise=True)
             compatitil = {}
@@ -55,12 +56,15 @@ def update_all_bedbase(purge: bool = False):
                 if v.tier_ranking < 4:
                     compatitil[k] = v
 
-            # Update the bed file in BedBase
-            bbagent.bed.update(
-                identifier=identifier,
-                ref_validation=compatitil,
-                upload_pephub=False,
-            )
+            try:
+                # Update the bed file in BedBase
+                bbagent.bed._update_ref_validation(
+                    sa_session=session,
+                    bed_id=identifier,
+                    ref_validation=compatitil,
+                )
+            except Exception as e:
+                print(f"!!--->> Error updating {identifier}: {e}")
 
             # Mark the bed as indexed
             bed.indexed = True

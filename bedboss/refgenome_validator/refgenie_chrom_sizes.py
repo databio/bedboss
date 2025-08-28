@@ -97,8 +97,8 @@ def get_seq_col() -> Genomes:
     genomes = get_genome_list()
 
     return_list = []
-
-    for info in tqdm(genomes[500:-1], desc="Downloading genomes from refgenie..."):
+    # genomes = genomes[500:-1]  # TEMP for testing
+    for info in tqdm(genomes, desc="Downloading genomes from refgenie..."):
         digest = info["digest"]
         seq_col = seq_col_from_digest(digest)
 
