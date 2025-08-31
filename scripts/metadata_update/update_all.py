@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from bbconf.db_utils import Bed
 from geniml.bbclient import BBClient
 
-LIMIT = 20
+LIMIT = 100000
 
 
 def update_all_bedbase(purge: bool = False):
@@ -21,10 +21,10 @@ def update_all_bedbase(purge: bool = False):
 
     rv = ReferenceValidator()
 
-    # bbagent = BedBaseAgent("/home/bnt4me/virginia/repos/bedhost/config.yaml")
-    bbagent = BedBaseAgent(
-        "/project/shefflab/brickyard/results_pipeline/bedbase_jobs/bedbase_config.yaml"
-    )
+    bbagent = BedBaseAgent("/home/bnt4me/virginia/repos/bedhost/config.yaml")
+    # bbagent = BedBaseAgent(
+    #     "/project/shefflab/brickyard/results_pipeline/bedbase_jobs/bedbase_config.yaml"
+    # )
 
     bbclient = BBClient()
 
@@ -49,25 +49,20 @@ def update_all_bedbase(purge: bool = False):
                 print(f"Bed file for {identifier} not found.")
                 bed_path = bbclient.load_bed(identifier)
 
-            compat = rv.determine_compatibility(bed_path, concise=True)
-            compatitil = {}
-
-            for k, v in compat.items():
-                if v.tier_ranking < 4:
-                    compatitil[k] = v
-
             try:
+                compat = rv.determine_compatibility(bed_path, concise=True)
                 # Update the bed file in BedBase
                 bbagent.bed._update_ref_validation(
                     sa_session=session,
                     bed_id=identifier,
-                    ref_validation=compatitil,
+                    ref_validation=compat,
                 )
+                bed.indexed = True
+
             except Exception as e:
                 print(f"!!--->> Error updating {identifier}: {e}")
 
             # Mark the bed as indexed
-            bed.indexed = True
 
             updated_number += 1
 
