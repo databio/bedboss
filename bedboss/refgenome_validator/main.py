@@ -2,6 +2,8 @@ import logging
 import os
 from typing import Dict, List, Optional, Union
 
+from gtars.models import Region as GRegionSet
+
 from bedboss.exceptions import ValidatorException, BedBossException
 from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
@@ -18,6 +20,7 @@ from bedboss.refgenome_validator.utils import (
     parse_IGD_output,
     run_igd_command,
 )
+from bedboss.refgenome_validator.refgenie_chrom_sizes import get_chrom_sizes
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -84,6 +87,7 @@ class ReferenceValidator:
             if key in genome_chrom_sizes:
                 q_and_m += 1
                 query_keys_present.append(key)
+
         for key in list(genome_chrom_sizes.keys()):
             if key not in bed_chrom_sizes:
                 not_q_and_m += 1
@@ -117,7 +121,7 @@ class ReferenceValidator:
             passed_chrom_names=passed_chrom_names,
         )
 
-        # Layer 2:  Check Lengths, but only if layer 1 is passing
+        # Layer 2:  Check Lengths, but only if layer 1 is passing [all chroms are in ref genome]
         if passed_chrom_names:
             chroms_beyond_range = False
             num_of_chrom_beyond = 0
@@ -221,7 +225,7 @@ class ReferenceValidator:
 
     def determine_compatibility(
         self,
-        bedfile: str,
+        bedfile: Union[GRegionSet, str],
         ref_filter: Optional[List[str]] = None,
         concise: Optional[bool] = False,
     ) -> Union[Dict[str, CompatibilityStats], Dict[str, CompatibilityConcise]]:
@@ -240,7 +244,9 @@ class ReferenceValidator:
             # Filter out unwanted reference genomes to assess
             for genome_model in self.genome_models:
                 if genome_model.genome_alias in ref_filter:
-                    self.genome_models.remove(genome_model)
+                    self.genome_models.remove(
+                        genome_model
+                    )  # TODO: remove it only for this analysis, not permanently
         try:
             bed_chrom_info = get_bed_chrom_info(bedfile)
         except Exception as e:
@@ -255,26 +261,26 @@ class ReferenceValidator:
 
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.genome_alias]: CompatibilityStats = (
+            model_compat_stats[genome_model.genome_digest]: CompatibilityStats = (
                 self.calculate_chrom_stats(bed_chrom_info, genome_model.chrom_sizes)
             )
 
             # Third layer - IGD, only if layer 1 and layer 2 have passed
             if (
                 model_compat_stats[
-                    genome_model.genome_alias
+                    genome_model.genome_digest
                 ].chrom_name_stats.passed_chrom_names
                 and not model_compat_stats[
-                    genome_model.genome_alias
+                    genome_model.genome_digest
                 ].chrom_length_stats.beyond_range
             ):
-                model_compat_stats[genome_model.genome_alias].igd_stats = (
+                model_compat_stats[genome_model.genome_digest].igd_stats = (
                     self.get_igd_overlaps(bedfile)
                 )
 
             # Calculate compatibility rating
-            model_compat_stats[genome_model.genome_alias].compatibility = (
-                self.calculate_rating(model_compat_stats[genome_model.genome_alias])
+            model_compat_stats[genome_model.genome_digest].compatibility = (
+                self.calculate_rating(model_compat_stats[genome_model.genome_digest])
             )
         if concise:
             concise_dict = {}
@@ -387,20 +393,23 @@ class ReferenceValidator:
 
         return list[GenomeModel]
         """
-        dir_path = os.path.dirname(os.path.realpath(__file__))
 
-        chrm_sizes_directory = os.path.join(dir_path, "chrom_sizes")
-
-        all_genome_models = []
-        for root, dirs, files in os.walk(chrm_sizes_directory):
-            for file in files:
-                if file.endswith(".sizes"):
-                    curr_genome_model = GenomeModel(
-                        genome_alias=file, chrom_sizes_file=os.path.join(root, file)
-                    )
-                    all_genome_models.append(curr_genome_model)
-
-        return all_genome_models
+        # OLD: TO BE DELETED IN FUTURE RELEASES
+        # dir_path = os.path.dirname(os.path.realpath(__file__))
+        #
+        # chrm_sizes_directory = os.path.join(dir_path, "chrom_sizes")
+        #
+        # all_genome_models = []
+        # for root, dirs, files in os.walk(chrm_sizes_directory):
+        #     for file in files:
+        #         if file.endswith(".sizes"):
+        #             curr_genome_model = GenomeModel(
+        #                 genome_alias=file, chrom_sizes_file=os.path.join(root, file)
+        #             )
+        #             all_genome_models.append(curr_genome_model)
+        #
+        # return all_genome_models
+        return get_chrom_sizes()
 
     @staticmethod
     def _create_concise_output(output: CompatibilityStats) -> CompatibilityConcise:
@@ -443,6 +452,6 @@ class ReferenceValidator:
                 if prediction.tier_ranking == 2:
                     best_rankings.append(genome)
 
-        if len(best_rankings) == 1:
+        if len(best_rankings) >= 1:
             return GENOME_FILES.get(best_rankings[0])
         return None
