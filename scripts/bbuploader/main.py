@@ -25,7 +25,7 @@ def runn():
     )
 
 
-def another_test():
+def run_gse():
     # time it:
     import time
 
@@ -39,7 +39,8 @@ def another_test():
         # Genome hg19 and mm10
         # gse="gse280839",
         # gse="gse218680",  ### -- this is example in the api
-        gse="gse38163",  ### -- without genome
+        # gse="gse38163",  ### -- without genome
+        gse="gse280208",
         # gse="gse246900",  ## -- this is good. allways using it
         # gse="gse32970", # - this data is encode https://www.encodeproject.org/experiments/ENCSR000ELR/
         # gse="gse106049",  # This is interesting reference genome.
@@ -53,7 +54,7 @@ def another_test():
         # gse="gse229592", # mice
         # gse="gse217638", # same samples #1.
         # gse="gse217639",  # same samples #2.
-        bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+        bedbase_config="/home/bnt4me/virginia/repos/bedhost/config.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
         # genome="HG38",
         rerun=True,
@@ -61,7 +62,7 @@ def another_test():
         run_skipped=True,
         reinit_skipper=True,
         lite=True,
-        # overwrite=True,
+        overwrite=True,
         overwrite_bedset=True,
     )
     time2 = time.time()
@@ -69,20 +70,26 @@ def another_test():
 
 
 def reprocess_id():
-    from bedboss.bedboss import reprocess_one
+    from bedboss.bedboss import reprocess_one, reprocess_all
 
     reprocess_one(
-        identifier="abae2832670c57f61d2708f964dac268",
+        identifier="b4712e0051aa975d450baf576a9aa6a2",
         bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
         output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
     )
+
+    # reprocess_all(
+    #     bedbase_config="/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
+    #     output_folder="/home/bnt4me/virginia/repos/bbuploader/data",
+    #     limit=2,
+    # )
 
 
 if __name__ == "__main__":
     # runn()
 
-    # another_test()
-    reprocess_id()
+    run_gse()
+    # reprocess_id()
 
 ## cmd
 # bedboss geo upload-all --outfolder /home/bnt4me/virginia/repos/bbuploader/data --start-date 2025/02/23 --end-date 2025/02/26 --no-use-skipper --lite --bedbase-config /home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml --no-use-skipper --no-preload

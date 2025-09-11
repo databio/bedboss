@@ -2,34 +2,40 @@ import logging
 import subprocess
 from typing import List, Union
 
-from geniml.io import RegionSet
 from gtars.models import RegionSet as GRegionSet
 
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_bed_chrom_info(bedfile: Union[str, RegionSet, GRegionSet]) -> dict:
+def get_bed_chrom_info(bedfile: Union[str, GRegionSet]) -> dict:
     """
     Determine chrom lengths for bed file
 
     :param bedfile: RegionSet object or path to bed file
     returns dict: returns dictionary where keys are chrom names and values are the max end position of that chromosome.
     """
-    if isinstance(bedfile, RegionSet):
-        df = bedfile.to_pandas()
-        max_end_for_each_chrom = df.groupby(0)[2].max().to_dict()
-    elif isinstance(bedfile, GRegionSet):
-        max_end_for_each_chrom = {}
-        for region in bedfile:
-            if region.chrom not in max_end_for_each_chrom:
-                max_end_for_each_chrom[region.chrom] = region.end
-            if region.end > max_end_for_each_chrom[region.chrom]:
-                max_end_for_each_chrom[region.chrom] = region.end
-    else:
-        df = RegionSet(bedfile).to_pandas()
-        max_end_for_each_chrom = df.groupby(0)[2].max().to_dict()
+    # if isinstance(bedfile, RegionSet):
+    #     df = bedfile.to_pandas()
+    #     max_end_for_each_chrom = df.groupby(0)[2].max().to_dict()
+    # elif isinstance(bedfile, GRegionSet):
+    #     max_end_for_each_chrom = {}
+    #     for region in bedfile:
+    #         if region.chrom not in max_end_for_each_chrom:
+    #             max_end_for_each_chrom[region.chrom] = region.end
+    #         if region.end > max_end_for_each_chrom[region.chrom]:
+    #             max_end_for_each_chrom[region.chrom] = region.end
+    # else:
+    #     df = RegionSet(bedfile).to_pandas()
+    #     max_end_for_each_chrom = df.groupby(0)[2].max().to_dict()
+    #
+    # return max_end_for_each_chrom
 
-    return max_end_for_each_chrom
+    if isinstance(bedfile, GRegionSet):
+        return_dict = bedfile.get_max_end_per_chr()
+    else:
+        rs = GRegionSet(bedfile)
+        return_dict = rs.get_max_end_per_chr()
+    return return_dict
 
 
 def run_igd_command(command):

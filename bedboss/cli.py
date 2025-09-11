@@ -423,10 +423,33 @@ def reindex(
         file_okay=True,
         readable=True,
     ),
+    purge: bool = typer.Option(False, help="Purge existing index before reindexing"),
+    batch: int = typer.Option(1000, help="Number of items to upload in one batch"),
 ):
     from bedboss.qdrant_index.qdrant_index import add_to_qdrant
 
-    add_to_qdrant(config=bedbase_config)
+    add_to_qdrant(config=bedbase_config, batch=batch, purge=purge)
+
+
+@app.command(help="Reindex semantic (text) search.")
+def reindex_text(
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    purge: bool = typer.Option(False, help="Purge existing index before reindexing"),
+    batch: int = typer.Option(1000, help="Number of items to upload in one batch"),
+):
+    from bedboss.qdrant_index.qdrant_index import reindex_semantic_search
+
+    return reindex_semantic_search(
+        config=bedbase_config,
+        purge=purge,
+        batch=batch,
+    )
 
 
 @app.command(
@@ -603,6 +626,72 @@ def convert_universe(
         bedfile_id=bed_id,
         bedset_id=bedset,
         construct_method=method,
+    )
+
+
+@app.command(help="Update reference genomes in the database")
+def update_genomes(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+):
+    from bbconf.bbagent import BedBaseAgent
+    from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
+
+    bbagent = BedBaseAgent(config)
+    update_db_genomes(bbagent)
+
+    print("Genomes updated successfully.")
+
+
+@app.command(help="Download UMAP")
+def download_umap(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    output_file: str = typer.Option(
+        ...,
+        help="Path to the output file where UMAP embeddings will be saved",
+    ),
+    n_components: int = typer.Option(
+        3,
+        help="Number of UMAP components",
+    ),
+    plot_name: str = typer.Option(
+        None,
+        help="Name of the plot file",
+    ),
+    plot_label: str = typer.Option(
+        None,
+        help="Label for the plot",
+    ),
+    top_assays: int = typer.Option(
+        15,
+        help="Number of top assays to include",
+    ),
+    top_cell_lines: int = typer.Option(
+        15,
+        help="Number of top cell lines to include",
+    ),
+):
+    from bedboss.scripts.make_umap import get_embeddings
+
+    get_embeddings(
+        bbconf=config,
+        output_file=output_file,
+        n_components=n_components,
+        plot_name=plot_name,
+        plot_label=plot_label,
+        top_assays=top_assays,
+        top_cell_lines=top_cell_lines,
     )
 
 
