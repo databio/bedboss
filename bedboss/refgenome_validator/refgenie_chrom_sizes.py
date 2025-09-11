@@ -74,6 +74,7 @@ def seq_col_from_digest(digest: str) -> List[SeqCol]:
     """
     url = SEQ_COL_URL.format(digest=digest)
 
+    # Getting first level of genome info
     response = run_requests(url)
     return_list = []
 

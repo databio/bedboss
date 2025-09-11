@@ -218,7 +218,7 @@ def get_embeddings(
 
     return_df = merged.copy()
 
-    # Select top cell linse available in the dataset
+    # Select top cell lines available in the dataset
     if top_cell_lines is not None:
         top_cell_lines_list = (
             merged[CELL_LINE].value_counts().nlargest(top_cell_lines).index

@@ -87,6 +87,7 @@ class ReferenceValidator:
             if key in genome_chrom_sizes:
                 q_and_m += 1
                 query_keys_present.append(key)
+
         for key in list(genome_chrom_sizes.keys()):
             if key not in bed_chrom_sizes:
                 not_q_and_m += 1
