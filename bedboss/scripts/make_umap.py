@@ -14,7 +14,8 @@ from bbconf import BedBaseAgent
 import json
 
 
-@lru_cache()
+# @lru_cache()
+# TODO: can we make this function cached, without using credentials as part of the cache key?
 def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     """
     Fetch data from Qdrant collection and return it as a DataFrame.
