@@ -23,6 +23,17 @@ def update_description(bed_id: str, new_description: str):
     print("Description updated successfully.")
 
 
+def update_assay(bed_id: str, new_assay: str):
+    bbconf.bed.update(
+        identifier=bed_id,
+        metadata={"assay": new_assay},
+        upload_pephub=False,
+        upload_s3=False,
+        upload_qdrant=False,
+    )
+    print(f"Assay updated successfully for {bed_id}.")
+
+
 def update_all_descriptions():
 
     with open(
@@ -46,5 +57,34 @@ def update_all_descriptions():
             print(f"Failed to update {bed_id}: {e}")
 
 
+def update_all_assays():
+
+    import pandas as pd
+
+    meta = pd.read_csv(
+        "/home/bnt4me/virginia/repos/bedboss/scripts/metadata_update/encode_metadata/out.csv"
+    )
+
+    info_dict = meta.set_index("id")["assay"].to_dict()
+
+    info_dict
+
+    total_items = len(info_dict)
+    success_count = 0
+    failed_count = 0
+
+    for bed_id, assay in tqdm(
+        info_dict.items(), total=total_items, desc="Updating assays"
+    ):
+        try:
+            update_assay(bed_id, assay)
+            success_count += 1
+        except Exception as e:
+            failed_count += 1
+            print(f"Failed to update {bed_id}: {e}")
+
+
 if __name__ == "__main__":
-    update_all_descriptions()
+    # update_all_descriptions()
+
+    update_all_assays()
