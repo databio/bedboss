@@ -221,14 +221,22 @@ def get_embeddings(
 
     # Select top cell lines available in the dataset
     if top_cell_lines is not None:
-        top_cell_lines_list = (
-            merged[CELL_LINE].value_counts().nlargest(top_cell_lines).index
-        )
+        top_cell_lines_list = [
+            x
+            for x in merged[CELL_LINE].value_counts().nlargest(top_cell_lines).index
+            if x is not None and x != ""
+        ]
+
         return_df = return_df[return_df[CELL_LINE].isin(top_cell_lines_list)]
 
     # Select top assays available in the dataset
     if top_assays is not None:
-        top_assays_list = merged[ASSAY].value_counts().nlargest(top_assays).index
+        top_assays_list = [
+            x
+            for x in merged[ASSAY].value_counts().nlargest(top_assays).index
+            if x is not None and x != ""
+        ]
+
         return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
 
     df = create_umap(
