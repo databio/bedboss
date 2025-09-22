@@ -13,9 +13,10 @@ from bedboss.refgenome_validator.genome_model import GenomeModel
 from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
 from bbconf import BedBaseAgent
 from bedboss.const import PKG_NAME
+from bedboss.exceptions import BedBossException
 
 BASE_URL = "https://api.refgenie.org"
-GENOMES_URL = os.path.join(BASE_URL, "v4/genomes")
+GENOMES_URL = os.path.join(BASE_URL, "v4/genomes?limit=1000")
 SEQ_COL_URL = os.path.join(
     BASE_URL, "seqcol/collection/{digest}?collated=true&attribute=name_length_pairs"
 )
@@ -60,7 +61,7 @@ def get_genome_list() -> List[dict]:
     """
 
     genome_data = run_requests(GENOMES_URL)
-    return genome_data
+    return genome_data.get("items", [])
 
 
 def seq_col_from_digest(digest: str) -> List[SeqCol]:
@@ -96,6 +97,8 @@ def get_seq_col() -> Genomes:
     """
 
     genomes = get_genome_list()
+    if not genomes:
+        raise BedBossException("Failed to fetch genome list from Refgenie.")
 
     return_list = []
     # genomes = genomes[500:-1]  # TEMP for testing

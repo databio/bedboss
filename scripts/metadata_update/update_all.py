@@ -73,4 +73,7 @@ def update_all_bedbase(purge: bool = False):
 
 
 if __name__ == "__main__":
-    update_all_bedbase(purge=False)
+    # update_all_bedbase(purge=False)
+    from bedboss.refgenome_validator.refgenie_chrom_sizes import get_seq_col
+
+    ret = get_seq_col()
