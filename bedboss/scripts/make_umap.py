@@ -1,6 +1,7 @@
 from qdrant_client import QdrantClient
 import os
 import pandas as pd
+from pydantic import BaseModel, ConfigDict
 
 from umap import UMAP
 import matplotlib.pyplot as plt
@@ -8,10 +9,33 @@ import seaborn as sns
 from typing import Union
 import warnings
 from functools import lru_cache
+import pickle
 
 from bbconf import BedBaseAgent
 
 import json
+
+
+class umapReturn(BaseModel):
+    model: UMAP
+    dataframe: pd.DataFrame
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+def save_umap_model(umap_model: UMAP, model_path: str) -> None:
+    """
+    Save the UMAP model to a file.
+
+    :param umap_model: Fitted UMAP model
+    :param model_path: Path to save the UMAP model
+    :return: None
+
+    """
+    with open(model_path, "wb") as file:
+        pickle.dump(umap_model, file)
+
+    print(f"UMAP model saved to {model_path}")
 
 
 # @lru_cache()
@@ -102,7 +126,7 @@ def create_umap(
     n_components: int = 3,
     plot_name: Union[str, None] = None,
     label_column: str = "cell_line",
-) -> pd.DataFrame:
+) -> umapReturn:
     """
     Create UMAP embeddings from the DataFrame.
 
@@ -111,7 +135,7 @@ def create_umap(
     :param plot_name: Name for the output plot file. if None, no plot will be saved
     :param label_column: Column name to use for labeling the points in the UMAP plot e.g. "cell_line" or "assay". Default is "cell_line"
 
-    :return: Tuple of UMAP embeddings and the DataFrame with added coordinates
+    :return: Tuple of DataFrame with added coordinates and fitted UMAP model
     """
 
     if n_components not in [2, 3]:
@@ -122,7 +146,9 @@ def create_umap(
         n_components=n_components,
         random_state=42,
         verbose=True,
-    ).fit_transform(list(df["vector"]))
+    )
+    umap_model = umap.fit(list(df["vector"]))
+    umap_embeddings = umap.transform(list(df["vector"]))
 
     if plot_name:
         if n_components == 2:
@@ -131,20 +157,23 @@ def create_umap(
                     f"label_column must be either 'cell_line' or 'assay', got {label_column}."
                 )
 
-            plot_umap(umap, list(df[label_column]), name=plot_name)
+            plot_umap(umap_embeddings, list(df[label_column]), name=plot_name)
         else:
             warnings.warn(
                 "Plotting is only supported for 2D UMAP. No plot will be saved."
             )
 
     if n_components == 2:
-        df[["x", "y"]] = pd.DataFrame(umap, index=df.index)
+        df[["x", "y"]] = pd.DataFrame(umap_embeddings, index=df.index)
     elif n_components == 3:
-        df[["x", "y", "z"]] = pd.DataFrame(umap, index=df.index)
+        df[["x", "y", "z"]] = pd.DataFrame(umap_embeddings, index=df.index)
 
-    print(f"UMAP shape: {umap.shape}")
+    print(f"UMAP shape: {umap_embeddings.shape}")
 
-    return df
+    return umapReturn(
+        model=umap_model,
+        dataframe=df,
+    )
 
 
 def plot_umap(value, label, name="default") -> None:
@@ -193,6 +222,7 @@ def get_embeddings(
     plot_label: str = None,
     top_assays: Union[int, None] = 15,
     top_cell_lines: Union[int, None] = 15,
+    save_model: bool = True,
 ) -> None:
     """
     Get embeddings from Qdrant and create UMAP, and save the results to a JSON file, and optionally plot the UMAP.
@@ -207,12 +237,24 @@ def get_embeddings(
     :param top_assays: Number of top assays to consider. If None, all assays are considered. [Default is 15]
     :param top_cell_lines: Number of top cell lines to consider. If None, all. [Default is 15]
 
+    :param save_model: Whether to save the UMAP model or not (default is True)
+
     :return: None
 
     """
-    agent = BedBaseAgent(config=bbconf)
+    if isinstance(bbconf, str):
+        agent = BedBaseAgent(config=bbconf)
+    elif isinstance(bbconf, BedBaseAgent):
+        agent = bbconf
+    else:
+        raise TypeError(
+            "bbconf must be either a string path or a BedBaseAgent instance."
+        )
 
     merged = fetch_data(agent=agent)
+
+    if not output_file.endswith(".json"):
+        output_file += ".json"
 
     CELL_LINE = "cell_line"
     ASSAY = "assay"
@@ -239,10 +281,18 @@ def get_embeddings(
 
         return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
 
-    df = create_umap(
+    umap_return = create_umap(
         return_df,
         n_components=n_components,
         plot_name=plot_name,
         label_column=plot_label,
     )
-    save_df_as_json(df, output_file)
+    save_df_as_json(umap_return.dataframe, output_file)
+
+    if save_model:
+        save_umap_model(
+            umap_return.model,
+            model_path=output_file.replace(".json", "_umap_model.pkl"),
+        )
+
+    print("UMAP processing completed!")
