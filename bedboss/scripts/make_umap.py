@@ -291,6 +291,8 @@ def get_embeddings(
     save_df_as_json(umap_return.dataframe, output_file)
 
     if save_model:
+        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        umap_return.model.random_state = None
         save_umap_model(
             umap_return.model,
             model_path=output_file.replace(".json", "_umap_model.joblib"),
