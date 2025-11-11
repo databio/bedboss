@@ -9,7 +9,8 @@ import seaborn as sns
 from typing import Union
 import warnings
 from functools import lru_cache
-import pickle
+# import pickle
+import joblib
 
 from bbconf import BedBaseAgent
 
@@ -33,7 +34,7 @@ def save_umap_model(umap_model: UMAP, model_path: str) -> None:
 
     """
     with open(model_path, "wb") as file:
-        pickle.dump(umap_model, file)
+        joblib.dump(umap_model, file)
 
     print(f"UMAP model saved to {model_path}")
 
@@ -292,7 +293,7 @@ def get_embeddings(
     if save_model:
         save_umap_model(
             umap_return.model,
-            model_path=output_file.replace(".json", "_umap_model.pkl"),
+            model_path=output_file.replace(".json", "_umap_model.joblib"),
         )
 
     print("UMAP processing completed!")
