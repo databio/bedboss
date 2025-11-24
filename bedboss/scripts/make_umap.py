@@ -9,6 +9,7 @@ import seaborn as sns
 from typing import Union
 import warnings
 from functools import lru_cache
+
 # import pickle
 import joblib
 
@@ -292,6 +293,7 @@ def get_embeddings(
 
     if save_model:
         ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        ## I am removing it here, but it should be set later to the same value (42)
         umap_return.model.random_state = None
         save_umap_model(
             umap_return.model,
