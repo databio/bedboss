@@ -1,9 +1,12 @@
 from qdrant_client import QdrantClient
 import os
 import pandas as pd
+import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 from umap import UMAP
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
@@ -19,25 +22,25 @@ import json
 
 
 class umapReturn(BaseModel):
-    model: UMAP
+    model: Union[UMAP, PCA, TSNE]
     dataframe: pd.DataFrame
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def save_umap_model(umap_model: UMAP, model_path: str) -> None:
+def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None:
     """
-    Save the UMAP model to a file.
+    Save the UMAP, PCA, or t-SNE model to a file.
 
-    :param umap_model: Fitted UMAP model
-    :param model_path: Path to save the UMAP model
+    :param umap_model: Fitted UMAP, PCA, or t-SNE model
+    :param model_path: Path to save the model
     :return: None
 
     """
     with open(model_path, "wb") as file:
         joblib.dump(umap_model, file)
 
-    print(f"UMAP model saved to {model_path}")
+    print(f"Model saved to {model_path}")
 
 
 # @lru_cache()
@@ -128,29 +131,57 @@ def create_umap(
     n_components: int = 3,
     plot_name: Union[str, None] = None,
     label_column: str = "cell_line",
+    method: str = "umap",
 ) -> umapReturn:
     """
-    Create UMAP embeddings from the DataFrame.
+    Create UMAP, PCA, or t-SNE embeddings from the DataFrame.
 
     :param df: DataFrame containing the vectors and labels
-    :param n_components: Number of dimensions for UMAP (default is 3)
+    :param n_components: Number of dimensions for UMAP/PCA/t-SNE (default is 3)
     :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param label_column: Column name to use for labeling the points in the UMAP plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param label_column: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param method: Dimensionality reduction method to use. Options: "umap" (default), "pca", or "tsne"
 
-    :return: Tuple of DataFrame with added coordinates and fitted UMAP model
+    :return: Tuple of DataFrame with added coordinates and fitted model
     """
 
     if n_components not in [2, 3]:
-        raise ValueError("n_components must be either 2 or 3 for UMAP.")
-    print("Creating UMAP embeddings...")
+        raise ValueError("n_components must be either 2 or 3.")
 
-    umap = UMAP(
-        n_components=n_components,
-        random_state=42,
-        verbose=True,
-    )
-    umap_model = umap.fit(list(df["vector"]))
-    umap_embeddings = umap.transform(list(df["vector"]))
+    method = method.lower()
+    if method not in ["umap", "pca", "tsne"]:
+        raise ValueError("method must be either 'umap', 'pca', or 'tsne'.")
+
+    print(f"Creating {method.upper()} embeddings...")
+
+    if method == "umap":
+        model = UMAP(
+            n_components=n_components,
+            random_state=42,
+            verbose=True,
+        )
+    elif method == "pca":
+        model = PCA(
+            n_components=n_components,
+            random_state=42,
+        )
+    else:  # method == "tsne"
+        model = TSNE(
+            n_components=n_components,
+            random_state=42,
+            verbose=True,
+        )
+
+    # Convert list of vectors to numpy array
+    vectors = np.array(list(df["vector"]))
+
+    if method == "tsne":
+        # t-SNE doesn't support separate fit/transform, use fit_transform
+        embeddings = model.fit_transform(vectors)
+        fitted_model = model
+    else:
+        fitted_model = model.fit(vectors)
+        embeddings = model.transform(vectors)
 
     if plot_name:
         if n_components == 2:
@@ -159,21 +190,21 @@ def create_umap(
                     f"label_column must be either 'cell_line' or 'assay', got {label_column}."
                 )
 
-            plot_umap(umap_embeddings, list(df[label_column]), name=plot_name)
+            plot_umap(embeddings, list(df[label_column]), name=plot_name)
         else:
             warnings.warn(
-                "Plotting is only supported for 2D UMAP. No plot will be saved."
+                "Plotting is only supported for 2D embeddings. No plot will be saved."
             )
 
     if n_components == 2:
-        df[["x", "y"]] = pd.DataFrame(umap_embeddings, index=df.index)
+        df[["x", "y"]] = pd.DataFrame(embeddings, index=df.index)
     elif n_components == 3:
-        df[["x", "y", "z"]] = pd.DataFrame(umap_embeddings, index=df.index)
+        df[["x", "y", "z"]] = pd.DataFrame(embeddings, index=df.index)
 
-    print(f"UMAP shape: {umap_embeddings.shape}")
+    print(f"{method.upper()} shape: {embeddings.shape}")
 
     return umapReturn(
-        model=umap_model,
+        model=fitted_model,
         dataframe=df,
     )
 
@@ -225,21 +256,23 @@ def get_embeddings(
     top_assays: Union[int, None] = 15,
     top_cell_lines: Union[int, None] = 15,
     save_model: bool = True,
+    method: str = "umap",
 ) -> None:
     """
-    Get embeddings from Qdrant and create UMAP, and save the results to a JSON file, and optionally plot the UMAP.
+    Get embeddings from Qdrant and create UMAP, PCA, or t-SNE, and save the results to a JSON file, and optionally plot the embeddings.
 
     :param bbconf: string containing to bedbase configuration file path
     :param output_file: Path to save the output JSON file
-    :param n_components: Number of dimensions for UMAP (default is 3)
+    :param n_components: Number of dimensions for UMAP/PCA/t-SNE (default is 3)
 
     :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param plot_label: Column name to use for labeling the points in the UMAP plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param plot_label: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". Default is "cell_line"
 
     :param top_assays: Number of top assays to consider. If None, all assays are considered. [Default is 15]
     :param top_cell_lines: Number of top cell lines to consider. If None, all. [Default is 15]
 
-    :param save_model: Whether to save the UMAP model or not (default is True)
+    :param save_model: Whether to save the model or not (default is True)
+    :param method: Dimensionality reduction method to use. Options: "umap" (default), "pca", or "tsne"
 
     :return: None
 
@@ -288,16 +321,18 @@ def get_embeddings(
         n_components=n_components,
         plot_name=plot_name,
         label_column=plot_label,
+        method=method,
     )
     save_df_as_json(umap_return.dataframe, output_file)
 
     if save_model:
         ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
         ## I am removing it here, but it should be set later to the same value (42)
-        umap_return.model.random_state = None
+        if method == "umap":
+            umap_return.model.random_state = None
         save_umap_model(
             umap_return.model,
-            model_path=output_file.replace(".json", "_umap_model.joblib"),
+            model_path=output_file.replace(".json", f"_{method}_model.joblib"),
         )
 
-    print("UMAP processing completed!")
+    print(f"{method.upper()} processing completed!")

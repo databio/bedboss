@@ -681,6 +681,10 @@ def download_umap(
         15,
         help="Number of top cell lines to include",
     ),
+    method: str = typer.Option(
+        "umap",
+        help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'",
+    ),
 ):
     from bedboss.scripts.make_umap import get_embeddings
 
@@ -692,6 +696,7 @@ def download_umap(
         plot_label=plot_label,
         top_assays=top_assays,
         top_cell_lines=top_cell_lines,
+        method=method,
     )
 
 
