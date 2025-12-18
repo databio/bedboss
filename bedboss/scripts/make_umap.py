@@ -21,6 +21,7 @@ from bbconf import BedBaseAgent
 
 import json
 
+python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
 
 class umapReturn(BaseModel):
     model: Union[UMAP, PCA, TSNE]
@@ -121,6 +122,7 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     json_data = {"nodes": nodes, "links": []}
 
     # Save to a JSON file
+    output_path = f"{output_path}_{python_version}.json"
     with open(output_path, "w") as json_file:
         json.dump(json_data, json_file, indent=4)
 
@@ -289,8 +291,10 @@ def get_embeddings(
 
     merged = fetch_data(agent=agent)
 
-    if not output_file.endswith(".json"):
-        output_file += ".json"
+    if output_file.endswith(".json"):
+        output_file = output_file[:-5]
+        # output_file += ".json"
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     CELL_LINE = "cell_line"
     ASSAY = "assay"
@@ -331,12 +335,9 @@ def get_embeddings(
         ## I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
-        python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
         save_umap_model(
             umap_return.model,
-            model_path=output_file.replace(
-                ".json", f"_{method}_model_{python_version}.joblib"
-            ),
+            model_path=f"{output_file}_{method}_model_{python_version}.joblib",
         )
 
     print(f"{method.upper()} processing completed!")
