@@ -12,5 +12,3 @@ pandas>=2.0.0
 ubiquerg>=0.6.2
 bedms>=0.1.0
 pephubclient>=0.4.4
-geniml[ml]>=0.7.0
-gdrs>=0.1.0
