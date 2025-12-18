@@ -1,5 +1,6 @@
 from qdrant_client import QdrantClient
 import os
+import sys
 import pandas as pd
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -330,9 +331,12 @@ def get_embeddings(
         ## I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
+        python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
         save_umap_model(
             umap_return.model,
-            model_path=output_file.replace(".json", f"_{method}_model.joblib"),
+            model_path=output_file.replace(
+                ".json", f"_{method}_model_{python_version}.joblib"
+            ),
         )
 
     print(f"{method.upper()} processing completed!")
