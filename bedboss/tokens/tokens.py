@@ -6,7 +6,7 @@ from typing import Union
 from bbconf.bbagent import BedBaseAgent
 from geniml.bbclient import BBClient
 from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
-from genimtools.tokenizers import TreeTokenizer
+from gtars.tokenizers import Tokenizer
 
 from bedboss.exceptions import BedBossException
 
@@ -35,13 +35,11 @@ def tokenize_bed_file(
     """
     bbc = BBClient(cache_folder=cache_folder or DEFAULT_CACHE_FOLDER)
 
-    tokenizer = TreeTokenizer(bbc.seek(universe))
+    tokenizer = Tokenizer(bbc.seek(universe))
     rs = bbc.load_bed(bed)
 
-    tokens = tokenizer(rs).ids
-
-    #     b = tokens.to_regions()  # [Region(chr1, 100, 200), ... ]
-    #     f = tokens.to_bit_vector()  #
+    tokens = tokenizer.encode(tokenizer.tokenize(rs))
+    # tokens - list[1 ,2 ,3,4 ]
 
     bbc.cache_tokens(universe, bed, tokens)
     _LOGGER.info(f"Tokenized bed file '{bed}' added to the cache")

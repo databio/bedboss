@@ -5,21 +5,21 @@ on:
   push:
     branches: [dev]
   pull_request:
-    branches: [master, dev]
+    branches: [main, dev]
 
 jobs:
   pytest:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]
+        python-version: ["3.10", "3.13"]
         os: [ubuntu-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -31,6 +31,9 @@ jobs:
 
     - name: Install package
       run: uv pip install . --system
+
+    - name: run bedboss help
+      run: bedboss --help
 
 #    - name: Run pytest tests
 #      run: pytest tests -x -vv

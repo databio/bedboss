@@ -1,17 +1,52 @@
 from qdrant_client import QdrantClient
 import os
+import sys
 import pandas as pd
+import logging
+import numpy as np
+from pydantic import BaseModel, ConfigDict
 
 from umap import UMAP
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 import warnings
 from functools import lru_cache
 
+import joblib
 from bbconf import BedBaseAgent
-
 import json
+
+from bedboss.const import PKG_NAME
+
+_LOGGER = logging.getLogger(PKG_NAME)
+
+python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
+
+
+class umapReturn(BaseModel):
+    model: Union[UMAP, PCA, TSNE]
+    dataframe: pd.DataFrame
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None:
+    """
+    Save the UMAP, PCA, or t-SNE model to a file.
+
+    :param umap_model: Fitted UMAP, PCA, or t-SNE model
+    :param model_path: Path to save the model
+    :return: None
+
+    """
+    with open(model_path, "wb") as file:
+        joblib.dump(umap_model, file)
+
+    _LOGGER.info(f"Model saved to {model_path}")
 
 
 # @lru_cache()
@@ -24,6 +59,8 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
 
     :return: DataFrame with the following columns:
     """
+
+    _LOGGER.info("Fetching data from Qdrant...")
 
     client = QdrantClient(
         host=agent.config.config.qdrant.host,
@@ -43,6 +80,8 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
         m.id = m.id.replace("-", "")
     payload_df = pd.DataFrame([{**m.payload, "vector": m.vector} for m in points])
     merged = payload_df.set_index("id")
+
+    _LOGGER.info(f"Fetched {len(merged)} records from Qdrant.")
     return merged
 
 
@@ -79,7 +118,7 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
         columns_to_include.insert(2, "z")
 
     output_path = os.path.abspath(output_path)
-    print(f"Saving DataFrame as JSON to {output_path}")
+    (f"Saving DataFrame as JSON to {output_path}")
 
     df.loc[:, "id"] = df.index.astype(str)  # Ensure 'id' is a string
     df = df.fillna("")
@@ -91,10 +130,11 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     json_data = {"nodes": nodes, "links": []}
 
     # Save to a JSON file
+    output_path = f"{output_path}_{python_version}.json"
     with open(output_path, "w") as json_file:
         json.dump(json_data, json_file, indent=4)
 
-    print(f"Data saved to {output_path} successfully.")
+    _LOGGER.info(f"Data saved to {output_path} successfully.")
 
 
 def create_umap(
@@ -102,27 +142,57 @@ def create_umap(
     n_components: int = 3,
     plot_name: Union[str, None] = None,
     label_column: str = "cell_line",
-) -> pd.DataFrame:
+    method: str = "umap",
+) -> umapReturn:
     """
-    Create UMAP embeddings from the DataFrame.
+    Create UMAP, PCA, or t-SNE embeddings from the DataFrame.
 
     :param df: DataFrame containing the vectors and labels
-    :param n_components: Number of dimensions for UMAP (default is 3)
+    :param n_components: Number of dimensions for UMAP/PCA/t-SNE (default is 3)
     :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param label_column: Column name to use for labeling the points in the UMAP plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param label_column: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param method: Dimensionality reduction method to use. Options: "umap" (default), "pca", or "tsne"
 
-    :return: Tuple of UMAP embeddings and the DataFrame with added coordinates
+    :return: Tuple of DataFrame with added coordinates and fitted model
     """
 
     if n_components not in [2, 3]:
-        raise ValueError("n_components must be either 2 or 3 for UMAP.")
-    print("Creating UMAP embeddings...")
+        raise ValueError("n_components must be either 2 or 3.")
 
-    umap = UMAP(
-        n_components=n_components,
-        random_state=42,
-        verbose=True,
-    ).fit_transform(list(df["vector"]))
+    method = method.lower()
+    if method not in ["umap", "pca", "tsne"]:
+        raise ValueError("method must be either 'umap', 'pca', or 'tsne'.")
+
+    _LOGGER.info(f"Creating {method.upper()} embeddings...")
+
+    if method == "umap":
+        model = UMAP(
+            n_components=n_components,
+            random_state=42,
+            verbose=True,
+        )
+    elif method == "pca":
+        model = PCA(
+            n_components=n_components,
+            random_state=42,
+        )
+    else:  # method == "tsne"
+        model = TSNE(
+            n_components=n_components,
+            random_state=42,
+            verbose=True,
+        )
+
+    # Convert list of vectors to numpy array
+    vectors = np.array(list(df["vector"]))
+
+    if method == "tsne":
+        # t-SNE doesn't support separate fit/transform, use fit_transform
+        embeddings = model.fit_transform(vectors)
+        fitted_model = model
+    else:
+        fitted_model = model.fit(vectors)
+        embeddings = model.transform(vectors)
 
     if plot_name:
         if n_components == 2:
@@ -131,20 +201,23 @@ def create_umap(
                     f"label_column must be either 'cell_line' or 'assay', got {label_column}."
                 )
 
-            plot_umap(umap, list(df[label_column]), name=plot_name)
+            plot_umap(embeddings, list(df[label_column]), name=plot_name)
         else:
             warnings.warn(
-                "Plotting is only supported for 2D UMAP. No plot will be saved."
+                "Plotting is only supported for 2D embeddings. No plot will be saved."
             )
 
     if n_components == 2:
-        df[["x", "y"]] = pd.DataFrame(umap, index=df.index)
+        df[["x", "y"]] = pd.DataFrame(embeddings, index=df.index)
     elif n_components == 3:
-        df[["x", "y", "z"]] = pd.DataFrame(umap, index=df.index)
+        df[["x", "y", "z"]] = pd.DataFrame(embeddings, index=df.index)
 
-    print(f"UMAP shape: {umap.shape}")
+    _LOGGER.info(f"{method.upper()} shape: {embeddings.shape}")
 
-    return df
+    return umapReturn(
+        model=fitted_model,
+        dataframe=df,
+    )
 
 
 def plot_umap(value, label, name="default") -> None:
@@ -155,7 +228,6 @@ def plot_umap(value, label, name="default") -> None:
     :param label: Labels for the points in the UMAP plot
     :param name: Name for the output plot file
     :return: None
-
     """
 
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -188,31 +260,49 @@ def plot_umap(value, label, name="default") -> None:
 def get_embeddings(
     bbconf: str,
     output_file: str,
-    n_components: int = 3,
+    n_components: int = 2,
     plot_name: str = None,
     plot_label: str = None,
     top_assays: Union[int, None] = 15,
     top_cell_lines: Union[int, None] = 15,
+    save_model: bool = True,
+    method: str = "umap",
 ) -> None:
     """
-    Get embeddings from Qdrant and create UMAP, and save the results to a JSON file, and optionally plot the UMAP.
+    Get embeddings from Qdrant and create UMAP, PCA, or t-SNE, and save the results to a JSON file, and optionally plot the embeddings.
 
     :param bbconf: string containing to bedbase configuration file path
     :param output_file: Path to save the output JSON file
-    :param n_components: Number of dimensions for UMAP (default is 3)
+    :param n_components: Number of dimensions for UMAP/PCA/t-SNE [default is 2]
 
     :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param plot_label: Column name to use for labeling the points in the UMAP plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param plot_label: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". [Default is "cell_line"]
 
     :param top_assays: Number of top assays to consider. If None, all assays are considered. [Default is 15]
     :param top_cell_lines: Number of top cell lines to consider. If None, all. [Default is 15]
 
+    :param save_model: Whether to save the model or not [Default is True]
+    :param method: Dimensionality reduction method to use. Options: "umap", "pca", or "tsne" [Default is "umap"]
+
     :return: None
 
     """
-    agent = BedBaseAgent(config=bbconf)
+
+    if isinstance(bbconf, str):
+        agent = BedBaseAgent(config=bbconf)
+    elif isinstance(bbconf, BedBaseAgent):
+        agent = bbconf
+    else:
+        raise TypeError(
+            "bbconf must be either a string path or a BedBaseAgent instance."
+        )
 
     merged = fetch_data(agent=agent)
+
+    if output_file.endswith(".json"):
+        output_file = output_file[:-5]
+        # output_file += ".json"
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     CELL_LINE = "cell_line"
     ASSAY = "assay"
@@ -239,10 +329,23 @@ def get_embeddings(
 
         return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
 
-    df = create_umap(
+    umap_return = create_umap(
         return_df,
         n_components=n_components,
         plot_name=plot_name,
         label_column=plot_label,
+        method=method,
     )
-    save_df_as_json(df, output_file)
+    save_df_as_json(umap_return.dataframe, output_file)
+
+    if save_model:
+        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        ## I am removing it here, but it should be set later to the same value (42)
+        if method == "umap":
+            umap_return.model.random_state = None
+        save_umap_model(
+            umap_return.model,
+            model_path=f"{output_file}_{method}_model_{python_version}.joblib",
+        )
+
+    _LOGGER.info(f"{method.upper()} processing completed!")
