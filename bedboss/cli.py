@@ -659,10 +659,10 @@ def download_umap(
     ),
     output_file: str = typer.Option(
         ...,
-        help="Path to the output file where UMAP embeddings will be saved",
+        help="Path to the output json file where UMAP embeddings will be saved. (*Python version will be added to the filename)",
     ),
     n_components: int = typer.Option(
-        3,
+        2,
         help="Number of UMAP components",
     ),
     plot_name: str = typer.Option(
@@ -683,7 +683,7 @@ def download_umap(
     ),
     method: str = typer.Option(
         "umap",
-        help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'",
+        help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'. To use UMAP, 'umap-learn' package must be installed.",
     ),
 ):
     from bedboss.scripts.make_umap import get_embeddings

@@ -2,24 +2,27 @@ from qdrant_client import QdrantClient
 import os
 import sys
 import pandas as pd
+import logging
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
 from umap import UMAP
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Union
 import warnings
 from functools import lru_cache
 
-# import pickle
 import joblib
-
 from bbconf import BedBaseAgent
-
 import json
+
+from bedboss.const import PKG_NAME
+
+_LOGGER = logging.getLogger(PKG_NAME)
 
 python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
 
@@ -43,7 +46,7 @@ def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None
     with open(model_path, "wb") as file:
         joblib.dump(umap_model, file)
 
-    print(f"Model saved to {model_path}")
+    _LOGGER.info(f"Model saved to {model_path}")
 
 
 # @lru_cache()
@@ -56,6 +59,8 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
 
     :return: DataFrame with the following columns:
     """
+
+    _LOGGER.info("Fetching data from Qdrant...")
 
     client = QdrantClient(
         host=agent.config.config.qdrant.host,
@@ -75,6 +80,8 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
         m.id = m.id.replace("-", "")
     payload_df = pd.DataFrame([{**m.payload, "vector": m.vector} for m in points])
     merged = payload_df.set_index("id")
+
+    _LOGGER.info(f"Fetched {len(merged)} records from Qdrant.")
     return merged
 
 
@@ -111,7 +118,7 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
         columns_to_include.insert(2, "z")
 
     output_path = os.path.abspath(output_path)
-    print(f"Saving DataFrame as JSON to {output_path}")
+    (f"Saving DataFrame as JSON to {output_path}")
 
     df.loc[:, "id"] = df.index.astype(str)  # Ensure 'id' is a string
     df = df.fillna("")
@@ -127,7 +134,7 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     with open(output_path, "w") as json_file:
         json.dump(json_data, json_file, indent=4)
 
-    print(f"Data saved to {output_path} successfully.")
+    _LOGGER.info(f"Data saved to {output_path} successfully.")
 
 
 def create_umap(
@@ -156,7 +163,7 @@ def create_umap(
     if method not in ["umap", "pca", "tsne"]:
         raise ValueError("method must be either 'umap', 'pca', or 'tsne'.")
 
-    print(f"Creating {method.upper()} embeddings...")
+    _LOGGER.info(f"Creating {method.upper()} embeddings...")
 
     if method == "umap":
         model = UMAP(
@@ -205,7 +212,7 @@ def create_umap(
     elif n_components == 3:
         df[["x", "y", "z"]] = pd.DataFrame(embeddings, index=df.index)
 
-    print(f"{method.upper()} shape: {embeddings.shape}")
+    _LOGGER.info(f"{method.upper()} shape: {embeddings.shape}")
 
     return umapReturn(
         model=fitted_model,
@@ -221,7 +228,6 @@ def plot_umap(value, label, name="default") -> None:
     :param label: Labels for the points in the UMAP plot
     :param name: Name for the output plot file
     :return: None
-
     """
 
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -254,7 +260,7 @@ def plot_umap(value, label, name="default") -> None:
 def get_embeddings(
     bbconf: str,
     output_file: str,
-    n_components: int = 3,
+    n_components: int = 2,
     plot_name: str = None,
     plot_label: str = None,
     top_assays: Union[int, None] = 15,
@@ -267,20 +273,21 @@ def get_embeddings(
 
     :param bbconf: string containing to bedbase configuration file path
     :param output_file: Path to save the output JSON file
-    :param n_components: Number of dimensions for UMAP/PCA/t-SNE (default is 3)
+    :param n_components: Number of dimensions for UMAP/PCA/t-SNE [default is 2]
 
     :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param plot_label: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". Default is "cell_line"
+    :param plot_label: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". [Default is "cell_line"]
 
     :param top_assays: Number of top assays to consider. If None, all assays are considered. [Default is 15]
     :param top_cell_lines: Number of top cell lines to consider. If None, all. [Default is 15]
 
-    :param save_model: Whether to save the model or not (default is True)
-    :param method: Dimensionality reduction method to use. Options: "umap" (default), "pca", or "tsne"
+    :param save_model: Whether to save the model or not [Default is True]
+    :param method: Dimensionality reduction method to use. Options: "umap", "pca", or "tsne" [Default is "umap"]
 
     :return: None
 
     """
+
     if isinstance(bbconf, str):
         agent = BedBaseAgent(config=bbconf)
     elif isinstance(bbconf, BedBaseAgent):
@@ -341,4 +348,4 @@ def get_embeddings(
             model_path=f"{output_file}_{method}_model_{python_version}.joblib",
         )
 
-    print(f"{method.upper()} processing completed!")
+    _LOGGER.info(f"{method.upper()} processing completed!")
