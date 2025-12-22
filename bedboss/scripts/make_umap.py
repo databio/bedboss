@@ -23,6 +23,7 @@ import json
 
 python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
 
+
 class umapReturn(BaseModel):
     model: Union[UMAP, PCA, TSNE]
     dataframe: pd.DataFrame

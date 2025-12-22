@@ -29,5 +29,5 @@ def reindex_semantic_search(
     """
 
     agent = BedBaseAgent(config=config)
-    agent.bed.reindex_semantic_search(batch=batch, purge=purge)
+    agent.bed.reindex_hybrid_search(batch=batch, purge=purge)
     _LOGGER.info("Semantic search reindexing completed.")
