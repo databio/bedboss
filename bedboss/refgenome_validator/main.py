@@ -225,7 +225,7 @@ class ReferenceValidator:
 
     def determine_compatibility(
         self,
-        bedfile: Union[GRegionSet, str],
+        bedfile: Union[GRegionSet, str, Dict[str, int]],
         ref_filter: Optional[List[str]] = None,
         concise: Optional[bool] = False,
     ) -> Union[Dict[str, CompatibilityStats], Dict[str, CompatibilityConcise]]:
@@ -238,7 +238,12 @@ class ReferenceValidator:
         :return: a dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True)
         """
 
-        _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
+        if isinstance(bedfile, GRegionSet) or isinstance(bedfile, str):
+            _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
+        else:
+            _LOGGER.info(
+                f"Calculating reference genome stats for provided bed chrom dict..."
+            )
 
         if ref_filter:
             # Filter out unwanted reference genomes to assess
@@ -248,7 +253,10 @@ class ReferenceValidator:
                         genome_model
                     )  # TODO: remove it only for this analysis, not permanently
         try:
-            bed_chrom_info = get_bed_chrom_info(bedfile)
+            if isinstance(bedfile, dict):
+                bed_chrom_info = bedfile
+            else:
+                bed_chrom_info = get_bed_chrom_info(bedfile)
         except Exception as e:
             raise BedBossException(
                 f"Unable to open bed file or determine compatibility. Error: {str(e)}"
