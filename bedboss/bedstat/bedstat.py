@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Union
 
 import pypiper
-from geniml.io import RegionSet
+from gtars.models import RegionSet
 
 from bedboss.bedstat.gc_content import calculate_gc_content, create_gc_plot
 from bedboss.const import (
@@ -121,8 +121,10 @@ def bedstat(
     else:
         stop_pipeline = False
 
+    bed_object = RegionSet(bedfile)
+
     if not bed_digest:
-        bed_digest = RegionSet(bedfile).identifier
+        bed_digest = bed_object.identifier
 
     outfolder_stats_results = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
     try:
@@ -200,7 +202,7 @@ def bedstat(
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
     try:
         gc_contents = calculate_gc_content(
-            bedfile=bedfile, genome=genome, rfg_config=rfg_config
+            bedfile=bed_object, genome=genome, rfg_config=rfg_config
         )
     except BaseException as e:
         gc_contents = None
