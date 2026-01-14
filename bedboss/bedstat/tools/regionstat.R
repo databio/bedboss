@@ -8,6 +8,7 @@ library(GenomicDistributions)
 library(tools)
 library(R.utils)
 library(rjson)
+# library(jsonlite)
 
 trim <- IRanges::trim
 
@@ -55,7 +56,6 @@ getPlotReportDF <- function(plotId, title, digest, outfolder){
   return(newPlot)
 }
 
-
 doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSgm, gtffile) {
   plots = data.frame(stringsAsFactors=F)
   bsGenomeAvail = ifelse((requireNamespace(BSg, quietly=TRUE) | requireNamespace(BSgm, quietly=TRUE)), TRUE, FALSE)
@@ -63,10 +63,14 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   # check if json file exist for the input bed file
   meta_path = paste0(outfolder, "/", digest, ".json")
   plot_path = paste0(outfolder, "/", digest, "_plots.json")
+  values_path = paste0(outfolder, "/", digest, "_values.json")
   if (file.exists(meta_path)){
     bedmeta = fromJSON(file=meta_path)
     plots = fromJSON(file=plot_path)
     plots = as.data.frame(do.call(rbind, plots))
+    if (file.exists(values_path)) {
+      bedvalues = fromJSON(file=values_path)
+    }
   } else{
     plots = data.frame(stringsAsFactors=F)
   }
@@ -101,7 +105,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
           message("Successfully calculated and plot TSS distance.")
         }
         if (exists("bedmeta")){
-          tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
+          tss = list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
           bedmeta = append(bedmeta, tss)
         }
 
@@ -114,16 +118,17 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Chromosomes region distribution plot
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("bedvalues")){
     tryCatch(
       expr = {
         if (genome %in% c("mm39", "dm3", "dm6", "ce10", "ce11", "danRer10", "danRer10", "T2T")){
           chromSizes = myChromSizes(genome)
           genomeBins  = getGenomeBins(chromSizes)
-          plotBoth("chrombins", plotChromBins(calcChromBins(query, genomeBins)), digest, outfolder)
+          chromBins = calcChromBins(query, genomeBins)
         } else{
-          plotBoth("chrombins", plotChromBins(calcChromBinsRef(query_new, genome)), digest, outfolder)
+          chromBins = calcChromBinsRef(query_new, genome)
         }
+        plotBoth("chrombins", plotChromBins(chromBins), digest, outfolder)
 
         plots = rbind(plots, getPlotReportDF("chrombins", "Regions distribution over chromosomes", digest, outfolder))
         message("Successfully calculated and plot chromosomes region distribution.")
@@ -135,46 +140,46 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
     )
   }
 
-# We are calculating this differently now
-#   # OPTIONAL: Plot GC content only if proper BSgenome package is installed.
-#   if (exists("bedmeta")){
-#     if ("gc_content" %in% names(bedmeta)){
-#       run_plot = FALSE
-#     } else {
-#       run_plot = TRUE
-#     }
-#   } else {
-#       run_plot = TRUE
-#   }
-#
-#   if (run_plot){
-#     if (bsGenomeAvail) {
-#       tryCatch(
-#         expr = {
-#           if (requireNamespace(BSgm, quietly=TRUE)){
-#             library (BSgm, character.only = TRUE)
-#             bsg = eval(as.name(BSgm))
-#             gcvec = calcGCContent(query, bsg)
-#           } else {
-#             library (BSg, character.only = TRUE)
-#             bsg = eval(as.name(BSg))
-#             gcvec = calcGCContent(query, bsg)
-#           }
-#           plotBoth("gccontent", plotGCContent(gcvec))
-#           if (exists("bedmeta")){
-#             gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
-#             bedmeta = append(bedmeta, gc_content)
-#           }
-#           plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
-#           message("Successfully calculated and plot GC content.")
-#         },
-#         error = function(e){
-#           message('Caught an error in creating: GC content plot!')
-#           print(e, gcvec)
-#         }
-#       )
-#     }
-#   }
+  # We are calculating this differently now
+  #   # OPTIONAL: Plot GC content only if proper BSgenome package is installed.
+  #   if (exists("bedmeta")){
+  #     if ("gc_content" %in% names(bedmeta)){
+  #       run_plot = FALSE
+  #     } else {
+  #       run_plot = TRUE
+  #     }
+  #   } else {
+  #       run_plot = TRUE
+  #   }
+  #
+  #   if (run_plot){
+  #     if (bsGenomeAvail) {
+  #       tryCatch(
+  #         expr = {
+  #           if (requireNamespace(BSgm, quietly=TRUE)){
+  #             library (BSgm, character.only = TRUE)
+  #             bsg = eval(as.name(BSgm))
+  #             gcvec = calcGCContent(query, bsg)
+  #           } else {
+  #             library (BSg, character.only = TRUE)
+  #             bsg = eval(as.name(BSg))
+  #             gcvec = calcGCContent(query, bsg)
+  #           }
+  #           plotBoth("gccontent", plotGCContent(gcvec))
+  #           if (exists("bedmeta")){
+  #             gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
+  #             bedmeta = append(bedmeta, gc_content)
+  #           }
+  #           plots = rbind(plots, getPlotReportDF("gccontent", "GC content"))
+  #           message("Successfully calculated and plot GC content.")
+  #         },
+  #         error = function(e){
+  #           message('Caught an error in creating: GC content plot!')
+  #           print(e, gcvec)
+  #         }
+  #       )
+  #     }
+  #   }
 
 
   # Partition plots, default to percentages
@@ -185,7 +190,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
       run_plot = TRUE
     }
   } else {
-      run_plot = TRUE
+    run_plot = TRUE
   }
 
   if (run_plot){
@@ -196,12 +201,11 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
         } else {
           if (genome %in% c("hg19", "hg38", "mm10")) {
             gp = calcPartitionsRef(query, genome)
-            plotBoth("partitions", plotPartitions(gp), digest, outfolder)
           } else {
             partitionList = myPartitionList(gtffile)
             gp = calcPartitions(query, partitionList)
-            plotBoth("partitions", plotPartitions(gp), digest, outfolder)
           }
+          plotBoth("partitions", plotPartitions(gp), digest, outfolder)
           plots = rbind(plots, getPlotReportDF("partitions", "Regions distribution over genomic partitions", digest, outfolder))
           # flatten the result returned by the function above
           partiotionNames = as.vector(gp[,"partition"])
@@ -211,9 +215,6 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
               as.vector(gp[,"Freq"])[i]
             partitionsList[[paste0(partiotionNames[i], "_percentage")]] =
               as.vector(gp[,"Freq"])[i]/length(query)
-          }
-          if (exists("bedmeta")){
-            bedmeta = append(bedmeta, partitionsList)
           }
           message("Successfully calculated and plot regions distribution over genomic partitions.")
         }
@@ -227,20 +228,21 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
 
   # Expected partition plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("bedvalues")){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
           message("Ensembl annotation gtf file not provided. Skipping expected partition plot ... ")
         } else{
           if (genome %in% c("hg19", "hg38", "mm10")) {
-            plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitionsRef(query, genome)), digest, outfolder)
+            expectedPartitions = calcExpectedPartitionsRef(query, genome)
           } else {
             partitionList = myPartitionList(gtffile)
             chromSizes = myChromSizes(genome)
             genomeSize = sum(chromSizes)
-            plotBoth("expected_partitions", plotExpectedPartitions(calcExpectedPartitions(query, partitionList, genomeSize)), digest, outfolder)
+            expectedPartitions = calcExpectedPartitions(query, partitionList, genomeSize)
           }
+          plotBoth("expected_partitions", plotExpectedPartitions(expectedPartitions), digest, outfolder)
           plots = rbind(plots, getPlotReportDF("expected_partitions", "Expected distribution over genomic partitions", digest, outfolder))
           message("Successfully calculated and plot expected distribution over genomic partitions.")
         }
@@ -253,18 +255,19 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Cumulative partition plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("bedvalues")){
     tryCatch(
       expr = {
         if (!(genome %in% c("hg19", "hg38", "mm10")) && gtffile == "None"){
           message("Ensembl annotation gtf file not provided. Skipping cumulative partition plot ... ")
         } else{
           if (genome %in% c("hg19", "hg38", "mm10")) {
-            plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitionsRef(query, genome)), digest, outfolder)
+            cumulativePartitions = calcCumulativePartitionsRef(query, genome)
           } else{
             partitionList = myPartitionList(gtffile)
-            plotBoth("cumulative_partitions", plotCumulativePartitions(calcCumulativePartitions(query, partitionList)), digest, outfolder)
+            cumulativePartitions = calcCumulativePartitions(query, partitionList)
           }
+          plotBoth("cumulative_partitions", plotCumulativePartitions(partitionList), digest, outfolder)
           plots = rbind(plots, getPlotReportDF("cumulative_partitions", "Cumulative distribution over genomic partitions", digest, outfolder))
           message("Successfully calculated and plot cumulative distribution over genomic partitions.")
         }
@@ -284,7 +287,7 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
       run_plot = TRUE
     }
   } else {
-      run_plot = TRUE
+    run_plot = TRUE
   }
 
   if (run_plot){
@@ -307,10 +310,11 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
   }
 
   # Neighbor regions distance plots
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("bedvalues")){
     tryCatch(
       expr = {
-        plotBoth("neighbor_distances", plotNeighborDist(calcNeighborDist(query)), digest, outfolder)
+        neighborDist = calcNeighborDist(query)
+        plotBoth("neighbor_distances", plotNeighborDist(neighborDist), digest, outfolder)
         plots = rbind(plots, getPlotReportDF("neighbor_distances", "Distance between neighbor regions", digest, outfolder))
         message("Successfully calculated and plot distance between neighbor regions.")
       },
@@ -323,13 +327,14 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
 
   ## This part is heavy and if needed can be skipped
   # Tissue specificity plot if open signal matrix is provided
-  if (!exists("bedmeta") ){
+  if (!exists("bedmeta") & !exists("bedvalues")){
     if (openSignalMatrix == "None") {
       message("open signal matrix not provided. Skipping tissue specificity plot ... ")
     } else {
       tryCatch(
         expr = {
-          plotBoth("open_chromatin", plotSummarySignal(calcSummarySignal(query, data.table::fread(openSignalMatrix))), digest, outfolder)
+          summarySignal = calcSummarySignal(query, data.table::fread(openSignalMatrix))
+          plotBoth("open_chromatin", plotSummarySignal(summarySignal), digest, outfolder)
           plots = rbind(plots, getPlotReportDF("open_chromatin", "Cell specific enrichment for open chromatin", digest, outfolder))
           message("Successfully calculated and plot cell specific enrichment for open chromatin.")
         },
@@ -341,9 +346,8 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
     }
   }
 
-
   # Note: names of the list elements MUST match what's defined in: https://github.com/databio/bbconf/blob/master/bbconf/schemas/bedfiles_schema.yaml
-  if (exists("bedmeta")){
+  if (exists("bedmeta")) {
     write(jsonlite::toJSON(bedmeta, pretty=TRUE), meta_path)
     write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
   } else {
@@ -353,57 +357,132 @@ doItAll <- function(query, digest, genome, openSignalMatrix, outfolder, BSg, BSg
       mean_region_width=ifelse(exists('widths'), signif(mean(widths), digits = 4), NA),
       md5sum=digest
     )
-    if (exists('gcvec') && !isEmpty(gcvec)){
+    if (exists('gcvec') && !isEmpty(gcvec)) {
       gc_content <- list(gc_content = signif(mean(gcvec), digits = 4))
       bedmeta = append(bedmeta, gc_content)
     }
-    if (exists('TSSdist') && !all(is.na(TSSdist))){
+    if (exists('TSSdist') && !all(is.na(TSSdist))) {
       tss <- list(median_TSS_dist = signif(median(abs(TSSdist), na.rm=TRUE), digits = 4))
       bedmeta = append(bedmeta, tss)
     }
-    if (exists('partitionsList')){
+    if (exists('partitionsList')) {
       write(jsonlite::toJSON(c(bedmeta, partitionsList), pretty=TRUE), meta_path)
     } else {
       write(jsonlite::toJSON(c(bedmeta), pretty=TRUE), meta_path)
     }
-
-    if (exists('plots')){
+    if (exists('plots')) {
       write(jsonlite::toJSON(plots, pretty=TRUE, auto_unbox = TRUE), plot_path)
     }
   }
+
+  if (exists("bedvalues")) {
+    write(jsonlite::toJSON(bedvalues, pretty=TRUE), values_path)
+  } else {
+    max_rows = 512
+    bedvalues = list(
+      name=digest,
+      md5sum=digest
+    )
+    if (exists('chromBins')) {
+      chromBinsValues = list(values_chrombins = jsonlite::toJSON(chromBins, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, chromBinsValues)
+    }
+    if (exists('gp')) {
+      gpValues = list(values_partitions = jsonlite::toJSON(gp, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, gpValues)
+    }
+    if (exists('expectedPartitions')) {
+      expectedPartitionsValues = list(values_expected_partitions = jsonlite::toJSON(expectedPartitions, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, expectedPartitionsValues)
+    }
+    if (exists('cumulativePartitions')) { ### TOO MASSIVE
+      groups <- unique(cumulativePartitions$partition)
+      cumulativePartitionsSampled <- data.frame()
+      n_samples <- floor(max_rows / length(groups))
+      for (group in groups) {
+        group_data <- cumulativePartitions[cumulativePartitions$partition== group, ]
+        n_rows <- nrow(group_data)
+
+        if (n_rows <= n_samples) {
+          sampled_group <- group_data
+        } else {
+          keep_indices <- c(1, n_rows)
+          if (n_samples > 2) {
+            remaining <- n_samples - 2  # -2 for first and last points
+            log_indices <- round(exp(seq(log(1), log(n_rows-2), length.out = remaining)) + 1)
+            log_indices <- unique(log_indices)
+            keep_indices <- c(keep_indices, log_indices)
+          }
+          if (length(keep_indices) < n_samples) {
+            remaining <- n_samples - length(keep_indices)
+            candidate_indices <- setdiff(1:n_rows, keep_indices)
+            if (length(candidate_indices) > 0) {
+              step <- length(candidate_indices) / remaining
+              additional_indices <- candidate_indices[round(seq(1, length(candidate_indices), by = step))]
+              additional_indices <- additional_indices[1:min(remaining, length(additional_indices))]
+
+              keep_indices <- c(keep_indices, additional_indices)
+            }
+          }
+          keep_indices <- sort(unique(keep_indices))
+          sampled_group <- group_data[keep_indices, ]
+        }
+
+        cumulativePartitionsSampled <- rbind(cumulativePartitionsSampled, sampled_group)
+      }
+
+      cumulativePartitionsValues = list(values_cumulative_partitions = jsonlite::toJSON(cumulativePartitionsSampled[,c('cumsize', 'score', 'partition')], dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, cumulativePartitionsValues)
+    }
+    if (exists('widths')) {
+      widthValues = list(values_widths = jsonlite::toJSON(widths, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, widthValues)
+    }
+    if (exists('neighborDist')) {
+      neighborDistDensity <- density(neighborDist, n = max_rows)
+      neighborDistSampled <- data.frame('x' = neighborDistDensity$x, 'y' = neighborDistDensity$y)
+      neighborDistValues = list(values_neighbor_dist = jsonlite::toJSON(neighborDistSampled, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, neighborDistValues)
+    }
+    if (exists('summarySignal')) {
+      summarySignalValues = list(values_summary_signal = jsonlite::toJSON(summarySignal, dataframe = "rows", auto_unbox = TRUE))
+      bedvalues = append(bedvalues, summarySignalValues)
+    }
+    write(jsonlite::toJSON(bedvalues, pretty=TRUE), values_path)
   }
+}
 
 runBEDStats = function (bedPath, digest, outfolder, genome, openSignalMatrix, gtffile) {
   # define values and output folder for doitall()
   message("R message =>  Running regionstat for: ", bedPath)
-    message("R message =>  digest: ", digest)
-    message("R message =>  outfolder: ", outfolder)
-    message("R message =>  genome: ", genome)
-    message("R message => openSignalMatrix: ", openSignalMatrix)
-    message("R message =>  gtffile: ", gtffile)
+  message("R message =>  digest: ", digest)
+  message("R message =>  outfolder: ", outfolder)
+  message("R message =>  genome: ", genome)
+  message("R message => openSignalMatrix: ", openSignalMatrix)
+  message("R message =>  gtffile: ", gtffile)
 
 
   # build BSgenome package ID to check whether it's installed
-    if ( startsWith(genome, "T2T")){
-      BSg = "BSgenome.Hsapiens.NCBI.T2T.CHM13v2.0"
+  if ( startsWith(genome, "T2T")){
+    BSg = "BSgenome.Hsapiens.NCBI.T2T.CHM13v2.0"
+  } else {
+    if (startsWith(genome, "hg") | startsWith(genome, "grch")) {
+      orgName = "Hsapiens"
+    } else if (startsWith(genome, "mm") | startsWith(genome, "grcm")){
+      orgName = "Mmusculus"
+    } else if (startsWith(genome, "dm")){
+      orgName = "Dmelanogaster"
+    } else if (startsWith(genome, "ce")){
+      orgName = "Celegans"
+    } else if (startsWith(genome, "danRer")){
+      orgName = "Drerio"
+    }  else if (startsWith(genome, "TAIR")){
+      orgName = "Athaliana"
     } else {
-      if (startsWith(genome, "hg") | startsWith(genome, "grch")) {
-        orgName = "Hsapiens"
-      } else if (startsWith(genome, "mm") | startsWith(genome, "grcm")){
-        orgName = "Mmusculus"
-      } else if (startsWith(genome, "dm")){
-        orgName = "Dmelanogaster"
-      } else if (startsWith(genome, "ce")){
-        orgName = "Celegans"
-      } else if (startsWith(genome, "danRer")){
-        orgName = "Drerio"
-      }  else if (startsWith(genome, "TAIR")){
-        orgName = "Athaliana"
-      } else {
-        orgName = "Undefined"
-      }
-      BSg = paste0("BSgenome.", orgName , ".UCSC.", genome)
+      orgName = "Undefined"
     }
+    BSg = paste0("BSgenome.", orgName , ".UCSC.", genome)
+  }
 
   BSgm = paste0(BSg, ".masked")
 
