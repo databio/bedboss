@@ -40,7 +40,7 @@ class Genomes(BaseModel):
     genomes: List[SeqColGenome]
 
 
-def run_requests(url, timeout=50) -> Any:
+def run_requests(url, timeout=60) -> Any:
     """
     Run a GET request to the specified URL and return the response.
     """
