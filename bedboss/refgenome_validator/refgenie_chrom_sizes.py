@@ -40,7 +40,7 @@ class Genomes(BaseModel):
     genomes: List[SeqColGenome]
 
 
-def run_requests(url, timeout=10) -> Any:
+def run_requests(url, timeout=50) -> Any:
     """
     Run a GET request to the specified URL and return the response.
     """
@@ -61,8 +61,10 @@ def get_genome_list() -> List[dict]:
     """
 
     genome_data = run_requests(GENOMES_URL)
-    return genome_data.get("items", [])
-
+    if genome_data:
+        return genome_data.get("items", [])
+    warnings.warn("Failed to fetch genomes from Refgenie, returning empty list.")
+    return []
 
 def seq_col_from_digest(digest: str) -> List[SeqCol]:
     """
