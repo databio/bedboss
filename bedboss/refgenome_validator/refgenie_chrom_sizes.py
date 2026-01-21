@@ -130,6 +130,7 @@ def save_seq_col_to_json(genomes: Genomes, output_path: str = "genome_seqcol.jso
     """
 
     _LOGGER.info("Saving Refgenie genomes for later reuse...")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(genomes.model_dump(), f, indent=4)
     _LOGGER.info(f"Saved sequence collections to {output_path}")
@@ -145,6 +146,8 @@ def read_seq_col_from_json(input_path: str = "genome_seqcol.json") -> Genomes:
     Returns:
         Genomes object containing the sequence collections
     """
+
+    # os.makedirs(os.path.dirname(input_path), exist_ok=True)
     with open(input_path, "r") as f:
         data = json.load(f)
     return Genomes(**data)
