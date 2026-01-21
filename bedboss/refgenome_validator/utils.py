@@ -1,13 +1,13 @@
 import logging
 import subprocess
-from typing import List, Union
+from typing import List, Union, Dict
 
 from gtars.models import RegionSet as GRegionSet
 
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_bed_chrom_info(bedfile: Union[str, GRegionSet]) -> dict:
+def get_bed_chrom_info(bedfile: Union[str, GRegionSet]) -> Dict[str, int]:
     """
     Determine chrom lengths for bed file
 

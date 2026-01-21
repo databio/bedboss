@@ -4,7 +4,9 @@ from typing import List, Union
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from gdrs import GenomeAssembly, calc_gc_content
+
+from gtars.models import GenomeAssembly, RegionSet
+from gtars.genomic_distributions import calc_gc_content
 from matplotlib.ticker import MaxNLocator
 from refgenconf import RefgenconfError
 from yacman.exceptions import UndefinedAliasError
@@ -22,6 +24,8 @@ def get_genome_fasta_file(genome: str, rfg_config: str = None) -> str:
 
     :param genome: genome name
     :param rfg_config: path to refgenie config file
+
+    :return: path to fasta file
     """
     rgc = get_rgc(rfg_config=rfg_config)
 
@@ -72,7 +76,7 @@ def get_genome_assembly_obj(
 
 
 def calculate_gc_content(
-    bedfile: str, genome: str, rfg_config: str = None
+    bedfile: RegionSet, genome: str, rfg_config: str = None
 ) -> Union[List[float], None]:
     """
     Calculate GC content for a bed file.

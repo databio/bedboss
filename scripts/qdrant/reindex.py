@@ -1,6 +1,5 @@
 from bbconf import BedBaseAgent
 
-
 if __name__ == "__main__":
     bba = BedBaseAgent("/home/bnt4me/virginia/repos/bedhost/config.yaml")
 
