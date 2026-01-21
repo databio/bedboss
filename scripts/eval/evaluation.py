@@ -6,7 +6,6 @@ from bbconf import bbagent
 from tqdm import tqdm
 from bbconf.models.bed_models import QdrantSearchResult
 
-
 bbagent = bbagent.BedBaseAgent(
     "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml"
 )

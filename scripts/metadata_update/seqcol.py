@@ -12,7 +12,6 @@ from bbconf import BedBaseAgent
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.main import ReferenceValidator
 
-
 bbagent = BedBaseAgent("/home/bnt4me/virginia/repos/bedhost/config.yaml")
 
 BASE_URL = "https://api.refgenie.org"

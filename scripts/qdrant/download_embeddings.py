@@ -1,6 +1,5 @@
 from bedboss.scripts import make_umap
 
-
 if __name__ == "__main__":
     make_umap.get_embeddings(
         "/home/bnt4me/virginia/repos/bedhost/config.yaml",
