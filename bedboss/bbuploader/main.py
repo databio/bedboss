@@ -99,8 +99,13 @@ def upload_all(
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
+    _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
+    _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
+
     genome = standardize_genome_name(genome)
+    if genome:
+        _LOGGER.info(f"Filtering for genome: '{genome}'")
 
     pep_annotation_list = find_peps(
         geo_tag=geo_tag,
@@ -129,8 +134,10 @@ def upload_all(
     )
 
     if not lite:
+        _LOGGER.info("Initializing R service for statistics")
         r_service = RServiceManager()
     else:
+        _LOGGER.info("Lite mode: R service disabled")
         r_service = None
 
     for gse_pep in pep_annotation_list.results:
@@ -328,6 +335,10 @@ def find_peps(
     """
     if not phc:
         phc = PEPHubClient()
+    _LOGGER.info(
+        f"Searching PEPHub for projects (namespace='bedbase', tag='{geo_tag}', "
+        f"dates={start_date} to {end_date}, limit={limit}, offset={offset})"
+    )
     return phc.find_project(
         namespace="bedbase",
         tag=geo_tag,
@@ -381,7 +392,9 @@ def upload_gse(
 
     :return: None
     """
+    _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
+    _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
     gse_id = build_gse_identifier(gse, geo_tag)
 
     with Session(bbagent.config.db_engine.engine) as session:
@@ -416,31 +429,31 @@ def upload_gse(
             session.add(gse_status)
             session.commit()
 
-        # try:
-        upload_result = _upload_gse(
-            gse=gse,
-            bedbase_config=bbagent,
-            outfolder=outfolder,
-            geo_tag=geo_tag,
-            create_bedset=create_bedset,
-            genome=genome,
-            sa_session=session,
-            gse_status_sa_model=gse_status,
-            standardize_pep=standardize_pep,
-            preload=preload,
-            overwrite=overwrite,
-            rerun=rerun,
-            overwrite_bedset=overwrite_bedset,
-            use_skipper=use_skipper,
-            reinit_skipper=reinit_skipper,
-            lite=lite,
-        )
-        # except Exception as e:
-        #     _LOGGER.error(f"Processing of '{gse_id}' failed with error: {e}")
-        #     gse_status.status = STATUS.FAIL
-        #     gse_status.error = str(e)
-        #     session.commit()
-        #     exit()
+        try:
+            upload_result = _upload_gse(
+                gse=gse,
+                bedbase_config=bbagent,
+                outfolder=outfolder,
+                geo_tag=geo_tag,
+                create_bedset=create_bedset,
+                genome=genome,
+                sa_session=session,
+                gse_status_sa_model=gse_status,
+                standardize_pep=standardize_pep,
+                preload=preload,
+                overwrite=overwrite,
+                rerun=rerun,
+                overwrite_bedset=overwrite_bedset,
+                use_skipper=use_skipper,
+                reinit_skipper=reinit_skipper,
+                lite=lite,
+            )
+        except Exception as e:
+            _LOGGER.error(f"Processing of '{gse_id}' failed with error: {e}")
+            gse_status.status = STATUS.FAIL
+            gse_status.error = str(e)
+            session.commit()
+            exit()
 
         status_parser(gse_status, upload_result)
 
@@ -528,7 +541,9 @@ def _upload_gse(
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
+    _LOGGER.info(f"Loading project from PEPHub: 'bedbase/{gse}:{geo_tag}'")
     project = phc.load_project(f"bedbase/{gse}:{geo_tag}")
+    _LOGGER.info(f"Loaded project with {len(project.samples)} samples")
 
     if standardize_pep:
         project = pep_standardizer(project)
@@ -669,15 +684,24 @@ def _upload_gse(
             file_abs_path = os.path.abspath(
                 os.path.join(files_path, project_sample.file)
             )
+            _LOGGER.info(f"Downloading file to: '{file_abs_path}'")
             download_file(project_sample.file_url, file_abs_path, no_fail=True)
         else:
             file_abs_path = required_metadata.file_path
 
         try:
+            original_genome = required_metadata.ref_genome
             required_metadata.ref_genome = standardize_genome_name(
                 required_metadata.ref_genome, file_abs_path
             )
+            if original_genome != required_metadata.ref_genome:
+                _LOGGER.info(
+                    f"Genome standardized: '{original_genome}' -> '{required_metadata.ref_genome}'"
+                )
 
+            _LOGGER.info(
+                f"Starting bed processing for '{required_metadata.sample_name}' (genome: {required_metadata.ref_genome})"
+            )
             file_digest = run_all(
                 name=required_metadata.title,
                 input_file=file_abs_path,
@@ -694,6 +718,9 @@ def _upload_gse(
                 lite=lite,
                 pm=pm,
                 r_service=r_service,
+            )
+            _LOGGER.info(
+                f"Successfully processed '{required_metadata.sample_name}' -> digest: {file_digest}"
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
@@ -784,5 +811,9 @@ def _upload_gse(
     if stop_pipeline:
         pm.stop_pipeline()
 
-    _LOGGER.info(f"Processing of '{gse_id}' is finished with success!")
+    _LOGGER.info(
+        f"Processing of '{gse_id}' completed: "
+        f"{project_status.number_of_processed}/{project_status.number_of_samples} processed, "
+        f"{project_status.number_of_skipped} skipped, {project_status.number_of_failed} failed"
+    )
     return project_status
