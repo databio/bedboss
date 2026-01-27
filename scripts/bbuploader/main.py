@@ -40,7 +40,7 @@ def run_gse():
         # gse="gse280839",
         # gse="gse218680",  ### -- this is example in the api
         # gse="gse38163",  ### -- without genome
-        gse="gse280208",
+        # gse="gse280208",
         # gse="gse246900",  ## -- this is good. allways using it
         # gse="gse32970", # - this data is encode https://www.encodeproject.org/experiments/ENCSR000ELR/
         # gse="gse106049",  # This is interesting reference genome.
@@ -54,7 +54,10 @@ def run_gse():
         # gse="gse229592", # mice
         # gse="gse217638", # same samples #1.
         # gse="gse217639",  # same samples #2.
-        bedbase_config="/home/bnt4me/virginia/repos/bedhost/config.yaml",
+        # gse="gse157732",  # series + samples test
+        gse="gse209400",  # series + samples test
+        geo_tag="samples",
+        bedbase_config="/home/bnt4me/virginia/repos/bedboss/config.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
         # genome="HG38",
         rerun=True,

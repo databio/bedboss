@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -8,7 +8,7 @@ class BedBossMetadata(BaseModel):
     species_name: Optional[str] = Field("", alias="sample_organism_ch1")
     species_id: Optional[str] = Field("", alias="sample_taxid_ch1")
     cell_type: Optional[str] = ""
-    cell_line: Optional[str] = ""
+    cell_line: Optional[str] = Field("", alias="line")
     genotype: Optional[str] = ""
     assay: Optional[str] = Field("", alias="sample_library_strategy")
     library_source: Optional[str] = Field("", alias="sample_library_source")
@@ -34,6 +34,19 @@ class BedBossMetadata(BaseModel):
         return value
 
 
+class BedBossMetadataSeries(BedBossMetadata):
+    # TODO: check if all this values are correct:
+    description: Optional[str] = Field("", alias="series_title")
+    genome: str = Field(None, alias="ref_genome")
+    species_name: Optional[str] = Field("", alias="series_sample_organism")
+    species_id: Optional[str] = Field("", alias="series_sample_taxid")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="allow",
+    )
+
+
 class BedBossRequired(BaseModel):
     sample_name: str
     file_path: str
@@ -42,7 +55,7 @@ class BedBossRequired(BaseModel):
     narrowpeak: Optional[bool] = False
     description: Optional[str] = ""
     organism: Optional[str] = None
-    pep: Optional[BedBossMetadata] = None
+    pep: Optional[Union[BedBossMetadata, BedBossMetadataSeries]] = None
     title: Optional[str] = None
 
 

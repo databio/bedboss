@@ -66,6 +66,7 @@ def get_genome_list() -> List[dict]:
     warnings.warn("Failed to fetch genomes from Refgenie, returning empty list.")
     return []
 
+
 def seq_col_from_digest(digest: str) -> List[SeqCol]:
     """
 

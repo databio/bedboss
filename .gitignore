@@ -137,6 +137,7 @@ test/bedqc/*
 openSignalMatrix
 
 out2023/*
+config.yaml
 
 # test data
 test/test_data/*
