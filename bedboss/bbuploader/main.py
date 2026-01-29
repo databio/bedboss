@@ -20,6 +20,7 @@ from bedboss.bbuploader.constants import (
     PKG_NAME,
     STATUS,
 )
+from bedboss.bbuploader.metadata_extractor import find_cell_line, find_assay
 from bedboss.bbuploader.models import (
     BedBossMetadata,
     BedBossRequired,
@@ -247,6 +248,17 @@ def process_pep_sample(
     if geo_tag == "series":
         project_metadata = BedBossMetadataSeries(**bed_sample.to_dict())
 
+        description_text = f"{bed_sample.sample_name} {project_metadata.description}"
+        if not project_metadata.assay or project_metadata.assay == "OTHER":
+            predicted_assay = find_assay(description_text)
+            if predicted_assay:
+                project_metadata.assay = predicted_assay
+
+        if not project_metadata.cell_line:
+            predicted_cell_line = find_cell_line(description_text)
+            if predicted_cell_line:
+                project_metadata.cell_line = predicted_cell_line
+
         return BedBossRequired(
             sample_name=bed_sample.sample_name,
             file_path=bed_sample.file_url,
@@ -268,6 +280,18 @@ def process_pep_sample(
             is_narrowpeak = False
 
         project_metadata = BedBossMetadata(**bed_sample.to_dict())
+
+        description_text = f"{bed_sample.sample_name} {project_metadata.description}"
+
+        if not project_metadata.assay or project_metadata.assay == "OTHER":
+            predicted_assay = find_assay(description_text)
+            if predicted_assay:
+                project_metadata.assay = predicted_assay
+
+        if not project_metadata.cell_line:
+            predicted_cell_line = find_cell_line(description_text)
+            if predicted_cell_line:
+                project_metadata.cell_line = predicted_cell_line
 
         return BedBossRequired(
             sample_name=bed_sample.sample_name,

@@ -55,8 +55,9 @@ def run_gse():
         # gse="gse217638", # same samples #1.
         # gse="gse217639",  # same samples #2.
         # gse="gse157732",  # series + samples test
-        gse="gse209400",  # series + samples test
-        geo_tag="series",
+        # gse="gse209400",  # series + samples test
+        gse="gse206280",
+        geo_tag="samples",
         bedbase_config="/home/bnt4me/virginia/repos/bedboss/config.yaml",
         outfolder="/home/bnt4me/virginia/repos/bbuploader/data",
         # genome="HG38",

@@ -2,6 +2,11 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from bedboss.bbuploader.metadata_extractor import (
+    standardize_assay,
+    standardize_cell_line,
+)
+
 
 class BedBossMetadata(BaseModel):
     genome: str = Field(None, alias="ref_genome")
@@ -32,6 +37,20 @@ class BedBossMetadata(BaseModel):
         if value.startswith("gsm") or value.startswith("gse"):
             return f"geo:{value}"
         return value
+
+    @field_validator("cell_type", mode="before")
+    @classmethod
+    def standardize_cell_type(cls, v):
+        if v:
+            return standardize_cell_line(v)
+        return v
+
+    @field_validator("assay", mode="before")
+    @classmethod
+    def standardize_assay_value(cls, v):
+        if v:
+            return standardize_assay(v)
+        return v
 
 
 class BedBossMetadataSeries(BedBossMetadata):
