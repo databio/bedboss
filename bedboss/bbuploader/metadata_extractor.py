@@ -180,6 +180,7 @@ assay_map = {
     "bruseq": "BruSeq",
     "selex": "SELEX",
     "microrna counts": "microRNA counts",
+    "mitoperturb-seq": "MitoPerturb-Seq",
     # ---- Fallback ----
     "other": "OTHER",
 }

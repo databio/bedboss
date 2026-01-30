@@ -84,6 +84,7 @@ def run_all(
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
     r_service: RServiceManager = None,
+    reference_genome_validator: ReferenceValidator = None,
 ) -> str:
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
@@ -118,6 +119,7 @@ def run_all(
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
     :param RServiceManager r_service: RServiceManager object that will run R services
+    :param reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility
     :return str bed_digest: bed digest
     """
     if isinstance(bedbase_config, str):
@@ -230,10 +232,11 @@ def run_all(
         non_compliant_columns=bed_metadata.non_compliant_columns,
         header=bed_metadata.bed_object.header,
     )
-
+    if not reference_genome_validator:
+        reference_genome_validator = ReferenceValidator()
     if validate_reference:
         _LOGGER.info("Validating reference genome")
-        ref_valid_stats = ReferenceValidator().determine_compatibility(
+        ref_valid_stats = reference_genome_validator.determine_compatibility(
             bedfile=bed_metadata.bed_file, concise=True  # TODO: give bed_object instead
         )
     else:

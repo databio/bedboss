@@ -36,6 +36,7 @@ from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.skipper import Skipper
+from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.utils import (
     calculate_time,
     download_file,
@@ -48,6 +49,9 @@ from bedboss._version import __version__
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
+
+
+reference_validator = ReferenceValidator()
 
 
 @calculate_time
@@ -104,7 +108,7 @@ def upload_all(
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
     _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
 
-    genome = standardize_genome_name(genome)
+    genome = standardize_genome_name(genome, reference_validator=reference_validator)
     if genome:
         _LOGGER.info(f"Filtering for genome: '{genome}'")
 
@@ -558,7 +562,9 @@ def _upload_gse(
     if isinstance(bedbase_config, str):
         bedbase_config = BedBaseAgent(config=bedbase_config)
     if genome:
-        genome = standardize_genome_name(genome)
+        genome = standardize_genome_name(
+            genome, reference_validator=reference_validator
+        )
 
     gse_id = build_gse_identifier(gse, geo_tag)
 
@@ -716,7 +722,9 @@ def _upload_gse(
         try:
             original_genome = required_metadata.ref_genome
             required_metadata.ref_genome = standardize_genome_name(
-                required_metadata.ref_genome, file_abs_path
+                required_metadata.ref_genome,
+                file_abs_path,
+                reference_validator=reference_validator,
             )
             if original_genome != required_metadata.ref_genome:
                 _LOGGER.info(
@@ -742,6 +750,7 @@ def _upload_gse(
                 lite=lite,
                 pm=pm,
                 r_service=r_service,
+                reference_genome_validator=reference_validator,
             )
             _LOGGER.info(
                 f"Successfully processed '{required_metadata.sample_name}' -> digest: {file_digest}"

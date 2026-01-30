@@ -22,7 +22,11 @@ from bedboss.const import MIN_REGION_WIDTH
 _LOGGER = logging.getLogger("bedboss")
 
 
-def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
+def standardize_genome_name(
+    input_genome: str,
+    bedfile: str = None,
+    reference_validator: ReferenceValidator = None,
+) -> str:
     """
     Standardizing user provided genome
 
@@ -31,6 +35,15 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
     :param bedfile: path to bed file
     :return: genome name string
     """
+
+    if not ReferenceValidator:
+        reference_validator = ReferenceValidator()
+
+    if bedfile:
+        predicted_genome = reference_validator.predict(bedfile)[0]
+        if predicted_genome:
+            return predicted_genome
+
     if not isinstance(input_genome, str):
         input_genome = ""
     input_genome = input_genome.strip().lower()
@@ -43,15 +56,6 @@ def standardize_genome_name(input_genome: str, bedfile: str = None) -> str:
         return "mm10"
     elif input_genome == "mm9" or input_genome == "grcm37":
         return "mm9"
-
-    elif not input_genome or len(input_genome) > 7:
-        if bedfile:
-            predictor = ReferenceValidator()
-            return predictor.predict(bedfile) or ""
-        else:
-            return input_genome
-    # else:
-    #     raise GenomeException("Incorrect genome assembly was provided")
     else:
         return input_genome
 
