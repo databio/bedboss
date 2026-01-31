@@ -1,6 +1,11 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from bedboss.bbuploader.metadata_extractor import (
+    standardize_assay,
+    standardize_cell_line,
+)
 
 
 class BedBossMetadata(BaseModel):
@@ -8,7 +13,7 @@ class BedBossMetadata(BaseModel):
     species_name: Optional[str] = Field("", alias="sample_organism_ch1")
     species_id: Optional[str] = Field("", alias="sample_taxid_ch1")
     cell_type: Optional[str] = ""
-    cell_line: Optional[str] = ""
+    cell_line: Optional[str] = Field("", alias="line")
     genotype: Optional[str] = ""
     assay: Optional[str] = Field("", alias="sample_library_strategy")
     library_source: Optional[str] = Field("", alias="sample_library_source")
@@ -33,6 +38,33 @@ class BedBossMetadata(BaseModel):
             return f"geo:{value}"
         return value
 
+    @field_validator("cell_type", mode="before")
+    @classmethod
+    def standardize_cell_type(cls, v):
+        if v:
+            return standardize_cell_line(v)
+        return v
+
+    @field_validator("assay", mode="before")
+    @classmethod
+    def standardize_assay_value(cls, v):
+        if v:
+            return standardize_assay(v)
+        return v
+
+
+class BedBossMetadataSeries(BedBossMetadata):
+    # TODO: check if all this values are correct:
+    description: Optional[str] = Field("", alias="series_title")
+    genome: str = Field(None, alias="ref_genome")
+    species_name: Optional[str] = Field("", alias="series_sample_organism")
+    species_id: Optional[str] = Field("", alias="series_sample_taxid")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="allow",
+    )
+
 
 class BedBossRequired(BaseModel):
     sample_name: str
@@ -42,7 +74,7 @@ class BedBossRequired(BaseModel):
     narrowpeak: Optional[bool] = False
     description: Optional[str] = ""
     organism: Optional[str] = None
-    pep: Optional[BedBossMetadata] = None
+    pep: Optional[Union[BedBossMetadata, BedBossMetadataSeries]] = None
     title: Optional[str] = None
 
 

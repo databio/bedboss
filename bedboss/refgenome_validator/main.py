@@ -1,8 +1,8 @@
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 
-from gtars.models import Region as GRegionSet
+from gtars.models import RegionSet as GRegionSet
 
 from bedboss.exceptions import ValidatorException, BedBossException
 from bedboss.refgenome_validator.const import GENOME_FILES
@@ -238,8 +238,11 @@ class ReferenceValidator:
         :return: a dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True)
         """
 
-        if isinstance(bedfile, GRegionSet) or isinstance(bedfile, str):
+        if isinstance(bedfile, GRegionSet):
             _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
+        elif isinstance(bedfile, str):
+            _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
+            bedfile = GRegionSet(bedfile)
         else:
             _LOGGER.info(
                 f"Calculating reference genome stats for provided bed chrom dict..."
@@ -435,13 +438,16 @@ class ReferenceValidator:
             tier_ranking=output.compatibility.tier_ranking,
         )
 
-    def predict(self, bedfile: str) -> Union[str, None]:
+    def predict(
+        self, bedfile: Union[str, GRegionSet]
+    ) -> Tuple[Union[str, None], Union[str, None]]:
         """
         Predict compatibility of a bed file with reference genomes
 
         :param bedfile: path to bedfile
 
-        :return: sring with the name of the reference genome that the bed file is compatible with or None, if no compatibility is found
+        :return: tuple of (genome_id, digest) for the best compatible reference genome,
+            or None if no tier 1 compatibility is found or digest doesn't exist
         """
 
         _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
@@ -449,17 +455,41 @@ class ReferenceValidator:
             self.determine_compatibility(bedfile, concise=True)
         )
 
-        best_rankings = []
+        tier1_genomes: List[tuple[str, CompatibilityConcise]] = [
+            (genome, prediction)
+            for genome, prediction in compatibility_stats.items()
+            if prediction.tier_ranking == 1
+        ]
 
-        for genome, prediction in compatibility_stats.items():
-            if prediction.tier_ranking == 1:
-                best_rankings.append(genome)
+        if not tier1_genomes:
+            # Fall back to tier 2 if there's exactly one tier 2 genome and no tier 1 genomes
+            tier2_genomes: List[tuple[str, CompatibilityConcise]] = [
+                (genome, prediction)
+                for genome, prediction in compatibility_stats.items()
+                if prediction.tier_ranking == 2
+            ]
+            if len(tier2_genomes) == 1:
+                _LOGGER.info(
+                    "No tier 1 genomes found, using single tier 2 genome as fallback"
+                )
+                best_digest = tier2_genomes[0][0]
+                genome_id = GENOME_FILES.get(best_digest)
+                if genome_id is None:
+                    return None, None
+                return genome_id, best_digest
+            return None, None
 
-        if len(best_rankings) == 0:
-            for genome, prediction in compatibility_stats.items():
-                if prediction.tier_ranking == 2:
-                    best_rankings.append(genome)
+        tier1_genomes.sort(
+            key=lambda x: (
+                x[1].xs,
+                x[1].oobr if x[1].oobr is not None else 0.0,
+                x[1].sequence_fit if x[1].sequence_fit is not None else 0.0,
+            ),
+            reverse=True,
+        )
 
-        if len(best_rankings) >= 1:
-            return GENOME_FILES.get(best_rankings[0])
-        return None
+        best_digest = tier1_genomes[0][0]
+        genome_id = GENOME_FILES.get(best_digest)
+        if genome_id is None:
+            return None, None
+        return genome_id, best_digest

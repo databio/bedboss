@@ -27,7 +27,7 @@ class GenomeModel:
 
     @property
     def genome_alias(self):
-        return self._genome_digest  # TODO: update everything
+        return self._genome_alias  # TODO: update everything
 
     @property
     def genome_digest(self):

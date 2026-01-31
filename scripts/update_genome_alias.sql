@@ -1,0 +1,180 @@
+-- SQL script to update genome_alias in bed table based on best genome_ref_stats
+-- For PostgreSQL
+-- This script was written by ai
+
+-- Step 1: Create a temporary table with the genome_digest to alias mapping
+-- This mapping comes from bedboss/refgenome_validator/const.py GENOME_FILES
+CREATE TEMPORARY TABLE genome_alias_map (
+    genome_digest VARCHAR(64) PRIMARY KEY,
+    genome_alias VARCHAR(16)
+);
+
+INSERT INTO genome_alias_map (genome_digest, genome_alias) VALUES
+    ('h_kOcvPobU9it_QR1LjPqeNpM56xjEJQ', 'hg38'),
+    ('0OgP0NkIM22lVYT5AMmkbb9knKDhk4I6', 'hg38'),
+    ('EiFob05aCWgVU_B_Ae0cypnQut3cxUP1', 'hg38'),
+    ('DvAlkUMPq7CRnTYAfXGkQmAOfFqVMZHE', 'hg19'),
+    ('XJWKh8nsSqBFfcU0DIHMZohYyCWF-vcA', 'hg19'),
+    ('MkXYxV2-83BEcPmzskEVGJsJ7Qkb--gX', 'hg38'),
+    ('kgTizBhIBf5BeEMTqBuyzRBi2AlwTRj6', 'hg19'),
+    ('7hP7E8o-q6H8qcqMHBEIYdbAK49PoEUZ', 'hg38'),
+    ('u1HyLgIlq8M_XvEwy0oGqAvKGHJMGtxH', 'hg38'),
+    ('H3RA3Jez6oqMOW87LGuwtSgKQqTgWVxx', 'hg19'),
+    ('F9zeFn6M4EN4KGAJush7rZEU3GROoeNP', 'hg38'),
+    ('q5Gn6dl5HbkZe6sRs9CZVGwGd1-XwyAq', 'hg19'),
+    ('svwHqvgassl0loigdqVIQJdjo7NWDIx3', 'hg19'),
+    ('oLfPx0NOBKKXMIngGeQ4YewtU4Ge_wKz', 'hg38'),
+    ('RGSkyOkQ4qnSLhjrR_e3AI51Ac-RohAL', 'hg38'),
+    ('-qU7PUmse_-pilikFDTJKyrt2_QJvUFy', 'hg19'),
+    ('ThZcNYiLuWWL86NdJ8dvvJG15K9mW3Fo', 'hg19'),
+    ('NTeQ1GQMt2ocCFkS8Z3_qkvetZjabWSt', 'hg38'),
+    ('5ryrHdbJHIgyZuE29h5uzITRL4kinZWG', 'hg38'),
+    ('a_WL8OC7sFJfjux5m11M2bKl0dYepA1x', 'hg38'),
+    ('6pxZqxG0TYtyVb8yp14ONpaxZ8msQqKr', 'hg19'),
+    ('tkRdBlSp5hewK4OpEJC87J9pw-ac0vOa', 'hg38'),
+    ('k4mLJvbFzZiw3o6SL8hh63V2u7AjDMrE', 'hg19'),
+    ('tmnbiAyj2fke68d_TYjq2g487US8C15r', 'hg38'),
+    ('H9er8ocYfIN2TOfyf6zMyeXXm7trXGP7', 'hg18'),
+    ('EGlYk1stOsAjmTALWkqKDqtZOSkyA_YH', 'hg38'),
+    ('lXa-sGAmSafYXHN4iEwup0EsQh5F1krA', 'hg19'),
+    ('FnbS0xDAGOePD7lp6Xt0vnbcASzkk3gk', 'hg38'),
+    ('vRjC5qM1Tc-fFjJo0TGRw4CVjFhmLG0f', 'hg38'),
+    ('wdpZbFN0pd92H2VeKZBAp3riQN4nJXkK', 'hg38'),
+    ('GOIHeGSorDrbznRxihs5rIb6vTiTKaw7', 'hg19'),
+    ('Dx_M8skbJqROkfXhhQRtWejcCyewRbdL', 'hg38'),
+    ('ieWVCws5MC2QFRKgH9QcN3u5_Y_3hPG6', 'hg18'),
+    ('jFm0Uca8a7vK2cbuIQgBopjBilgCFheD', 'hg38'),
+    ('Ba88PY52_qeifhJrgUXyin6UITdXNsg3', 'hg38'),
+    ('YfZ0rklv8KY9DCtqG0iIX16zsgbuBgmM', 'hg18'),
+    ('5SdkZCnuZL2YIptqjSBZfupo_O7HpD_B', 'hg19'),
+    ('gHcfbUVnFzHv3QSqz2sSqVHdUQbDO8N5', 'hg38'),
+    ('eN7J_gZz_meakMCeXXBEvY_njignMPxl', 'hg19'),
+    ('6chutju9QVJW0rdA-wgubHbtoTQ42o-6', 'hg38'),
+    ('lWRRNMNypacEjnJCy-AYiDNUPy1brQGC', 'hg38'),
+    ('xEg2q8K9gV4027DMTCiaUGLCcrqySglR', 'hg38'),
+    ('JL56x8L1q1Fs_-jHvZxBG01Vitac-CmO', 'hg38'),
+    ('-e70JAQq4NJDg8-1Ab2XhHu6yYjeW-zu', 'mm39'),
+    ('FTBYBUoMhkOJ_-8lWpERVTxe62kstAol', 'mm10'),
+    ('9k1WrFA4Ys2fPifOOVswhOEdurvsaLfI', 'mm10'),
+    ('jpOqOhddb15iOm2SIdJSjsf-U5Uu7Def', 'mm38'),
+    ('fXjBOJjw-DYsSnnfDBl5vtZu1N7lbnUl', 'mm39'),
+    ('PM8ODmBlTISp4Onv0aSBFaAfi3QVCGzx', 'mm39'),
+    ('qcT5VVX5G3mN2O9OqeFR-F0POVuY2oGw', 'mm39'),
+    ('99TjKCwZJJLjpBqkLpTgC2E_Y3OgKtMz', 'mm10'),
+    ('D-6wf8dsOttiVNnLSImSglRJvw_8Zr_j', 'mm39'),
+    ('3MS1-4k87pZ0-C80QDoUvhFmC0usPH28', 'mm39'),
+    ('M7ZWnvUTT06JREJnMb_7UGwgGaG0-13s', 'mm10'),
+    ('JPyo8AqZzCyVaUx1lAkk6LbpyQPX4VUB', 'mm39'),
+    ('qtPKGcXii2OuiyIoDA9K0jSKR62qCyzd', 'mm39'),
+    ('2Ls1P5eUdKbvtOhjJx3s2R5r0_I-IB5Z', 'mm39'),
+    ('XVhfRj6PCzLoGiEeXjpFv7vriVN02aPc', 'mm39'),
+    ('3rgz8-_XPSiTUYPamUTRF3DArhAhTint', 'mm39'),
+    ('vygX07e7feibvucSnWj6hRScGMfc7B6P', 'mm9'),
+    ('WsOG-InFnIta0rqSy1KUBjrFrukbnE5j', 'mm39'),
+    ('KPagVaXI4XwQ1D0L0EW4eEuVl-otaAtX', 'mm39'),
+    ('6-UTIAyR94-nanfrhd_sAF6oHLyMd0zH', 'mm37'),
+    ('TQORtixTJqM3Su9dmtACKc7hNHAceE4I', 'mm38'),
+    ('4mvptys3ckGgiUCcly4HOHB40IhpwwVT', 'mm9'),
+    ('dMjpOU7EvpeZVb0gpPoZ7prNaxOu88Ta', 'mm10'),
+    ('hW3Ba5zoufl3-MGXQESlWXjsW56R5vPG', 'mm10'),
+    ('wsDErYxgCXiPnb2FWZ4sXtx3B0YyruRu', 'mm10'),
+    ('bLbjXXCz_5qAonaDXcVuadx65QZkC7mb', 'mm39'),
+    ('ABEupc6KHmxtHGarfWFXTmu9mUcNnfoM', 'mm39');
+
+-- Step 2: Preview what will be updated (optional - for verification)
+-- Uncomment to run:
+/*
+WITH ranked_stats AS (
+    SELECT
+        bed_id,
+        genome_digest,
+        xs,
+        oobr,
+        sequence_fit,
+        tier_ranking,
+        ROW_NUMBER() OVER (
+            PARTITION BY bed_id
+            ORDER BY
+                tier_ranking ASC,
+                xs DESC NULLS LAST,
+                COALESCE(oobr, 0) DESC,
+                COALESCE(sequence_fit, 0) DESC
+        ) as rn
+    FROM genome_ref_stats
+    WHERE tier_ranking = 1
+)
+SELECT
+    b.id as bed_id,
+    b.genome_alias as old_alias,
+    gam.genome_alias as new_alias,
+    rs.genome_digest,
+    rs.xs,
+    rs.oobr,
+    rs.sequence_fit
+FROM bed b
+JOIN ranked_stats rs ON b.id = rs.bed_id AND rs.rn = 1
+JOIN genome_alias_map gam ON rs.genome_digest = gam.genome_digest
+LIMIT 100;
+*/
+
+-- Step 3: Perform the update
+-- This is the main update query using a CTE with window function
+
+WITH ranked_stats AS (
+    -- Rank genome_ref_stats for each bed_id
+    -- Tier < 4 is considered compatible, sorted by best metrics (higher is better)
+    SELECT
+        bed_id,
+        genome_digest,
+        xs,
+        oobr,
+        sequence_fit,
+        tier_ranking,
+        ROW_NUMBER() OVER (
+            PARTITION BY bed_id
+            ORDER BY
+                tier_ranking ASC,
+                xs DESC NULLS LAST,
+                COALESCE(oobr, 0) DESC,
+                COALESCE(sequence_fit, 0) DESC
+        ) as rn
+    FROM genome_ref_stats
+    WHERE tier_ranking < 4
+),
+best_stats AS (
+    -- Select only the best (rank 1) for each bed_id
+    SELECT bed_id, genome_digest
+    FROM ranked_stats
+    WHERE rn = 1
+)
+UPDATE bed
+SET
+    genome_alias = gam.genome_alias,
+    genome_digest = bs.genome_digest
+FROM best_stats bs
+JOIN genome_alias_map gam ON bs.genome_digest = gam.genome_digest
+WHERE bed.id = bs.bed_id;
+
+-- Step 4: Show summary
+SELECT
+    'Total bed records' as metric,
+    COUNT(*)::text as count
+FROM bed
+UNION ALL
+SELECT
+    'Records with genome_alias set' as metric,
+    COUNT(*)::text as count
+FROM bed
+WHERE genome_alias IS NOT NULL;
+
+-- Show breakdown by genome_alias
+SELECT
+    genome_alias,
+    COUNT(*) as count
+FROM bed
+WHERE genome_alias IS NOT NULL
+GROUP BY genome_alias
+ORDER BY count DESC;
+
+-- Cleanup
+DROP TABLE IF EXISTS genome_alias_map;

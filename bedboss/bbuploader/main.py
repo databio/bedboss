@@ -20,16 +20,23 @@ from bedboss.bbuploader.constants import (
     PKG_NAME,
     STATUS,
 )
+from bedboss.bbuploader.metadata_extractor import find_cell_line, find_assay
 from bedboss.bbuploader.models import (
     BedBossMetadata,
     BedBossRequired,
     ProjectProcessingStatus,
+    BedBossMetadataSeries,
 )
-from bedboss.bbuploader.utils import create_gsm_sub_name
+from bedboss.bbuploader.utils import (
+    create_gsm_sub_name,
+    build_gse_identifier,
+    middle_underscored,
+)
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.skipper import Skipper
+from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.utils import (
     calculate_time,
     download_file,
@@ -44,10 +51,14 @@ _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
 
 
+reference_validator = ReferenceValidator()
+
+
 @calculate_time
 def upload_all(
     bedbase_config: str,
     outfolder: str = os.getcwd(),
+    geo_tag: str = DEFAULT_GEO_TAG,
     start_date: str = None,
     end_date: str = None,
     search_limit: int = 10,
@@ -71,6 +82,7 @@ def upload_all(
 
     :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
     :param bedbase_config: path to bedbase configuration file
+    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :param start_date: The earliest date when opep was updated [Default: 2000/01/01]
     :param end_date: The latest date when opep was updated [Default: today's date]
     :param search_limit: limit of projects to be searched
@@ -92,10 +104,16 @@ def upload_all(
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
+    _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
-    genome = standardize_genome_name(genome)
+    _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
+
+    genome = standardize_genome_name(genome, reference_validator=reference_validator)
+    if genome:
+        _LOGGER.info(f"Filtering for genome: '{genome}'")
 
     pep_annotation_list = find_peps(
+        geo_tag=geo_tag,
         start_date=start_date,
         end_date=end_date,
         limit=search_limit,
@@ -121,26 +139,29 @@ def upload_all(
     )
 
     if not lite:
+        _LOGGER.info("Initializing R service for statistics")
         r_service = RServiceManager()
     else:
+        _LOGGER.info("Lite mode: R service disabled")
         r_service = None
 
     for gse_pep in pep_annotation_list.results:
         count += 1
+        gse_id = build_gse_identifier(gse_pep.name, geo_tag)
         with Session(bbagent.config.db_engine.engine) as session:
             MessageHandler.print_success(f"{'##' * 30}")
             MessageHandler.print_success(
-                f"#### Processing: '{gse_pep.name}'. #### Processing {count} / {total_projects}. ####"
+                f"#### Processing: '{gse_id}'. #### Processing {count} / {total_projects}. ####"
             )
 
             gse_status = session.scalar(
-                select(GeoGseStatus).where(GeoGseStatus.gse == gse_pep.name)
+                select(GeoGseStatus).where(GeoGseStatus.gse == gse_id)
             )
 
             if gse_status:
                 if gse_status.status == STATUS.SUCCESS and not rerun:
                     _LOGGER.info(
-                        f"Skipping: '{gse_pep.name}' - already processed and rerun set to false"
+                        f"Skipping: '{gse_id}' - already processed and rerun set to false"
                     )
                     continue
 
@@ -156,12 +177,12 @@ def upload_all(
                     or gse_status.status == STATUS.PARTIAL
                 ) and not run_skipped:
                     _LOGGER.info(
-                        f"Run skipped files set to false, exiting. GSE: {gse_pep.name}"
+                        f"Run skipped files set to false, exiting. GSE: {gse_id}"
                     )
                     continue
 
             else:
-                gse_status = GeoGseStatus(gse=gse_pep.name, status=STATUS.PROCESSING)
+                gse_status = GeoGseStatus(gse=gse_id, status=STATUS.PROCESSING)
                 session.add(gse_status)
                 session.commit()
 
@@ -170,6 +191,7 @@ def upload_all(
                     gse=gse_pep.name,
                     bedbase_config=bbagent,
                     outfolder=outfolder,
+                    geo_tag=geo_tag,
                     create_bedset=create_bedset,
                     genome=genome,
                     sa_session=session,
@@ -207,12 +229,14 @@ def upload_all(
 
 def process_pep_sample(
     bed_sample: peppy.Sample,
+    geo_tag: str = DEFAULT_GEO_TAG,
 ) -> BedBossRequired:
     """
     Process pep sample that contains bed file. Download bed file and compose BedBossRequired data model
         that contains all required bed file metadata (e.g. reference genome, type, organism...)
 
     :param bed_sample: peppy sample with bed file url
+    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :return: BedBossRequired {sample_name: str,
                               gse: str,
                               gsm: str,
@@ -225,31 +249,71 @@ def process_pep_sample(
         f"Standardizing metadata for: '{bed_sample.sample_name}' . GSE: {bed_sample.gse}"
     )
 
-    if bed_sample.type == "NARROWPEAK":
-        file_type = "bed"
-        is_narrowpeak = True
-    elif bed_sample.type == "BROADPEAK":
-        file_type = "bed"
-        is_narrowpeak = False
+    if geo_tag == "series":
+        project_metadata = BedBossMetadataSeries(**bed_sample.to_dict())
+
+        description_text = f"{bed_sample.sample_name} {project_metadata.description}"
+        if not project_metadata.assay or project_metadata.assay == "OTHER":
+            predicted_assay = find_assay(description_text)
+            if predicted_assay:
+                project_metadata.assay = predicted_assay
+
+        if not project_metadata.cell_line:
+            predicted_cell_line = find_cell_line(description_text)
+            if predicted_cell_line:
+                project_metadata.cell_line = predicted_cell_line
+
+        return BedBossRequired(
+            sample_name=bed_sample.sample_name,
+            file_path=bed_sample.file_url,
+            ref_genome="undefined",
+            type="bed",
+            narrowpeak=False,
+            pep=project_metadata,
+            title=middle_underscored(bed_sample.get("sample_name", "")),
+        )
+    elif geo_tag == "samples":
+        if bed_sample.type == "NARROWPEAK":
+            file_type = "bed"
+            is_narrowpeak = True
+        elif bed_sample.type == "BROADPEAK":
+            file_type = "bed"
+            is_narrowpeak = False
+        else:
+            file_type = "bed"
+            is_narrowpeak = False
+
+        project_metadata = BedBossMetadata(**bed_sample.to_dict())
+
+        description_text = f"{bed_sample.sample_name} {project_metadata.description}"
+
+        if not project_metadata.assay or project_metadata.assay == "OTHER":
+            predicted_assay = find_assay(description_text)
+            if predicted_assay:
+                project_metadata.assay = predicted_assay
+
+        if not project_metadata.cell_line:
+            predicted_cell_line = find_cell_line(description_text)
+            if predicted_cell_line:
+                project_metadata.cell_line = predicted_cell_line
+
+        return BedBossRequired(
+            sample_name=bed_sample.sample_name,
+            file_path=bed_sample.file_url,
+            ref_genome=(
+                bed_sample.ref_genome.strip()
+                if bed_sample.ref_genome
+                else bed_sample.ref_genome
+            ),
+            type=file_type,
+            narrowpeak=is_narrowpeak,
+            pep=project_metadata,
+            title=bed_sample.get("sample_title", ""),
+        )
     else:
-        file_type = bed_sample.type.lower()
-        is_narrowpeak = False
-
-    project_metadata = BedBossMetadata(**bed_sample.to_dict())
-
-    return BedBossRequired(
-        sample_name=bed_sample.sample_name,
-        file_path=bed_sample.file_url,
-        ref_genome=(
-            bed_sample.ref_genome.strip()
-            if bed_sample.ref_genome
-            else bed_sample.ref_genome
-        ),
-        type=file_type,
-        narrowpeak=is_narrowpeak,
-        pep=project_metadata,
-        title=bed_sample.sample_title,
-    )
+        raise BedBossException(
+            f"Unsupported geo_tag: '{geo_tag}'. Please use 'samples' or 'series'."
+        )
 
 
 def get_pep(
@@ -278,6 +342,7 @@ def find_peps(
     filter_by: Literal["submission_date", "last_update_date"] = "submission_date",
     limit: int = 10000,
     offset: int = 0,
+    geo_tag: str = DEFAULT_GEO_TAG,
     phc: PEPHubClient = None,
 ) -> SearchReturnModel:
     """
@@ -288,6 +353,7 @@ def find_peps(
     :param filter_by: filter by submission date [Default: submission_date] Option: [submission_date, last_update_date]
     :param limit: limit of projects to be searched
     :param offset: offset of projects to be searched
+    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :param phc: PEPHubClient instance
     :return SearchReturnModel: {count: int
                                 limit: int
@@ -297,8 +363,13 @@ def find_peps(
     """
     if not phc:
         phc = PEPHubClient()
+    _LOGGER.info(
+        f"Searching PEPHub for projects (namespace='bedbase', tag='{geo_tag}', "
+        f"dates={start_date} to {end_date}, limit={limit}, offset={offset})"
+    )
     return phc.find_project(
         namespace="bedbase",
+        tag=geo_tag,
         limit=limit,
         offset=offset,
         filter_by=filter_by,
@@ -312,6 +383,7 @@ def upload_gse(
     gse: str,
     bedbase_config: Union[str, BedBaseAgent],
     outfolder: str = os.getcwd(),
+    geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,
     genome: str = None,
     preload: bool = True,
@@ -331,6 +403,7 @@ def upload_gse(
     :param gse: GEO series number
     :param bedbase_config: path to bedbase configuration file, or bbagent object
     :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
+    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :param create_bedset: create bedset from bed files
     :param genome: reference genome to upload to database. If None, all genomes will be processed
     :param preload: pre - download files to the local folder (used for faster reproducibility)
@@ -347,16 +420,21 @@ def upload_gse(
 
     :return: None
     """
+    _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
+    _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
+    gse_id = build_gse_identifier(gse, geo_tag)
 
     with Session(bbagent.config.db_engine.engine) as session:
-        _LOGGER.info(f"Processing: '{gse}'")
+        _LOGGER.info(f"Processing: '{gse_id}'")
 
-        gse_status = session.scalar(select(GeoGseStatus).where(GeoGseStatus.gse == gse))
+        gse_status = session.scalar(
+            select(GeoGseStatus).where(GeoGseStatus.gse == gse_id)
+        )
         if gse_status:
             if gse_status.status == STATUS.SUCCESS and not rerun:
                 _LOGGER.info(
-                    f"Skipping: '{gse}' - already processed and rerun set to false"
+                    f"Skipping: '{gse_id}' - already processed and rerun set to false"
                 )
                 exit()
 
@@ -371,11 +449,11 @@ def upload_gse(
                 gse_status.status == STATUS.SKIPPED
                 or gse_status.status == STATUS.PARTIAL
             ) and not run_skipped:
-                _LOGGER.info(f"Run skipped files set to false, exiting. GSE: {gse}")
+                _LOGGER.info(f"Run skipped files set to false, exiting. GSE: {gse_id}")
                 exit()
 
         else:
-            gse_status = GeoGseStatus(gse=gse, status=STATUS.FAIL)
+            gse_status = GeoGseStatus(gse=gse_id, status=STATUS.FAIL)
             session.add(gse_status)
             session.commit()
 
@@ -384,6 +462,7 @@ def upload_gse(
                 gse=gse,
                 bedbase_config=bbagent,
                 outfolder=outfolder,
+                geo_tag=geo_tag,
                 create_bedset=create_bedset,
                 genome=genome,
                 sa_session=session,
@@ -398,7 +477,7 @@ def upload_gse(
                 lite=lite,
             )
         except Exception as e:
-            _LOGGER.error(f"Processing of '{gse}' failed with error: {e}")
+            _LOGGER.error(f"Processing of '{gse_id}' failed with error: {e}")
             gse_status.status = STATUS.FAIL
             gse_status.error = str(e)
             session.commit()
@@ -406,7 +485,7 @@ def upload_gse(
 
         status_parser(gse_status, upload_result)
 
-        _LOGGER.info(f"Processing of '{gse}' is finished with success!")
+        _LOGGER.info(f"Processing of '{gse_id}' is finished with success!")
         session.commit()
 
 
@@ -438,6 +517,7 @@ def _upload_gse(
     gse: str,
     bedbase_config: Union[str, BedBaseAgent],
     outfolder: str = os.getcwd(),
+    geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,
     genome: str = None,
     sa_session: Session = None,
@@ -460,6 +540,7 @@ def _upload_gse(
     :param gse: GEO series number
     :param bedbase_config: path to bedbase configuration file, or bbagent object
     :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
+    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :param create_bedset: create bedset from bed files
     :param genome: reference genome to upload to database. If None, all genomes will be processed
     :param sa_session: opened session to the database
@@ -481,12 +562,18 @@ def _upload_gse(
     if isinstance(bedbase_config, str):
         bedbase_config = BedBaseAgent(config=bedbase_config)
     if genome:
-        genome = standardize_genome_name(genome)
+        genome = standardize_genome_name(
+            genome, reference_validator=reference_validator
+        )
+
+    gse_id = build_gse_identifier(gse, geo_tag)
 
     phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
-    project = phc.load_project(f"bedbase/{gse}:{DEFAULT_GEO_TAG}")
+    _LOGGER.info(f"Loading project from PEPHub: 'bedbase/{gse}:{geo_tag}'")
+    project = phc.load_project(f"bedbase/{gse}:{geo_tag}")
+    _LOGGER.info(f"Loaded project with {len(project.samples)} samples")
 
     if standardize_pep:
         project = pep_standardizer(project)
@@ -499,10 +586,10 @@ def _upload_gse(
     total_sample_number = len(project.samples)
 
     if use_skipper:
-        skipper_obj = Skipper(output_path=outfolder, name=gse)
+        skipper_obj = Skipper(output_path=outfolder, name=gse_id)
         if reinit_skipper:
             skipper_obj.reinitialize()
-        _LOGGER.info(f"Skipper initialized for: '{gse}'")
+        _LOGGER.info(f"Skipper initialized for: '{gse_id}'")
     else:
         skipper_obj = None
 
@@ -544,6 +631,7 @@ def _upload_gse(
 
         required_metadata = process_pep_sample(
             bed_sample=project_sample,
+            geo_tag=geo_tag,
         )
 
         sample_status = sa_session.scalar(
@@ -588,7 +676,7 @@ def _upload_gse(
                 continue
 
         _LOGGER.info(
-            f"Processing global_sample_id: '{required_metadata.pep.global_sample_id}' file: '{required_metadata.sample_name}' gse: '{gse}'"
+            f"Processing global_sample_id: '{required_metadata.pep.global_sample_id}' file: '{required_metadata.sample_name}' gse: '{gse}', geo_tag: '{geo_tag}'"
         )
         sample_status.status = STATUS.PROCESSING
         sa_session.commit()
@@ -626,15 +714,27 @@ def _upload_gse(
             file_abs_path = os.path.abspath(
                 os.path.join(files_path, project_sample.file)
             )
+            _LOGGER.info(f"Downloading file to: '{file_abs_path}'")
             download_file(project_sample.file_url, file_abs_path, no_fail=True)
         else:
             file_abs_path = required_metadata.file_path
 
         try:
+            original_genome = required_metadata.ref_genome
+            # This code will standardize or predict genome if not provided
             required_metadata.ref_genome = standardize_genome_name(
-                required_metadata.ref_genome, file_abs_path
+                required_metadata.ref_genome,
+                file_abs_path,
+                reference_validator=reference_validator,
             )
+            if original_genome != required_metadata.ref_genome:
+                _LOGGER.info(
+                    f"Genome standardized: '{original_genome}' -> '{required_metadata.ref_genome}'"
+                )
 
+            _LOGGER.info(
+                f"Starting bed processing for '{required_metadata.sample_name}' (genome: {required_metadata.ref_genome})"
+            )
             file_digest = run_all(
                 name=required_metadata.title,
                 input_file=file_abs_path,
@@ -651,6 +751,10 @@ def _upload_gse(
                 lite=lite,
                 pm=pm,
                 r_service=r_service,
+                reference_genome_validator=reference_validator,
+            )
+            _LOGGER.info(
+                f"Successfully processed '{required_metadata.sample_name}' -> digest: {file_digest}"
             )
             uploaded_files.append(file_digest)
             if skipper_obj:
@@ -686,14 +790,34 @@ def _upload_gse(
         sa_session.commit()
 
     if create_bedset and uploaded_files:
-        _LOGGER.info(f"Creating bedset for: '{gse}'")
+        _LOGGER.info(f"Creating bedset for: '{gse_id}'")
 
         experiment_metadata = project.config.get("experiment_metadata", {})
+
+        # Check if bedset already exists and merge bed IDs
+        combined_bed_ids = list(uploaded_files)
+        try:
+            existing_bedset = bedbase_config.bedset.get(gse)
+            if existing_bedset and existing_bedset.bed_ids:
+                _LOGGER.info(
+                    f"Bedset '{gse}' already exists with {len(existing_bedset.bed_ids)} files. Merging with {len(uploaded_files)} new files."
+                )
+                # Merge existing and new bed IDs, avoiding duplicates
+                existing_ids = set(existing_bedset.bed_ids)
+                for bed_id in uploaded_files:
+                    if bed_id not in existing_ids:
+                        existing_ids.add(bed_id)
+                combined_bed_ids = list(existing_ids)
+                _LOGGER.info(
+                    f"Combined bedset will have {len(combined_bed_ids)} files."
+                )
+        except Exception:
+            _LOGGER.debug(f"Bedset '{gse}' does not exist yet. Creating new bedset.")
 
         run_bedbuncher(
             bedbase_config=bedbase_config,
             record_id=gse,
-            bed_set=uploaded_files,
+            bed_set=combined_bed_ids,
             output_folder=os.path.join(outfolder, "outputs"),
             name=gse,
             description=project.description,
@@ -716,10 +840,14 @@ def _upload_gse(
         )
 
     else:
-        _LOGGER.info(f"Skipping bedset creation for: '{gse}'")
+        _LOGGER.info(f"Skipping bedset creation for: '{gse_id}'")
 
     if stop_pipeline:
         pm.stop_pipeline()
 
-    _LOGGER.info(f"Processing of '{gse}' is finished with success!")
+    _LOGGER.info(
+        f"Processing of '{gse_id}' completed: "
+        f"{project_status.number_of_processed}/{project_status.number_of_samples} processed, "
+        f"{project_status.number_of_skipped} skipped, {project_status.number_of_failed} failed"
+    )
     return project_status

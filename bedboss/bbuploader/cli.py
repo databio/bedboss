@@ -15,6 +15,9 @@ app_bbuploader = typer.Typer(
 def upload_all(
     bedbase_config: str = typer.Option(..., help="Path to bedbase config file"),
     outfolder: str = typer.Option(..., help="Path to output folder"),
+    geo_tag: str = typer.Option(
+        "samples", help="GEO tag to use: 'samples' or 'series' [Default: samples]"
+    ),
     start_date: str = typer.Option(
         None, help="The earliest date when opep was updated [Default: 2000/01/01]"
     ),
@@ -70,6 +73,7 @@ def upload_all(
     upload_all_function(
         bedbase_config=bedbase_config,
         outfolder=outfolder,
+        geo_tag=geo_tag,
         start_date=start_date,
         end_date=end_date,
         search_limit=search_limit,
@@ -96,6 +100,9 @@ def upload_gse(
     outfolder: str = typer.Option(..., help="Path to output folder"),
     gse: str = typer.Option(
         ..., help="GSE number that can be found in pephub. eg. GSE123456"
+    ),
+    geo_tag: str = typer.Option(
+        "samples", help="GEO tag to use: 'samples' or 'series' [Default: samples]"
     ),
     create_bedset: bool = typer.Option(
         True, help="Create bedset from bed files. [Default: True]"
@@ -138,6 +145,7 @@ def upload_gse(
         bedbase_config=bedbase_config,
         outfolder=outfolder,
         gse=gse,
+        geo_tag=geo_tag,
         create_bedset=create_bedset,
         genome=genome,
         preload=preload,
