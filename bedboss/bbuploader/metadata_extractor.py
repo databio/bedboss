@@ -1,5 +1,3 @@
-from typing import Union
-
 cell_lines = {
     "1205lu": "1205Lu",
     "12z": "12Z",
@@ -236,7 +234,7 @@ def find_assay(description: str) -> str:
     will return "TF ChIP-seq"
 
     :param description: The input description string.
-    :return: The identified assay type or None if not found.
+    :return: The identified assay type or "" (empty string) if not found.
     """
     description_lower = description.lower()
     for key in assay_map.keys():
@@ -253,7 +251,7 @@ def find_cell_line(description: str) -> str:
     will return "K562"
 
     :param description: The input description string.
-    :return: The identified cell line or None if not found.
+    :return: The identified cell line or "" (empty string) if not found.
     """
     description_lower = description.lower()
     for key in cell_lines.keys():

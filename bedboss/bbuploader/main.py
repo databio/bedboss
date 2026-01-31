@@ -721,6 +721,7 @@ def _upload_gse(
 
         try:
             original_genome = required_metadata.ref_genome
+            # This code will standardize or predict genome if not provided
             required_metadata.ref_genome = standardize_genome_name(
                 required_metadata.ref_genome,
                 file_abs_path,

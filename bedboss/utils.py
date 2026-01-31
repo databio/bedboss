@@ -7,6 +7,8 @@ from functools import wraps
 import gzip
 from io import StringIO
 import pandas as pd
+from typing import Union
+from gtars.models import RegionSet
 
 import peppy
 import requests
@@ -24,7 +26,7 @@ _LOGGER = logging.getLogger("bedboss")
 
 def standardize_genome_name(
     input_genome: str,
-    bedfile: str = None,
+    bedfile: Union[str, RegionSet] = None,
     reference_validator: ReferenceValidator = None,
 ) -> str:
     """
@@ -34,9 +36,11 @@ def standardize_genome_name(
     we should use
     :param bedfile: path to bed file
     :return: genome name string
+    :param reference_validator: ReferenceValidator object, if None, a new one will be created
+    :return: standardized genome name
     """
 
-    if not ReferenceValidator:
+    if not reference_validator:
         reference_validator = ReferenceValidator()
 
     if bedfile:

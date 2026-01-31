@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 
 from gtars.models import RegionSet as GRegionSet
 
@@ -238,7 +238,7 @@ class ReferenceValidator:
         :return: a dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True)
         """
 
-        if isinstance(bedfile, GRegionSet) or isinstance(bedfile, str):
+        if isinstance(bedfile, GRegionSet):
             _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
         elif isinstance(bedfile, str):
             _LOGGER.info(f"Calculating reference genome stats for {bedfile}...")
@@ -438,7 +438,9 @@ class ReferenceValidator:
             tier_ranking=output.compatibility.tier_ranking,
         )
 
-    def predict(self, bedfile: str) -> tuple[Union[str, None], Union[str, None]]:
+    def predict(
+        self, bedfile: Union[str, GRegionSet]
+    ) -> Tuple[Union[str, None], Union[str, None]]:
         """
         Predict compatibility of a bed file with reference genomes
 

@@ -1,7 +1,6 @@
 import logging
 import os
 import urllib.request
-import re
 
 from bedboss.bbuploader.constants import DEFAULT_GEO_TAG, PKG_NAME
 
