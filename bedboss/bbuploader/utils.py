@@ -64,9 +64,11 @@ def middle_underscored(s: str) -> str:
     """
     Return substring between the first and last underscore.
     If there are fewer than 3 underscores, return the original string unchanged.
-    param s: input string
-    return: substring between first and last underscore or original string
+
+    :param s: input string
+    :return: substring between first and last underscore or original string
     """
+
     if s.count("_") < 3:
         return s
     parts = s.split("_")
