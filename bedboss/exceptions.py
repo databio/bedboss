@@ -27,13 +27,15 @@ class OpenSignalMatrixException(BedBossException):
 class QualityException(BedBossException):
     """Exception, when quality test of the bed file didn't pass."""
 
-    def __init__(self, reason: str = ""):
+    def __init__(self, reason: str = "", file_size: int = 0):
         """
         Optionally provide explanation for exceptional condition.
 
         :param str reason: reason why quality control wasn't successful
+        :param int file_size: file size in bytes (if available)
         """
         self.reason = reason
+        self.file_size = file_size
         super(QualityException, self).__init__(reason)
 
 

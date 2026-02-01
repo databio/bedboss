@@ -19,7 +19,7 @@ from pypiper import PipelineManager
 
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.exceptions import QualityException
-from bedboss.const import MIN_REGION_WIDTH
+from bedboss.const import MIN_REGION_WIDTH, MAX_FILE_SIZE_QC
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -242,17 +242,39 @@ def calculate_time(func):
     return wrapper
 
 
-def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
+def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
     """
     Run initial QC on the bed file
 
     :param url: URL of the file
     :param min_region_width: Minimum region width threshold to pass the quality check. Default is 20
 
-    :return: bool. Returns True if QC passed, False if unable to open in pandas
-    :raises: QualityException
+    :return: int. File size in bytes (0 if unable to determine)
+    :raises: QualityException (includes file_size attribute)
     """
     _LOGGER.info(f"Running initial QC on the bed file: {url}")
+
+    file_size = 0
+
+    # Check file size before downloading content
+    try:
+        # Convert ftp:// to https:// for the HEAD request (e.g., NCBI FTP supports HTTPS)
+        check_url = (
+            url.replace("ftp://", "https://") if url.startswith("ftp://") else url
+        )
+        response = requests.head(check_url, allow_redirects=True)
+        content_length = response.headers.get("Content-Length")
+        if content_length:
+            file_size = int(content_length)
+        if file_size > MAX_FILE_SIZE_QC:
+            file_size_mb = file_size / (1024 * 1024)
+            max_size_mb = MAX_FILE_SIZE_QC / (1024 * 1024)
+            raise QualityException(
+                f"Initial QC failed for '{url}'. File size is '{file_size_mb:.2f} MB', where max file size is set to: '{max_size_mb:.0f} MB'",
+                file_size=file_size,
+            )
+    except requests.RequestException as err:
+        _LOGGER.warning(f"Unable to check file size: {err}. Continuing with QC...")
 
     try:
         with urllib.request.urlopen(url) as response:
@@ -267,12 +289,13 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
             "Unable to read the file, initial QC failed, but continuing anyway..."
             f"Error: {str(err)}"
         )
-        return False
+        return file_size
 
     if mean_width < min_region_width:
         raise QualityException(
-            f"Initial QC failed for '{url}'. Mean region width is '{mean_width}', where min region width is set to: '{min_region_width}'"
+            f"Initial QC failed for '{url}'. Mean region width is '{mean_width}', where min region width is set to: '{min_region_width}'",
+            file_size=file_size,
         )
 
     _LOGGER.info(f"Initial QC passed for {url}")
-    return True
+    return file_size

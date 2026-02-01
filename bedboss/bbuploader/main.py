@@ -34,6 +34,7 @@ from bedboss.bbuploader.utils import (
 )
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
+from bedboss.const import MAX_FILE_SIZE
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.skipper import Skipper
 from bedboss.refgenome_validator.main import ReferenceValidator
@@ -693,11 +694,19 @@ def _upload_gse(
                 )
 
             # to speed up the process, we can run initial QC on the file
-            run_initial_qc(project_sample.file_url)
+            qc_file_size = run_initial_qc(project_sample.file_url)
+            if qc_file_size > 0:
+                sample_status.file_size = min(
+                    qc_file_size, MAX_FILE_SIZE
+                )  # we need to limit file size to MAX_FILE_SIZE for DB storage
         except QualityException as err:
             _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(err)}")
             sample_status.status = STATUS.FAIL
             sample_status.error = str(err)
+            if err.file_size > 0:
+                sample_status.file_size = min(
+                    err.file_size, MAX_FILE_SIZE
+                )  # we need to limit file size to MAX_FILE_SIZE for DB storage
             project_status.number_of_failed += 1
 
             if skipper_obj:
