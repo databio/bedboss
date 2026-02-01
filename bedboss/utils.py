@@ -19,7 +19,7 @@ from pypiper import PipelineManager
 
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.exceptions import QualityException
-from bedboss.const import MIN_REGION_WIDTH
+from bedboss.const import MIN_REGION_WIDTH, MAX_FILE_SIZE_QC
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -253,6 +253,23 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> bool:
     :raises: QualityException
     """
     _LOGGER.info(f"Running initial QC on the bed file: {url}")
+
+    # Check file size before downloading content
+    try:
+        # Convert ftp:// to https:// for the HEAD request (e.g., NCBI FTP supports HTTPS)
+        check_url = (
+            url.replace("ftp://", "https://") if url.startswith("ftp://") else url
+        )
+        response = requests.head(check_url, allow_redirects=True)
+        content_length = response.headers.get("Content-Length")
+        if content_length and int(content_length) > MAX_FILE_SIZE_QC:
+            file_size_mb = int(content_length) / (1024 * 1024)
+            max_size_mb = MAX_FILE_SIZE_QC / (1024 * 1024)
+            raise QualityException(
+                f"Initial QC failed for '{url}'. File size is '{file_size_mb:.2f} MB', where max file size is set to: '{max_size_mb:.0f} MB'"
+            )
+    except requests.RequestException as err:
+        _LOGGER.warning(f"Unable to check file size: {err}. Continuing with QC...")
 
     try:
         with urllib.request.urlopen(url) as response:
