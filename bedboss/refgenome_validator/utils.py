@@ -1,7 +1,9 @@
 import logging
 import subprocess
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Any
 
+from bedboss.refgenome_validator.models import CompatibilityConcise
+from bedboss.refgenome_validator.const import GENOME_FILES
 from gtars.models import RegionSet as GRegionSet
 
 _LOGGER = logging.getLogger("bedboss")
@@ -81,3 +83,46 @@ def parse_IGD_output(output_str) -> Union[None, List[dict]]:
         return data
     except Exception:
         return None
+
+
+def predict_from_compatibility_resutlts(
+    compatibility_stats: dict[str, CompatibilityConcise],
+) -> tuple[str | Any, str]:
+    tier1_genomes: List[tuple[str, CompatibilityConcise]] = [
+        (genome, prediction)
+        for genome, prediction in compatibility_stats.items()
+        if prediction.tier_ranking == 1
+    ]
+
+    if not tier1_genomes:
+        # Fall back to tier 2 if there's exactly one tier 2 genome and no tier 1 genomes
+        tier2_genomes: List[tuple[str, CompatibilityConcise]] = [
+            (genome, prediction)
+            for genome, prediction in compatibility_stats.items()
+            if prediction.tier_ranking == 2
+        ]
+        if len(tier2_genomes) == 1:
+            _LOGGER.info(
+                "No tier 1 genomes found, using single tier 2 genome as fallback"
+            )
+            best_digest = tier2_genomes[0][0]
+            genome_id = GENOME_FILES.get(best_digest)
+            if genome_id is None:
+                return None, None
+            return genome_id, best_digest
+        return None, None
+
+    tier1_genomes.sort(
+        key=lambda x: (
+            x[1].xs,
+            x[1].oobr if x[1].oobr is not None else 0.0,
+            x[1].sequence_fit if x[1].sequence_fit is not None else 0.0,
+        ),
+        reverse=True,
+    )
+
+    best_digest = tier1_genomes[0][0]
+    genome_id = GENOME_FILES.get(best_digest)
+    if genome_id is None:
+        return None, None
+    return genome_id, best_digest

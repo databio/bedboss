@@ -31,6 +31,7 @@ from bedboss.models import (
     StatsUpload,
 )
 from bedboss.refgenome_validator.main import ReferenceValidator
+from bedboss.refgenome_validator.utils import predict_from_compatibility_resutlts
 from bedboss.skipper import Skipper
 from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
@@ -237,8 +238,17 @@ def run_all(
     if validate_reference:
         _LOGGER.info("Validating reference genome")
         ref_valid_stats = reference_genome_validator.determine_compatibility(
-            bedfile=bed_metadata.bed_file, concise=True  # TODO: give bed_object instead
+            bedfile=bed_metadata.bed_object, concise=True
         )
+        predicted_alias, predicted_digest = predict_from_compatibility_resutlts(
+            ref_valid_stats
+        )
+        if predicted_alias and predicted_digest:
+            _LOGGER.info(
+                f"Predicted genome: {predicted_alias} (digest: {predicted_digest})"
+            )
+            classification.genome_alias = predicted_alias
+            classification.genome_digest = predicted_digest
     else:
         ref_valid_stats = None
 

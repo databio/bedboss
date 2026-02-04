@@ -43,6 +43,7 @@ def make_bigbed(
 
     :return: None
     """
+
     try:
         chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
     except MissingGenomeError:

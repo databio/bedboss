@@ -4,7 +4,7 @@ from bbconf import BedBaseAgent
 
 from bedboss.refgenome_validator.main import ReferenceValidator
 
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 from bbconf.db_utils import Bed
 from geniml.bbclient import BBClient
@@ -28,12 +28,16 @@ def update_all_bedbase(purge: bool = False):
 
     bbclient = BBClient()
 
-    select_not_updated = select(Bed).where(Bed.indexed == False).limit(LIMIT)
+    select_not_updated = (
+        select(Bed)
+        .where(and_(Bed.genome_alias == "hg38", Bed.genome_digest.is_(None)))
+        .limit(LIMIT)
+    )
     with Session(bbagent.bed._sa_engine) as session:
 
-        if purge:
-            session.query(Bed).update({Bed.indexed: False})
-            session.commit()
+        # if purge:
+        #     session.query(Bed).update({Bed.indexed: False})
+        #     session.commit()
 
         beds_to_update = session.scalars(select_not_updated)
 
@@ -73,7 +77,7 @@ def update_all_bedbase(purge: bool = False):
 
 
 if __name__ == "__main__":
-    # update_all_bedbase(purge=False)
-    from bedboss.refgenome_validator.refgenie_chrom_sizes import get_seq_col
-
-    ret = get_seq_col()
+    update_all_bedbase(purge=False)
+    # from bedboss.refgenome_validator.refgenie_chrom_sizes import get_seq_col
+    #
+    # ret = get_seq_col()
