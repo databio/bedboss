@@ -5,7 +5,8 @@ from typing import Dict, List, Optional, Union, Tuple
 from gtars.models import RegionSet as GRegionSet
 
 from bedboss.exceptions import ValidatorException, BedBossException
-from bedboss.refgenome_validator.const import GENOME_FILES
+
+# from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.models import (
     ChromLengthStats,
@@ -19,6 +20,7 @@ from bedboss.refgenome_validator.utils import (
     get_bed_chrom_info,
     parse_IGD_output,
     run_igd_command,
+    predict_from_compatibility_resutlts,
 )
 from bedboss.refgenome_validator.refgenie_chrom_sizes import get_chrom_sizes
 
@@ -455,41 +457,4 @@ class ReferenceValidator:
             self.determine_compatibility(bedfile, concise=True)
         )
 
-        tier1_genomes: List[tuple[str, CompatibilityConcise]] = [
-            (genome, prediction)
-            for genome, prediction in compatibility_stats.items()
-            if prediction.tier_ranking == 1
-        ]
-
-        if not tier1_genomes:
-            # Fall back to tier 2 if there's exactly one tier 2 genome and no tier 1 genomes
-            tier2_genomes: List[tuple[str, CompatibilityConcise]] = [
-                (genome, prediction)
-                for genome, prediction in compatibility_stats.items()
-                if prediction.tier_ranking == 2
-            ]
-            if len(tier2_genomes) == 1:
-                _LOGGER.info(
-                    "No tier 1 genomes found, using single tier 2 genome as fallback"
-                )
-                best_digest = tier2_genomes[0][0]
-                genome_id = GENOME_FILES.get(best_digest)
-                if genome_id is None:
-                    return None, None
-                return genome_id, best_digest
-            return None, None
-
-        tier1_genomes.sort(
-            key=lambda x: (
-                x[1].xs,
-                x[1].oobr if x[1].oobr is not None else 0.0,
-                x[1].sequence_fit if x[1].sequence_fit is not None else 0.0,
-            ),
-            reverse=True,
-        )
-
-        best_digest = tier1_genomes[0][0]
-        genome_id = GENOME_FILES.get(best_digest)
-        if genome_id is None:
-            return None, None
-        return genome_id, best_digest
+        return predict_from_compatibility_resutlts(compatibility_stats)
