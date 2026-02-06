@@ -67,14 +67,24 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
         port=6333,
         api_key=agent.config.config.qdrant.api_key,
     )
-    response = client.scroll(
-        collection_name=agent.config.config.qdrant.file_collection,
-        limit=50000,  # Adjust batch size
-        offset=0,
-        with_payload=True,
-        with_vectors=True,
-    )
-    points, next_offset = response
+
+    points = []
+    next_offset = 0
+    batch_size = 10000
+
+    while next_offset is not None:
+        response = client.scroll(
+            collection_name=agent.config.config.qdrant.file_collection,
+            limit=batch_size,
+            offset=next_offset,
+            with_payload=True,
+            with_vectors=True,
+        )
+        batch_points, next_offset = response
+        points.extend(batch_points)
+        _LOGGER.info(
+            f"Fetched batch of {len(batch_points)} records (total: {len(points)})."
+        )
 
     for m in points:
         m.id = m.id.replace("-", "")
