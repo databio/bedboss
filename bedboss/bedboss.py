@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from typing import Union
+from urllib.parse import urlparse
 
 import bbconf
 import pephubclient
@@ -21,8 +22,8 @@ from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
-from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME
-from bedboss.exceptions import BedBossException
+from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME, MAX_FILE_SIZE_QC
+from bedboss.exceptions import BedBossException, QualityException
 from bedboss.models import (
     BedClassificationUpload,
     BedSetAnnotations,
@@ -33,7 +34,12 @@ from bedboss.models import (
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.refgenome_validator.utils import predict_from_compatibility_resutlts
 from bedboss.skipper import Skipper
-from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
+from bedboss.utils import (
+    calculate_time,
+    get_genome_digest,
+    standardize_genome_name,
+    run_initial_qc,
+)
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
 
@@ -148,6 +154,21 @@ def run_all(
         stop_pipeline = True
     else:
         stop_pipeline = False
+
+    if urlparse(input_file).scheme in ("http", "https", "ftp"):
+        _LOGGER.info(
+            "Remote input detected. Running initial_qc to inspect remote file size."
+        )
+        file_size = run_initial_qc(input_file)
+
+        if file_size > MAX_FILE_SIZE_QC:
+            raise QualityException(
+                f"Remote file size {file_size} exceeds the maximum allowed size of {bbconf.MAX_REMOTE_FILE_SIZE}. Please download the file and provide a local path."
+            )
+        else:
+            _LOGGER.info(
+                f"Remote file size {file_size} is within the allowed limit. Proceeding with processing."
+            )
 
     bed_metadata = make_all(
         input_file=input_file,
@@ -421,6 +442,13 @@ def insert_pep(
         else:
             is_narrow_peak = False
         try:
+
+            if pep_sample.get("file_size", None):
+                if int(pep_sample.file_size) > MAX_FILE_SIZE_QC:
+                    raise QualityException(
+                        f"File size {pep_sample.file_size} exceeds the maximum allowed size of {MAX_FILE_SIZE_QC}. Please provide a smaller file or set check_qc to False to skip this check."
+                    )
+
             bed_id = run_all(
                 input_file=pep_sample.input_file,
                 input_type=pep_sample.input_type,

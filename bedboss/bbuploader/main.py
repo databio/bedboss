@@ -696,9 +696,7 @@ def _upload_gse(
             # to speed up the process, we can run initial QC on the file
             qc_file_size = run_initial_qc(project_sample.file_url)
             if qc_file_size > 0:
-                sample_status.file_size = min(
-                    qc_file_size, MAX_FILE_SIZE
-                )  # we need to limit file size to MAX_FILE_SIZE for DB storage
+                sample_status.file_size = qc_file_size
         except QualityException as err:
             _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(err)}")
             sample_status.status = STATUS.FAIL
