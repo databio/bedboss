@@ -133,8 +133,14 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     df.loc[:, "id"] = df.index.astype(str)  # Ensure 'id' is a string
     df = df.fillna("")
 
+    coord_cols = [c for c in ["x", "y", "z"] if c in df.columns]
+
     # Create the nodes structure
     nodes = df[columns_to_include].to_dict(orient="records")
+    for node in nodes:
+        for col in coord_cols:
+            if col in node:
+                node[col] = round(float(node[col]), 2)
 
     # Create the final JSON structure
     json_data = {"nodes": nodes, "links": []}
