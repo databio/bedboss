@@ -35,8 +35,6 @@ from bedboss.refgenome_validator.utils import predict_from_compatibility_resutlt
 from bedboss.skipper import Skipper
 from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_name
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
-
 _LOGGER = logging.getLogger(PKG_NAME)
 
 
@@ -69,8 +67,8 @@ def run_all(
     check_qc: bool = True,
     validate_reference: bool = True,
     chrom_sizes: str = None,
-    open_signal_matrix: str = None,
     ensdb: str = None,
+    open_signal_matrix: str = None,
     other_metadata: dict = None,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
@@ -84,7 +82,6 @@ def run_all(
     universe_method: str = None,
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
-    r_service: RServiceManager = None,
     reference_genome_validator: ReferenceValidator = None,
 ) -> str:
     """
@@ -103,7 +100,7 @@ def run_all(
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
     :param bool validate_reference: set True to run genome reference validator
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
-    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
+    :param str open_signal_matrix: path to open signal matrix TSV for cell-type enrichment [optional]
     :param dict other_metadata: a dict containing all attributes from the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
@@ -119,7 +116,6 @@ def run_all(
     :param str universe_method: method used to create the universe [Default: None]
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
-    :param RServiceManager r_service: RServiceManager object that will run R services
     :param reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility
     :return str bed_digest: bed digest
     """
@@ -176,12 +172,12 @@ def run_all(
             outfolder=outfolder,
             genome=genome,
             ensdb=ensdb,
-            bed_digest=bed_metadata.bed_digest,
+            chrom_sizes=chrom_sizes,
             open_signal_matrix=open_signal_matrix,
+            bed_digest=bed_metadata.bed_digest,
             just_db_commit=just_db_commit,
             rfg_config=rfg_config,
             pm=pm,
-            r_service=r_service,
         )
 
     if "mean_region_width" not in statistics_dict:
@@ -397,11 +393,6 @@ def insert_pep(
     if rerun:
         skipper.reinitialize()
 
-    if not lite:
-        r_service = RServiceManager()
-    else:
-        r_service = None
-
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
         if is_processed:
@@ -430,7 +421,6 @@ def insert_pep(
                 license_id=pep_sample.get("license_id") or license_id,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
-                open_signal_matrix=pep_sample.get("open_signal_matrix"),
                 other_metadata=pep_sample.to_dict(),
                 outfolder=output_folder,
                 rfg_config=rfg_config,
@@ -447,7 +437,6 @@ def insert_pep(
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
-                r_service=r_service,
             )
 
             processed_ids.append(bed_id)
@@ -526,8 +515,6 @@ def reprocess_all(
     else:
         stop_pipeline = False
 
-    r_service = RServiceManager()
-
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
@@ -560,7 +547,6 @@ def reprocess_all(
                 check_qc=False,
                 validate_reference=True,
                 chrom_sizes=None,
-                open_signal_matrix=None,
                 ensdb=None,
                 other_metadata=None,
                 just_db_commit=False,
@@ -573,7 +559,6 @@ def reprocess_all(
                 universe_method=None,
                 universe_bedset=None,
                 pm=pm,
-                r_service=r_service,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
@@ -667,7 +652,6 @@ def reprocess_one(
         check_qc=False,
         validate_reference=True,
         chrom_sizes=None,
-        open_signal_matrix=None,
         ensdb=None,
         other_metadata=None,
         just_db_commit=False,

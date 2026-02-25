@@ -1,14 +1,15 @@
 import json
 import logging
 import os
-import statistics
+import subprocess
 from pathlib import Path
 from typing import Union
 
 import pypiper
 from gtars.models import RegionSet
 
-from bedboss.bedstat.gc_content import calculate_gc_content, create_gc_plot
+from bedboss.bedstat.compress_distributions import compress_distributions, compress_to_kde
+from bedboss.bedstat.gc_content import calculate_gc_content
 from bedboss.const import (
     BEDSTAT_OUTPUT,
     HOME_PATH,
@@ -21,7 +22,6 @@ from bedboss.const import (
 )
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
-from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -29,22 +29,33 @@ SCHEMA_PATH_BEDSTAT = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "pep_schema.yaml"
 )
 
+# Map gtars partition names to legacy DB column name prefixes
+PARTITION_NAME_MAP = {
+    "promoterCore": "promotercore",
+    "promoterProx": "promoterprox",
+    "threeUTR": "threeutr",
+    "fiveUTR": "fiveutr",
+    "exon": "exon",
+    "intron": "intron",
+    "intergenic": "intergenic",
+}
+
 
 def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
     """
-    By providing genome name download Open Signal Matrix
+    By providing genome name download Open Signal Matrix.
 
     :param genome: genome assembly
-    :param out_path: working directory, where osm should be saved. If None, current working directory will be used
+    :param out_path: working directory, where osm should be saved.
+        If None, current working directory will be used.
     :return: path to the Open Signal Matrix
     """
-    # TODO: add more osm
     _LOGGER.info("Getting Open Signal Matrix file path...")
-    if genome == "hg19" or genome == "GRCh37":
+    if genome in ("hg19", "GRCh37"):
         osm_name = OS_HG19
-    elif genome == "hg38" or genome == "GRCh38":
+    elif genome in ("hg38", "GRCh38"):
         osm_name = OS_HG38
-    elif genome == "mm10" or genome == "GRCm38":
+    elif genome in ("mm10", "GRCm38"):
         osm_name = OS_MM10
     else:
         raise OpenSignalMatrixException(
@@ -73,39 +84,39 @@ def bedstat(
     outfolder: str,
     bed_digest: str = None,
     ensdb: str = None,
+    chrom_sizes: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
-    r_service: RServiceManager = None,
 ) -> dict:
     """
-    Run bedstat pipeline - pipeline for obtaining statistics about bed files
-        and inserting them into the database
+    Run bedstat pipeline - compute statistics for a BED file using gtars genomicdist.
+
+    For faster loading when processing many BED files, pre-compile the GTF and
+    signal matrix with ``gtars prep`` and pass the .bin paths::
+
+        gtars prep --gtf gencode.v47.annotation.gtf.gz
+        gtars prep --signal-matrix openSignalMatrix_hg38.txt.gz
+
+    Then pass the resulting .bin files here (e.g. ``ensdb="gencode.v47.annotation.gtf.bin"``).
+    gtars auto-detects .bin vs raw files by extension. Without pre-compilation,
+    each BED file re-parses the full GTF/signal matrix from scratch.
 
     :param str bedfile: the full path to the bed file to process
-    :param str bed_digest: the digest of the bed file. Defaults to None.
-    :param str open_signal_matrix: a full path to the openSignalMatrix
-        required for the tissue specificity plots
-    :param str outfolder: The folder for storing the pipeline results.
     :param str genome: genome assembly of the sample
-    :param bool just_db_commit: if True, the pipeline will only commit to the database
+    :param str outfolder: The folder for storing the pipeline results.
+    :param str bed_digest: the digest of the bed file. Defaults to None.
+    :param str ensdb: path to GTF file (.gtf/.gtf.gz) or pre-compiled .bin for TSS/partition analysis
+    :param str chrom_sizes: path to chrom.sizes file for region distribution
+    :param str open_signal_matrix: path to signal matrix TSV (.txt/.txt.gz) or pre-compiled .bin
+    :param bool just_db_commit: if True, skip running gtars and read existing JSON
     :param str rfg_config: path to the refgenie config file
-    :param str ensdb: a full path to the ensdb gtf file required for genomes
-        not in GDdata
     :param pm: pypiper object
-    :param r_service: RServiceManager object
 
-    :return: dict with statistics and plots metadata
+    :return: dict with statistics and distributions
     """
-    outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
-    try:
-        os.makedirs(outfolder_stats)
-    except FileExistsError:
-        pass
-
-    # TODO: osm commented to speed up code
-    # find/download open signal matrix
+    # Auto-download open signal matrix if not provided
     if not open_signal_matrix or not os.path.exists(open_signal_matrix):
         try:
             open_signal_matrix = get_osm_path(genome)
@@ -113,13 +124,12 @@ def bedstat(
             _LOGGER.warning(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
             )
-    # open_signal_matrix = None
 
-    # Used to stop pipeline bedstat is used independently
-    if not pm:
-        stop_pipeline = True
-    else:
-        stop_pipeline = False
+    outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
+    os.makedirs(outfolder_stats, exist_ok=True)
+
+    # Used to stop pipeline if bedstat is used independently
+    stop_pipeline = not pm
 
     bed_object = RegionSet(bedfile)
 
@@ -127,110 +137,99 @@ def bedstat(
         bed_digest = bed_object.identifier
 
     outfolder_stats_results = os.path.abspath(os.path.join(outfolder_stats, bed_digest))
-    try:
-        os.makedirs(outfolder_stats_results)
-    except FileExistsError:
-        pass
+    os.makedirs(outfolder_stats_results, exist_ok=True)
+
     json_file_path = os.path.abspath(
         os.path.join(outfolder_stats_results, bed_digest + ".json")
     )
-    json_plots_file_path = os.path.abspath(
-        os.path.join(outfolder_stats_results, bed_digest + "_plots.json")
-    )
+
     if not just_db_commit:
         if not pm:
             pm_out_path = os.path.abspath(
                 os.path.join(outfolder_stats, "pypiper", bed_digest)
             )
-            try:
-                os.makedirs(pm_out_path)
-            except FileExistsError:
-                pass
+            os.makedirs(pm_out_path, exist_ok=True)
             pm = pypiper.PipelineManager(
                 name="bedstat-pipeline",
                 outfolder=pm_out_path,
                 pipestat_sample_name=bed_digest,
             )
 
-        rscript_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "bedstat",
-            "tools",
-            "regionstat_cli.R",
-        )
-        assert os.path.exists(rscript_path), FileNotFoundError(
-            f"'{rscript_path}' script not found"
-        )
+        # Build gtars genomicdist command
+        cmd_parts = [
+            "gtars", "genomicdist",
+            "--bed", bedfile,
+            "--output", json_file_path,
+        ]
+        if ensdb:
+            cmd_parts.extend(["--gtf", ensdb])
+        if chrom_sizes:
+            cmd_parts.extend(["--chrom-sizes", chrom_sizes])
+        if open_signal_matrix:
+            cmd_parts.extend(["--signal-matrix", open_signal_matrix])
+        cmd_parts.extend(["--bins", "100"])
 
-        if not r_service:
-            try:
-                _LOGGER.info("#=>>> Running local R instance!")
-                command = (
-                    f"Rscript {rscript_path} --bedfilePath={bedfile} "
-                    f"--openSignalMatrix={open_signal_matrix} "
-                    f"--outputFolder={outfolder_stats_results} --genome={genome} "
-                    f"--ensdb={ensdb} --digest={bed_digest}"
-                )
-                pm.run(cmd=command, target=json_file_path)
-            except Exception as e:
-                _LOGGER.error(f"Pipeline failed: {e}")
-                raise BedBossException(f"Pipeline failed: {e}")
-        else:
-            _LOGGER.info("#=>>> Running R service ")
-            r_service.run_file(
-                file_path=bedfile,
-                digest=bed_digest,
-                outpath=outfolder_stats_results,
-                genome=genome,
-                openSignalMatrix=open_signal_matrix,
-                gtffile=ensdb,
-            )
+        command = " ".join(cmd_parts)
+        try:
+            _LOGGER.info(f"Running gtars genomicdist: {command}")
+            pm.run(cmd=command, target=json_file_path)
+        except Exception as e:
+            _LOGGER.error(f"gtars genomicdist failed: {e}")
+            raise BedBossException(f"gtars genomicdist failed: {e}")
 
-    data = {}
+    # Read gtars JSON output
+    gtars_output = {}
     if os.path.exists(json_file_path):
         with open(json_file_path, "r", encoding="utf-8") as f:
-            data = json.loads(f.read())
-    if os.path.exists(json_plots_file_path):
-        with open(json_plots_file_path, "r", encoding="utf-8") as f_plots:
-            plots = json.loads(f_plots.read())
-    else:
-        plots = []
+            gtars_output = json.load(f)
 
-    # unlist the data, since the output of regionstat.R is a dict of lists of
-    # length 1 and force keys to lower to correspond with the
-    # postgres column identifiers
-    data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
+    # Extract scalars to flat dict keys
+    data = {}
+    scalars = gtars_output.get("scalars", {})
+    data["number_of_regions"] = scalars.get("number_of_regions")
+    data["mean_region_width"] = scalars.get("mean_region_width")
+    data["median_tss_dist"] = scalars.get("median_tss_dist")
+
+    # Populate legacy partition flat columns (deprecated — use distributions JSONB)
+    partitions = gtars_output.get("partitions")
+    if partitions:
+        _LOGGER.info("Populating legacy partition columns (deprecated -- use distributions JSONB)")
+        total = partitions.get("total", 0)
+        for name, count in partitions.get("counts", []):
+            db_name = PARTITION_NAME_MAP.get(name)
+            if db_name and total > 0:
+                data[f"{db_name}_frequency"] = count
+                data[f"{db_name}_percentage"] = round(count / total * 100, 4)
+
+    # GC content: compute via Python bindings
     try:
         gc_contents = calculate_gc_content(
             bedfile=bed_object, genome=genome, rfg_config=rfg_config
         )
-    except BaseException as e:
+    except BaseException:
         gc_contents = None
 
     if gc_contents:
-        gc_mean = statistics.mean(gc_contents)
+        gc_mean = round(sum(gc_contents) / len(gc_contents), 4)
+        data["gc_content"] = gc_mean
 
-        data["gc_content"] = round(gc_mean, 2)
+        # Compress per-region GC values to 512-pt KDE, inject into distributions
+        gc_kde = compress_to_kde(gc_contents, n_points=512, log_transform=False)
+        if gc_kde:
+            gc_kde["mean"] = gc_mean
+            if "distributions" not in gtars_output:
+                gtars_output["distributions"] = {}
+            gtars_output["distributions"]["gc_content"] = gc_kde
+    else:
+        data["gc_content"] = None
 
-        gc_plot = create_gc_plot(
-            bed_id=bed_digest,
-            gc_contents=gc_contents,
-            outfolder=os.path.join(outfolder_stats_results),
-            gc_mean=gc_mean,
-        )
-        plots.append(gc_plot)
+    # Compress distributions for DB storage
+    compress_distributions(gtars_output)
 
-    for plot in plots:
-        plot_id = plot["name"]
-        data.update({plot_id: plot})
+    # Store entire augmented gtars JSON as distributions blob
+    data["distributions"] = gtars_output
 
-    if "md5sum" in data:
-        del data["md5sum"]
-
-    if "name" in data:
-        del data["name"]
-
-    if stop_pipeline:
+    if stop_pipeline and pm:
         pm.stop_pipeline()
 
     return data

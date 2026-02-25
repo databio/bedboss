@@ -81,10 +81,8 @@ def run_all(
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
-    open_signal_matrix: str = typer.Option(
-        None, help="Path to the open signal matrix file"
-    ),
-    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    ensdb: str = typer.Option(None, help="Path to GTF file or pre-compiled .bin (run 'gtars prep --gtf' first for faster batch processing)"),
+    open_signal_matrix: str = typer.Option(None, help="Path to open signal matrix file or pre-compiled .bin"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
@@ -133,8 +131,8 @@ def run_all(
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
-        open_signal_matrix=open_signal_matrix,
         ensdb=ensdb,
+        open_signal_matrix=open_signal_matrix,
         other_metadata=None,
         lite=lite,
         just_db_commit=just_db_commit,
@@ -389,10 +387,9 @@ def run_stats(
     ),
     genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
-    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
-    open_signal_matrix: str = typer.Option(
-        None, help="Path to the open signal matrix file"
-    ),
+    ensdb: str = typer.Option(None, help="Path to GTF file or pre-compiled .bin (run 'gtars prep --gtf' first for faster batch processing)"),
+    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
+    open_signal_matrix: str = typer.Option(None, help="Path to open signal matrix file or pre-compiled .bin"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
@@ -406,6 +403,7 @@ def run_stats(
         genome=genome,
         outfolder=outfolder,
         ensdb=ensdb,
+        chrom_sizes=chrom_sizes,
         open_signal_matrix=open_signal_matrix,
         just_db_commit=just_db_commit,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
