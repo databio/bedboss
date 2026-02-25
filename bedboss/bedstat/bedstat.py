@@ -89,6 +89,9 @@ def bedstat(
     just_db_commit: bool = False,
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
+    region_dist_bins: int = 250,
+    promoter_upstream: int = 200,
+    promoter_downstream: int = 2000,
 ) -> dict:
     """
     Run bedstat pipeline - compute statistics for a BED file using gtars genomicdist.
@@ -167,7 +170,12 @@ def bedstat(
             cmd_parts.extend(["--chrom-sizes", chrom_sizes])
         if open_signal_matrix:
             cmd_parts.extend(["--signal-matrix", open_signal_matrix])
-        cmd_parts.extend(["--bins", "250", "--compact"])
+        cmd_parts.extend([
+            "--bins", str(region_dist_bins),
+            "--promoter-upstream", str(promoter_upstream),
+            "--promoter-downstream", str(promoter_downstream),
+            "--compact",
+        ])
 
         command = " ".join(cmd_parts)
         try:

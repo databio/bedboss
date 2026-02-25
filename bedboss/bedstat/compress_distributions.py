@@ -35,7 +35,8 @@ def compress_to_histogram(
         return {"x_min": x_min, "x_max": x_max, "bins": 1, "counts": [int(len(trimmed))], "total": total}
 
     counts, _ = np.histogram(trimmed, bins=n_bins, range=(x_min, x_max))
-    return {"x_min": x_min, "x_max": x_max, "bins": n_bins, "counts": counts.tolist(), "total": total}
+    overflow = total - len(trimmed)
+    return {"x_min": x_min, "x_max": x_max, "bins": n_bins, "counts": counts.tolist(), "total": total, "overflow": overflow}
 
 
 def compress_to_kde(
@@ -76,13 +77,9 @@ def compress_to_kde(
     if len(trimmed) < 2:
         return None
 
-    # Downsample if too many values
-    if len(trimmed) > max_samples:
-        indices = np.linspace(0, len(trimmed) - 1, max_samples, dtype=int)
-        trimmed = trimmed[indices]
-
-    n = len(trimmed)
-    sd = float(np.std(trimmed, ddof=1))
+    # Compute bandwidth stats from FULL trimmed data (matching UI behavior)
+    full_n = len(trimmed)
+    sd = float(np.std(trimmed, ddof=0))
     if sd == 0:
         sd = 1e-10
 
@@ -91,8 +88,15 @@ def compress_to_kde(
     q3 = float(np.percentile(trimmed, 75))
     iqr = q3 - q1
 
-    # Silverman bandwidth
-    h = 0.9 * min(sd, iqr / 1.34 if iqr > 0 else sd) * (n ** -0.2)
+    # Silverman bandwidth (using full trimmed count, not downsampled)
+    h = 0.9 * min(sd, iqr / 1.34 if iqr > 0 else sd) * (full_n ** -0.2)
+
+    # Downsample AFTER bandwidth computation (only affects KDE evaluation speed)
+    if len(trimmed) > max_samples:
+        indices = np.linspace(0, len(trimmed) - 1, max_samples, dtype=int)
+        trimmed = trimmed[indices]
+
+    n = len(trimmed)
     if h <= 0:
         h = sd * (n ** -0.2)
     if h <= 0:
@@ -113,6 +117,38 @@ def compress_to_kde(
         "x_max": round(x_max, 6),
         "n": n_points,
         "densities": np.round(densities, 8).tolist(),
+    }
+
+
+def compress_tss_histogram(
+    values: List[float], n_bins: int = 100, max_distance: float = 100_000.0
+) -> Optional[dict]:
+    """Compress signed TSS distances to a fixed-range symmetric histogram.
+
+    Expects signed distances (negative = upstream, positive = downstream)
+    from gtars calc_feature_distances. Bins into [-max_distance, +max_distance]
+    to match the UI's local TSS distance plot.
+
+    Returns: {"x_min", "x_max", "bins", "counts", "total"}
+    """
+    if not values:
+        return None
+
+    arr = np.asarray(values, dtype=np.float64)
+    total = len(arr)
+
+    # Clamp to symmetric range
+    clamped = arr[(arr >= -max_distance) & (arr <= max_distance)]
+    if len(clamped) == 0:
+        return None
+
+    counts, _ = np.histogram(clamped, bins=n_bins, range=(-max_distance, max_distance))
+    return {
+        "x_min": -max_distance,
+        "x_max": max_distance,
+        "bins": n_bins,
+        "counts": counts.tolist(),
+        "total": total,
     }
 
 
@@ -155,9 +191,9 @@ def compress_distributions(gtars_output: dict) -> dict:
     if "widths" in dists and isinstance(dists["widths"], list):
         dists["widths"] = compress_to_histogram(dists["widths"], n_bins=50)
 
-    # TSS distances: histogram (100 bins)
+    # TSS distances: fixed-range histogram (100 bins, 0–100kb)
     if "tss_distances" in dists and isinstance(dists["tss_distances"], list):
-        dists["tss_distances"] = compress_to_histogram(dists["tss_distances"], n_bins=100)
+        dists["tss_distances"] = compress_tss_histogram(dists["tss_distances"], n_bins=100)
 
     # Neighbor distances: KDE with log10 transform
     if "neighbor_distances" in dists and isinstance(dists["neighbor_distances"], list):
