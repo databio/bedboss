@@ -75,9 +75,12 @@ def find_bed_files(pattern=None):
     return bed_files
 
 
-def run_e2e(bed_files):
-    """End-to-end bedstat() timing."""
+def run_e2e(bed_files, save_dir=None):
+    """End-to-end bedstat() timing with optional output saving."""
     from bedboss.bedstat.bedstat import bedstat
+
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
 
     print(
         f"{'File':<16} {'Regions':>8} {'Total':>8} "
@@ -103,12 +106,19 @@ def run_e2e(bed_files):
         n_regions = result.get("number_of_regions", "?")
         gc = result.get("gc_content")
         gc_str = f"{gc:.4f}" if gc is not None else "N/A"
-        dist_size = len(json.dumps(result.get("distributions", {}))) / 1024
+        dist_json = json.dumps(result.get("distributions", {}))
+        dist_size = len(dist_json) / 1024
 
         print(
             f"{label:<16} {n_regions:>8} {elapsed:>7.2f}s "
             f"{gc_str:>12} {dist_size:>7.1f}"
         )
+
+        if save_dir:
+            out_path = os.path.join(save_dir, f"{label}_bedstat.json")
+            with open(out_path, "w") as f:
+                json.dump(result, f, indent=2)
+            print(f"  -> saved {out_path}")
 
 
 def run_breakdown(bed_files):
@@ -138,7 +148,7 @@ def run_breakdown(bed_files):
                 "--gtf", GTF_BIN,
                 "--chrom-sizes", CHROM_SIZES,
                 "--signal-matrix", SIGNAL_BIN,
-                "--bins", "100",
+                "--bins", "250",
             ],
             check=True,
             capture_output=True,
@@ -188,6 +198,7 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
     flags = [a for a in sys.argv[1:] if a.startswith("-")]
     breakdown = "--breakdown" in flags
+    save = "--save" in flags
     pattern = args[0] if args else None
 
     bed_files = find_bed_files(pattern)
@@ -199,10 +210,11 @@ def main():
     print(f"  BED files:      {len(bed_files)} in {BED_DIR}")
     print()
 
+    save_dir = TEST_SAM if save else None
     if breakdown:
         run_breakdown(bed_files)
     else:
-        run_e2e(bed_files)
+        run_e2e(bed_files, save_dir=save_dir)
 
 
 if __name__ == "__main__":

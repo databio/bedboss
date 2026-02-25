@@ -167,7 +167,7 @@ def bedstat(
             cmd_parts.extend(["--chrom-sizes", chrom_sizes])
         if open_signal_matrix:
             cmd_parts.extend(["--signal-matrix", open_signal_matrix])
-        cmd_parts.extend(["--bins", "100"])
+        cmd_parts.extend(["--bins", "250", "--compact"])
 
         command = " ".join(cmd_parts)
         try:
