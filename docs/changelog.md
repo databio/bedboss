@@ -2,6 +2,46 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.9.6] - 2026-02-18
+## Added:
+- Added scripts for downloading and analyzing ENCODE metadata
+
+## Changed:
+- Updated pep processing in GEO uploader and bedboss
+- Updated UMAP creation
+
+
+# [0.9.5] - 2026-02-16
+## Changed:
+- Improved metadata extractor with expanded cell line and assay extraction
+- Updated UMAP creation scripts
+- Updated requirements
+
+
+# [0.9.4] - 2026-02-06
+## Fixed:
+- Fixed large downloads of embeddings from qdrant
+
+
+# [0.9.3] - 2026-02-04
+## Changed:
+- Improved genome predictor
+- Updated bbconf version requirement
+
+## Fixed:
+- Added file check for GEO files that don't have size in their soft data
+
+
+# [0.9.2] - 2026-01-31
+## Added:
+- Added file size check for project-level files in GEO uploader
+
+
+# [0.9.1] - 2026-01-31
+## Changed:
+- Removed unpredictable cell lines from metadata extractor
+
+
 # [0.9.0] - 2026-01-31
 ## Added:
 - Processing of gse series bed files #143
