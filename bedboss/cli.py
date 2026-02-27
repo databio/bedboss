@@ -695,6 +695,87 @@ def download_umap(
 
 
 
+@app.command(help="Download and pre-compile reference files for a genome")
+def prep(
+    genome: str = typer.Option(None, help="Genome name (e.g. hg38, mm10, danio_rerio). Downloads GTF and signal matrix, then pre-compiles to .bin"),
+    gtf: str = typer.Option(None, help="Path to a local GTF/GTF.gz file to pre-compile"),
+    signal_matrix: str = typer.Option(None, help="Path to a local signal matrix TSV/TSV.gz file to pre-compile"),
+    output: str = typer.Option(None, "-o", "--output", help="Output path for --gtf/--signal-matrix (default: input path with .bin extension)"),
+):
+    """
+    Download and pre-compile reference files (.bin) for faster batch processing.
+
+    Use --genome to automatically download and prep all reference files for a genome
+    assembly. Files are cached in ~/ensembl_gtf/ and ~/openSignalMatrix/ so subsequent
+    runs (including run-all) skip the download.
+
+    Use --gtf or --signal-matrix to prep your own local files instead.
+
+    Examples:
+
+        bedboss prep --genome hg38
+
+        bedboss prep --genome danio_rerio
+
+        bedboss prep --gtf my_annotation.gtf.gz
+
+        bedboss prep --signal-matrix my_matrix.txt.gz
+    """
+    import subprocess
+
+    if not genome and not gtf and not signal_matrix:
+        printm.print_error("Provide --genome, --gtf, or --signal-matrix")
+        raise typer.Exit(code=1)
+
+    if genome:
+        from bedboss.bedstat.bedstat import get_gtf_path, get_osm_path
+        from bedboss.exceptions import OpenSignalMatrixException
+
+        printm.print_success(f"Preparing reference files for genome: {genome}")
+
+        # GTF
+        try:
+            gtf_path = get_gtf_path(genome)
+            if gtf_path:
+                printm.print_success(f"GTF ready: {gtf_path}")
+            else:
+                printm.print_error(f"Could not resolve GTF for genome '{genome}'")
+        except Exception as e:
+            printm.print_error(f"GTF download/prep failed: {e}")
+
+        # Open signal matrix
+        try:
+            osm_path = get_osm_path(genome)
+            if osm_path:
+                printm.print_success(f"Signal matrix ready: {osm_path}")
+        except OpenSignalMatrixException:
+            printm.print_error(f"No open signal matrix available for genome '{genome}'")
+        except Exception as e:
+            printm.print_error(f"Signal matrix download/prep failed: {e}")
+
+        return
+
+    if gtf:
+        cmd = ["gtars", "prep", "--gtf", gtf]
+        if output:
+            cmd.extend(["-o", output])
+        printm.print_success(f"Pre-compiling GTF: {gtf}")
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            printm.print_error("GTF pre-compilation failed")
+            raise typer.Exit(code=1)
+
+    if signal_matrix:
+        cmd = ["gtars", "prep", "--signal-matrix", signal_matrix]
+        if output and not gtf:
+            cmd.extend(["-o", output])
+        printm.print_success(f"Pre-compiling signal matrix: {signal_matrix}")
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            printm.print_error("Signal matrix pre-compilation failed")
+            raise typer.Exit(code=1)
+
+
 @app.command(help="Verify configuration file")
 def verify_config(
     config: str = typer.Argument(

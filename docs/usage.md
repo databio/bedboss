@@ -42,9 +42,12 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │ convert-universe  Convert bed file to universe                               │
 │ update-genomes    Update reference genomes in the database                   │
 │ download-umap     Download UMAP                                              │
+│ prep              Download and pre-compile reference files for a genome      │
 │ verify-config     Verify configuration file                                  │
 │ geo               Automatic BEDbase uploader for GEO data                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss run-all --help`
@@ -151,6 +154,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --help                                               Show this message    │
 │                                                         and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss run-pep --help`
@@ -239,6 +244,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --help                                               Show this message    │
 │                                                         and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss reprocess-all --help`
@@ -262,6 +269,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                                 [default: no-fail]           │
 │    --help                                       Show this message and exit.  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss reprocess-one --help`
@@ -287,6 +296,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                              [default: no-dirty]             │
 │    --help                                    Show this message and exit.     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss reprocess-bedset --help`
@@ -306,6 +317,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                              [default: no-fail]              │
 │    --help                                    Show this message and exit.     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss make-bed --help`
@@ -340,6 +353,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                              [default: no-dirty]             │
 │    --help                                    Show this message and exit.     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss make-bigbed --help`
@@ -356,6 +371,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --rfg-config        TEXT  Path to the rfg config file                     │
 │    --help                    Show this message and exit.                     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss run-stats --help`
@@ -400,6 +417,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --help                                               Show this message    │
 │                                                         and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss reindex --help`
@@ -421,6 +440,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                               [default: 1000]                │
 │    --help                                     Show this message and exit.    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss reindex-text --help`
@@ -442,6 +463,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                               [default: 1000]                │
 │    --help                                     Show this message and exit.    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss make-bedset --help`
@@ -478,6 +501,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --help                                             Show this message and  │
 │                                                       exit.                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss init-config --help`
@@ -491,6 +516,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │ *  --outfolder        TEXT  Path to the output folder [required]             │
 │    --help                   Show this message and exit.                      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss delete-bed --help`
@@ -505,6 +532,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │ *  --config           TEXT  Path to the bedbase config file [required]       │
 │    --help                   Show this message and exit.                      │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss delete-bedset --help`
@@ -519,6 +548,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │ *  --config            TEXT  Path to the bedbase config file [required]      │
 │    --help                    Show this message and exit.                     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss tokenize-bed --help`
@@ -543,6 +574,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                                [default: no-overwrite]       │
 │    --help                                      Show this message and exit.   │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss delete-tokenized --help`
@@ -558,6 +591,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --config             TEXT  Path to the bedbase config file                │
 │    --help                     Show this message and exit.                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss convert-universe --help`
@@ -574,6 +609,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --bedset        TEXT  Bedset used to create the universe                  │
 │    --help                Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss update-genomes --help`
@@ -587,6 +624,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │ *  --config        TEXT  Path to the bedbase config file [required]          │
 │    --help                Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss download-umap --help`
@@ -617,6 +656,31 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                     [default: umap]                          │
 │    --help                           Show this message and exit.              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+## `bedboss prep --help`
+```console
+                                                                                
+ Usage: bedboss prep [OPTIONS]                                                  
+                                                                                
+ Download and pre-compile reference files for a genome                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --genome                 TEXT  Genome name (e.g. hg38, mm10, danio_rerio).   │
+│                                Downloads GTF and signal matrix, then         │
+│                                pre-compiles to .bin                          │
+│ --gtf                    TEXT  Path to a local GTF/GTF.gz file to            │
+│                                pre-compile                                   │
+│ --signal-matrix          TEXT  Path to a local signal matrix TSV/TSV.gz file │
+│                                to pre-compile                                │
+│ --output         -o      TEXT  Output path for --gtf/--signal-matrix         │
+│                                (default: input path with .bin extension)     │
+│ --help                         Show this message and exit.                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss verify-config --help`
@@ -632,6 +696,8 @@ Here you can see the command-line usage instructions for the main bedboss comman
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help          Show this message and exit.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
 ## `bedboss geo --help`
@@ -650,5 +716,194 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │             period of time.                                                  │
 │ upload-gse  Run bedboss uploading pipeline for GSE.                          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+
+
 ```
 
+## `bedboss geo upload-all --help`
+```console
+                                                                                
+ Usage: bedboss geo upload-all [OPTIONS]                                        
+                                                                                
+ Run bedboss uploading pipeline for specified genome in specified period of     
+ time.                                                                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --bedbase-config                             TEXT     Path to bedbase     │
+│                                                          config file         │
+│                                                          [required]          │
+│ *  --outfolder                                  TEXT     Path to output      │
+│                                                          folder              │
+│                                                          [required]          │
+│    --geo-tag                                    TEXT     GEO tag to use:     │
+│                                                          'samples' or        │
+│                                                          'series' [Default:  │
+│                                                          samples]            │
+│                                                          [default: samples]  │
+│    --start-date                                 TEXT     The earliest date   │
+│                                                          when opep was       │
+│                                                          updated [Default:   │
+│                                                          2000/01/01]         │
+│    --end-date                                   TEXT     The latest date     │
+│                                                          when opep was       │
+│                                                          updated [Default:   │
+│                                                          today's date]       │
+│    --search-limit                               INTEGER  Limit of projects   │
+│                                                          to be searched.     │
+│                                                          [Default: 50]       │
+│                                                          [default: 50]       │
+│    --search-offset                              INTEGER  Limit of projects   │
+│                                                          to be searched.     │
+│                                                          [Default: 0]        │
+│                                                          [default: 0]        │
+│    --download-limit                             INTEGER  Limit of projects   │
+│                                                          to be downloaded    │
+│                                                          [Default: 100]      │
+│                                                          [default: 100]      │
+│    --genome                                     TEXT     Reference genome    │
+│                                                          [Default: None]     │
+│                                                          (e.g. hg38) - if    │
+│                                                          None, all genomes   │
+│                                                          will be processed   │
+│    --preload             --no-preload                    Download bedfile    │
+│                                                          before caching it.  │
+│                                                          [Default: True]     │
+│                                                          [default: preload]  │
+│    --create-bedset       --no-create-bedset              Create bedset from  │
+│                                                          bed files.          │
+│                                                          [Default: True]     │
+│                                                          [default:           │
+│                                                          create-bedset]      │
+│    --overwrite           --no-overwrite                  Overwrite existing  │
+│                                                          bedfiles. [Default: │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          no-overwrite]       │
+│    --overwrite-bedset    --no-overwrite-bed…             Overwrite existing  │
+│                                                          bedset. [Default:   │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          overwrite-bedset]   │
+│    --rerun               --no-rerun                      Re-run all the      │
+│                                                          samples. [Default:  │
+│                                                          False]              │
+│                                                          [default: no-rerun] │
+│    --run-skipped         --no-run-skipped                Run skipped         │
+│                                                          projects. [Default: │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          run-skipped]        │
+│    --run-failed          --no-run-failed                 Run failed          │
+│                                                          projects. [Default: │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          run-failed]         │
+│    --standardize-pep     --no-standardize-p…             Standardize pep     │
+│                                                          with BEDMESS.       │
+│                                                          [Default: False]    │
+│                                                          [default:           │
+│                                                          no-standardize-pep] │
+│    --use-skipper         --no-use-skipper                Use skipper to skip │
+│                                                          projects if they    │
+│                                                          were processed      │
+│                                                          locally [Default:   │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          no-use-skipper]     │
+│    --reinit-skipper      --no-reinit-skipper             Reinitialize        │
+│                                                          skipper. [Default:  │
+│                                                          False]              │
+│                                                          [default:           │
+│                                                          no-reinit-skipper]  │
+│    --lite                --no-lite                       Run the pipeline in │
+│                                                          lite mode.          │
+│                                                          [Default: False]    │
+│                                                          [default: no-lite]  │
+│    --help                                                Show this message   │
+│                                                          and exit.           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```
+
+## `bedboss geo upload-gse --help`
+```console
+                                                                                
+ Usage: bedboss geo upload-gse [OPTIONS]                                        
+                                                                                
+ Run bedboss uploading pipeline for GSE.                                        
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --bedbase-config                              TEXT  Path to bedbase       │
+│                                                        config file           │
+│                                                        [required]            │
+│ *  --outfolder                                   TEXT  Path to output folder │
+│                                                        [required]            │
+│ *  --gse                                         TEXT  GSE number that can   │
+│                                                        be found in pephub.   │
+│                                                        eg. GSE123456         │
+│                                                        [required]            │
+│    --geo-tag                                     TEXT  GEO tag to use:       │
+│                                                        'samples' or 'series' │
+│                                                        [Default: samples]    │
+│                                                        [default: samples]    │
+│    --create-bedset       --no-create-bedset            Create bedset from    │
+│                                                        bed files. [Default:  │
+│                                                        True]                 │
+│                                                        [default:             │
+│                                                        create-bedset]        │
+│    --genome                                      TEXT  reference genome to   │
+│                                                        upload to database.   │
+│                                                        If None, all genomes  │
+│                                                        will be processed     │
+│    --preload             --no-preload                  Download bedfile      │
+│                                                        before caching it.    │
+│                                                        [Default: True]       │
+│                                                        [default: preload]    │
+│    --rerun               --no-rerun                    Re-run all the        │
+│                                                        samples. [Default:    │
+│                                                        False]                │
+│                                                        [default: rerun]      │
+│    --run-skipped         --no-run-skipped              Run skipped projects. │
+│                                                        [Default: False]      │
+│                                                        [default:             │
+│                                                        run-skipped]          │
+│    --run-failed          --no-run-failed               Run failed projects.  │
+│                                                        [Default: False]      │
+│                                                        [default: run-failed] │
+│    --overwrite           --no-overwrite                Overwrite existing    │
+│                                                        bedfiles. [Default:   │
+│                                                        False]                │
+│                                                        [default:             │
+│                                                        no-overwrite]         │
+│    --overwrite-bedset    --no-overwrite-beds…          Overwrite existing    │
+│                                                        bedset. [Default:     │
+│                                                        False]                │
+│                                                        [default:             │
+│                                                        overwrite-bedset]     │
+│    --standardize-pep     --no-standardize-pep          Standardize pep with  │
+│                                                        BEDMESS. [Default:    │
+│                                                        False]                │
+│                                                        [default:             │
+│                                                        no-standardize-pep]   │
+│    --use-skipper         --no-use-skipper              Use local skipper to  │
+│                                                        skip projects if they │
+│                                                        were processed        │
+│                                                        locally [Default:     │
+│                                                        False]                │
+│                                                        [default:             │
+│                                                        no-use-skipper]       │
+│    --reinit-skipper      --no-reinit-skipper           Reinitialize skipper. │
+│                                                        [Default: False]      │
+│                                                        [default:             │
+│                                                        no-reinit-skipper]    │
+│    --lite                --no-lite                     Run the pipeline in   │
+│                                                        lite mode. [Default:  │
+│                                                        False]                │
+│                                                        [default: no-lite]    │
+│    --help                                              Show this message and │
+│                                                        exit.                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+
+```

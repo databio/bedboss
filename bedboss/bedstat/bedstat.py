@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import subprocess
+import urllib.request
 
 from pathlib import Path
 from typing import Union
@@ -12,6 +14,8 @@ from bedboss.bedstat.compress_distributions import compress_distributions, compr
 from bedboss.bedstat.gc_content import calculate_gc_content
 from bedboss.const import (
     BEDSTAT_OUTPUT,
+    ENSEMBL_GENOMES,
+    GTF_FOLDER_NAME,
     HOME_PATH,
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
@@ -68,6 +72,13 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
         osm_folder = os.path.join(out_path, OPEN_SIGNAL_FOLDER_NAME)
 
     osm_path = os.path.join(osm_folder, osm_name)
+    osm_bin_path = osm_path + ".bin"
+
+    # Return pre-compiled binary if it already exists
+    if os.path.exists(osm_bin_path):
+        _LOGGER.info(f"Open Signal Matrix (pre-compiled): {osm_bin_path}")
+        return osm_bin_path
+
     if not os.path.exists(osm_path):
         os.makedirs(osm_folder, exist_ok=True)
         download_file(
@@ -75,8 +86,158 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
             path=osm_path,
             no_fail=True,
         )
+
+    # Pre-compile to .bin for faster loading on subsequent runs
+    if os.path.exists(osm_path):
+        _LOGGER.info(f"Pre-compiling signal matrix: {osm_path}")
+        result = subprocess.run(
+            ["gtars", "prep", "--signal-matrix", osm_path, "-o", osm_bin_path],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and os.path.exists(osm_bin_path):
+            _LOGGER.info(f"Open Signal Matrix (pre-compiled): {osm_bin_path}")
+            return osm_bin_path
+        else:
+            _LOGGER.warning(f"gtars prep failed, using raw file: {result.stderr}")
+
     _LOGGER.info(f"Open Signal Matrix file path: {osm_path}")
     return osm_path
+
+
+_ENSEMBL_FTP_BASES = {
+    "ensembl": "https://ftp.ensembl.org/pub/release-{release}/gtf",
+    "grch37": "https://ftp.ensembl.org/pub/grch37/release-{release}/gtf",
+    "plants": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/plants/release-{release}/gtf",
+    "fungi": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/fungi/release-{release}/gtf",
+    "protists": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/protists/release-{release}/gtf",
+    "metazoa": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/metazoa/release-{release}/gtf",
+}
+
+# Map Ensembl REST API division names to FTP division keys
+_DIVISION_MAP = {
+    "EnsemblVertebrates": "ensembl",
+    "EnsemblPlants": "plants",
+    "EnsemblFungi": "fungi",
+    "EnsemblProtists": "protists",
+    "EnsemblMetazoa": "metazoa",
+}
+
+
+def _ensembl_gtf_url(species: str, assembly: str, release: int, division: str = "ensembl") -> str:
+    """Build Ensembl FTP URL for a GTF annotation file."""
+    species_cap = species[0].upper() + species[1:]
+    filename = f"{species_cap}.{assembly}.{release}.gtf.gz"
+    base = _ENSEMBL_FTP_BASES.get(division, _ENSEMBL_FTP_BASES["ensembl"])
+    base = base.format(release=release)
+    return f"{base}/{species}/{filename}"
+
+
+def _resolve_ensembl_genome(genome: str) -> Union[tuple, None]:
+    """
+    Resolve a genome name to (species, assembly, release, division).
+
+    Checks the static ENSEMBL_GENOMES map first (covers UCSC aliases and legacy
+    assemblies), then falls back to the Ensembl REST API for ~350 vertebrate
+    species and ~2000 plants/fungi/protists/metazoa.
+
+    :param genome: genome name (e.g. hg38, GRCh38, danio_rerio, GRCz11, tair10)
+    :return: (species, assembly, release, division) tuple or None
+    """
+    if genome in ENSEMBL_GENOMES:
+        return ENSEMBL_GENOMES[genome]
+
+    genome_lower = genome.lower()
+
+    # Dynamic lookup via main Ensembl REST API (vertebrates + model organisms)
+    try:
+        req = urllib.request.Request(
+            "https://rest.ensembl.org/info/software?content-type=application/json"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            release = json.loads(resp.read().decode())["release"]
+
+        req = urllib.request.Request(
+            "https://rest.ensembl.org/info/species?content-type=application/json"
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            species_list = json.loads(resp.read().decode())["species"]
+
+        for sp in species_list:
+            if (
+                sp.get("assembly", "").lower() == genome_lower
+                or sp.get("name", "") == genome_lower
+                or sp.get("common_name", "").lower() == genome_lower
+                or genome_lower in [a.lower() for a in sp.get("aliases", [])]
+            ):
+                division = _DIVISION_MAP.get(sp.get("division", ""), "ensembl")
+                return (sp["name"], sp["assembly"], release, division)
+    except Exception as e:
+        _LOGGER.warning(f"Ensembl REST API lookup failed: {e}")
+
+    return None
+
+
+def get_gtf_path(genome: str, out_path: str = None) -> Union[str, None]:
+    """
+    Get GTF gene annotation file for a genome, downloading from Ensembl if needed.
+
+    Supports UCSC aliases (hg38, hg19, mm10, mm39), Ensembl assembly names
+    (GRCh38, GRCm39, GRCz11), and Ensembl species names (danio_rerio, etc.).
+    For genomes not in the static map, queries the Ensembl REST API (~380 species).
+
+    Downloaded GTFs are cached and pre-compiled to .bin with ``gtars prep``.
+
+    :param genome: genome assembly name
+    :param out_path: cache directory override (default: ~/ensembl_gtf/)
+    :return: path to .bin file (or raw .gtf.gz if prep fails), None if unavailable
+    """
+    _LOGGER.info(f"Getting GTF annotation for genome: {genome}")
+
+    resolved = _resolve_ensembl_genome(genome)
+    if not resolved:
+        _LOGGER.warning(f"Could not resolve genome '{genome}' to an Ensembl species")
+        return None
+
+    species, assembly, release, division = resolved
+    species_cap = species[0].upper() + species[1:]
+    gtf_filename = f"{species_cap}.{assembly}.{release}.gtf.gz"
+
+    if not out_path:
+        gtf_folder = os.path.join(HOME_PATH, GTF_FOLDER_NAME)
+    else:
+        gtf_folder = os.path.join(out_path, GTF_FOLDER_NAME)
+
+    gtf_path = os.path.join(gtf_folder, gtf_filename)
+    gtf_bin_path = gtf_path + ".bin"
+
+    # Return pre-compiled binary if it already exists
+    if os.path.exists(gtf_bin_path):
+        _LOGGER.info(f"GTF annotation (pre-compiled): {gtf_bin_path}")
+        return gtf_bin_path
+
+    if not os.path.exists(gtf_path):
+        os.makedirs(gtf_folder, exist_ok=True)
+        url = _ensembl_gtf_url(species, assembly, release, division)
+        download_file(url=url, path=gtf_path, no_fail=True)
+
+    # Pre-compile to .bin for faster loading on subsequent runs
+    if os.path.exists(gtf_path):
+        _LOGGER.info(f"Pre-compiling GTF: {gtf_path}")
+        result = subprocess.run(
+            ["gtars", "prep", "--gtf", gtf_path, "-o", gtf_bin_path],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0 and os.path.exists(gtf_bin_path):
+            _LOGGER.info(f"GTF annotation (pre-compiled): {gtf_bin_path}")
+            return gtf_bin_path
+        else:
+            _LOGGER.warning(f"gtars prep failed, using raw GTF: {result.stderr}")
+
+    if os.path.exists(gtf_path):
+        return gtf_path
+
+    _LOGGER.warning(f"GTF annotation not available for {genome}")
+    return None
 
 
 def bedstat(
@@ -121,6 +282,16 @@ def bedstat(
 
     :return: dict with statistics and distributions
     """
+    # Auto-download GTF annotation if not provided
+    if not ensdb:
+        try:
+            ensdb = get_gtf_path(genome)
+        except Exception:
+            _LOGGER.warning(
+                f"Could not auto-download GTF for {genome}. "
+                "Partition and TSS analysis will be skipped."
+            )
+
     # Auto-download open signal matrix if not provided
     if not open_signal_matrix or not os.path.exists(open_signal_matrix):
         try:
