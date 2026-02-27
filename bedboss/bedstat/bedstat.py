@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import subprocess
+
 from pathlib import Path
 from typing import Union
 
@@ -20,6 +20,7 @@ from bedboss.const import (
     OS_MM10,
     OUTPUT_FOLDER_NAME,
 )
+from bbconf.modules.aggregation import round_floats, DEFAULT_PRECISION
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
 
@@ -92,6 +93,7 @@ def bedstat(
     region_dist_bins: int = 250,
     promoter_upstream: int = 200,
     promoter_downstream: int = 2000,
+    precision: int = DEFAULT_PRECISION,
 ) -> dict:
     """
     Run bedstat pipeline - compute statistics for a BED file using gtars genomicdist.
@@ -236,6 +238,9 @@ def bedstat(
 
     # Store entire augmented gtars JSON as distributions blob
     data["distributions"] = gtars_output
+
+    if precision is not None:
+        data = round_floats(data, precision)
 
     if stop_pipeline and pm:
         pm.stop_pipeline()

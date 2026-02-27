@@ -97,6 +97,7 @@ def run_all(
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    precision: int = typer.Option(3, help="Decimal places for rounding float statistics (use -1 to disable)"),
     # Universes
     universe: bool = typer.Option(False, help="Create a universe"),
     universe_method: str = typer.Option(
@@ -145,6 +146,7 @@ def run_all(
         universe_method=universe_method,
         universe_bedset=universe_bedset,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
+        precision=precision if precision >= 0 else None,
     )
 
 
@@ -160,9 +162,6 @@ def run_pep(
         readable=True,
     ),
     create_bedset: bool = typer.Option(True, help="Create a new bedset"),
-    bedset_heavy: bool = typer.Option(
-        False, help="Run the heavy version of the bedbuncher pipeline"
-    ),
     bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -176,7 +175,7 @@ def run_pep(
         help="Update the bedbase database with the new record if it exists. This overwrites 'force_overwrite' option",
     ),
     upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
-    upload_s3: bool = typer.Option(True, help="Upload to S3"),
+    upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
@@ -185,6 +184,7 @@ def run_pep(
         False, help="Run the pipeline in lite mode. [Default: False]"
     ),
     rerun: bool = typer.Option(False, help="Rerun already processed samples"),
+    precision: int = typer.Option(3, help="Decimal places for rounding float statistics (use -1 to disable)"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -210,7 +210,6 @@ def run_pep(
         bedset_id=bedset_id,
         rfg_config=rfg_config,
         create_bedset=create_bedset,
-        bedset_heavy=bedset_heavy,
         check_qc=check_qc,
         ensdb=ensdb,
         just_db_commit=just_db_commit,
@@ -225,6 +224,7 @@ def run_pep(
         lite=lite,
         rerun=rerun,
         pm=pm,
+        precision=precision if precision >= 0 else None,
     )
 
     pm.stop_pipeline()
@@ -293,7 +293,6 @@ def reprocess_bedset(
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     identifier: str = typer.Option(..., help="Bedset ID"),
     no_fail: bool = typer.Option(True, help="Do not fail on error"),
-    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
 ):
     from bedboss.bedboss import reprocess_bedset as reprocess_bedset_function
 
@@ -302,7 +301,6 @@ def reprocess_bedset(
         output_folder=outfolder,
         identifier=identifier,
         no_fail=no_fail,
-        heavy=heavy,
     )
 
 
@@ -464,7 +462,6 @@ def make_bedset(
         readable=True,
     ),
     bedset_name: str = typer.Option(..., help="Name of the bedset"),
-    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
@@ -479,7 +476,6 @@ def make_bedset(
         bedset_pep=pep,
         output_folder=outfolder,
         bedset_name=bedset_name,
-        heavy=heavy,
         upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         no_fail=no_fail,
@@ -697,28 +693,6 @@ def download_umap(
         method=method,
     )
 
-
-@app.command(help="Check installed R packages")
-def check_requirements():
-    from bedboss.bedboss import requirements_check
-
-    print("Checking pipelines requirements...")
-    requirements_check()
-
-
-@app.command(help="Install R dependencies")
-def install_requirements():
-    import subprocess
-
-    r_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "scripts", "installRdeps.R"
-        )
-    )
-
-    subprocess.run(
-        ["Rscript", r_path],
-    )
 
 
 @app.command(help="Verify configuration file")

@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-import subprocess
+
 from typing import Union
 
 import bbconf
@@ -12,6 +12,7 @@ import yaml
 from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
+from bbconf.modules.aggregation import DEFAULT_PRECISION
 from eido import validate_project
 from geniml.bbclient import BBClient
 from pephubclient.helpers import MessageHandler as m
@@ -37,20 +38,6 @@ from bedboss.utils import calculate_time, get_genome_digest, standardize_genome_
 from bedboss.utils import standardize_pep as pep_standardizer
 _LOGGER = logging.getLogger(PKG_NAME)
 
-
-def requirements_check() -> None:
-    """
-    Check if all requirements are installed
-
-    :return: None
-    """
-    _LOGGER.info("Checking requirements...")
-    subprocess.run(
-        [
-            "bash",
-            f"{os.path.dirname(os.path.abspath(__file__))}/scripts/requirements_test.sh",
-        ]
-    )
 
 
 @calculate_time
@@ -83,6 +70,7 @@ def run_all(
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
     reference_genome_validator: ReferenceValidator = None,
+    precision: int = DEFAULT_PRECISION,
 ) -> str:
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
@@ -178,6 +166,7 @@ def run_all(
             just_db_commit=just_db_commit,
             rfg_config=rfg_config,
             pm=pm,
+            precision=precision,
         )
 
     if "mean_region_width" not in statistics_dict:
@@ -309,7 +298,6 @@ def insert_pep(
     rfg_config: str = None,
     license_id: str = DEFAULT_LICENSE,
     create_bedset: bool = False,
-    bedset_heavy: bool = False,
     check_qc: bool = True,
     ensdb: str = None,
     just_db_commit: bool = False,
@@ -323,6 +311,7 @@ def insert_pep(
     lite: bool = False,
     rerun: bool = False,
     pm: pypiper.PipelineManager = None,
+    precision: int = DEFAULT_PRECISION,
 ) -> None:
     """
     Run all bedboss pipelines for all samples in the pep file.
@@ -337,7 +326,6 @@ def insert_pep(
     :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
         This license will be used for bedfiles where license is not provided in PEP file
     :param bool create_bedset: whether to create bedset
-    :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
@@ -437,6 +425,7 @@ def insert_pep(
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
+                precision=precision,
             )
 
             processed_ids.append(bed_id)
@@ -456,7 +445,6 @@ def insert_pep(
             name=bedset_name or pep.name,
             output_folder=output_folder,
             description=pep.description,
-            heavy=bedset_heavy,
             upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             no_fail=no_fail,
@@ -552,7 +540,7 @@ def reprocess_all(
                 just_db_commit=False,
                 update=True,
                 upload_qdrant=True,
-                upload_s3=True,
+                upload_s3=False,
                 upload_pephub=True,
                 lite=False,
                 universe=False,
@@ -657,7 +645,7 @@ def reprocess_one(
         just_db_commit=False,
         update=True,
         upload_qdrant=True,
-        upload_s3=True,
+        upload_s3=False,
         upload_pephub=True,
         lite=False,
         universe=False,
@@ -678,7 +666,6 @@ def reprocess_bedset(
     output_folder: str,
     identifier: str,
     no_fail: bool = True,
-    heavy: bool = False,
 ):
     """
     Recalculate bedset from the bedbase
@@ -687,7 +674,6 @@ def reprocess_bedset(
     :param output_folder: output folder of the pipeline
     :param identifier: bedset identifier
     :param no_fail: whether to raise an error if bedset was not added to the database
-    :param heavy: whether to use heavy processing. Calculate plots for bedset
 
     :return: None
     """
@@ -708,9 +694,8 @@ def reprocess_bedset(
         name=bedset_annot.name,
         output_folder=output_folder,
         description=bedset_annot.description,
-        heavy=heavy,
         upload_pephub=False,
-        upload_s3=heavy,
+        upload_s3=False,
         no_fail=no_fail,
         force_overwrite=True,
         annotation={

@@ -57,18 +57,6 @@ pip_check() {
     fi
 }
 
-r_check_req() {
-cmd=$(echo "Rscript -e 'library(\"$1\")'")
-    packageInstalled=$(eval $cmd 2>&1)
-    if [[ "$packageInstalled" == *Error* ]]; then
-        echo $(fail "Error: Please install the R package, $1, and checkinstall again.")
-#       printf "\n"
-        NATIVE_INSTALL=1
-    else
-        echo -e $(success "SUCCESS: R package: ${1}")
-    fi
-}
-
 ################################################################################
 echo -e "Checking native installation...                            "
 INSTALL_ERROR=0
@@ -83,10 +71,6 @@ if ! is_executable "python"; then
       INSTALL_ERROR=$((INSTALL_ERROR+1))
     fi
 fi
-# is R installation
-if ! is_executable "R"; then
-    INSTALL_ERROR=$((INSTALL_ERROR+1))
-fi
 echo -e "-----------------------------------------------------------"
 echo -e "Checking bedmaker dependencies...                            "
 echo -e "-----------------------------------------------------------"
@@ -98,13 +82,6 @@ if ! pip_check "refgenconf"; then
     INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 
-## Check bedmaker packages (Moved to RegionSet in rust)
-#if ! is_executable "bedToBigBed"; then
-#    INSTALL_ERROR=$((INSTALL_ERROR+1))
-#    echo $(fail "ERROR: 'bedToBigBed' is not installed. To install 'bedToBigBed' check bedboss documentation: https://bedboss.databio.org/")
-#fi
-
-
 if ! is_executable "bigBedToBed"; then
     INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
 fi
@@ -115,38 +92,6 @@ fi
 
 if ! is_executable "wigToBigWig"; then
     INSTALL_WARNINGS=$((INSTALL_WARNINGS+1))
-fi
-
-# Old requirements check
-#if is_executable "R"; then
-#
-#    echo -e "-----------------------------------------------------------"
-#    echo -e "Checking required R packages for bedstat...                            "
-#    echo -e "-----------------------------------------------------------"
-#    declare -a requiredRPackages=("optparse ""devtools" "ensembldb" "ExperimentHub" "AnnotationHub" "AnnotationFilter" "BSgenome" "GenomicFeatures" "GenomicDistributions" "GenomicDistributionsData" "GenomeInfoDb" "ensembldb" "tools" "R.utils" "LOLA" "conflicted")
-#    for package in "${requiredRPackages[@]}"; do
-#      if ! r_check_req $package; then
-#        INSTALL_ERROR=$((INSTALL_ERROR+1))
-#      fi
-#done
-#fi
-
-if is_executable "Rscript"; then
-    echo -e "-----------------------------------------------------------"
-    echo -e "Checking required R packages for bedstat...                            "
-    echo -e "-----------------------------------------------------------"
-
-    SCRIPT_DIR=$(dirname "$(realpath "$0")")
-#    echo "The script is located at: $SCRIPT_DIR"
-    Rscript "$SCRIPT_DIR/check_R_req.R"
-
-    if [ $? -eq 0 ]; then
-      echo "All required packages are installed."
-    else
-       echo $(fail "ERROR: Some R required packages are missing. Please install them.")
-      INSTALL_ERROR=$((INSTALL_ERROR+1))
-    fi
-
 fi
 
 echo "Number of WARNINGS: $INSTALL_WARNINGS"

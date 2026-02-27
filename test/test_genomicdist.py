@@ -41,6 +41,9 @@ CHROM_SIZES = os.path.join(
 )
 
 
+from bbconf.modules.aggregation import round_floats
+
+
 def check_refs():
     missing = []
     if not os.path.exists(GTF_BIN):
@@ -117,7 +120,7 @@ def run_e2e(bed_files, save_dir=None):
         if save_dir:
             out_path = os.path.join(save_dir, f"{label}_bedstat.json")
             with open(out_path, "w") as f:
-                json.dump(result, f, indent=2)
+                json.dump(round_floats(result), f, separators=(",", ":"))
             print(f"  -> saved {out_path}")
 
 
