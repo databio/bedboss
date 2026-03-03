@@ -2,21 +2,20 @@ import json
 import logging
 import os
 import subprocess
-import urllib.request
 
 from pathlib import Path
 from typing import Union
 
 import pypiper
 from gtars.models import RegionSet
+from refgenconf import RefgenconfError
+from yacman.exceptions import UndefinedAliasError
 
 from bedboss.bedstat.compress_distributions import compress_distributions, compress_to_kde
 from bedboss.bedstat.gc_content import calculate_gc_content
+from bedboss.bedmaker.utils import get_rgc
 from bedboss.const import (
     BEDSTAT_OUTPUT,
-    CHROM_SIZES_FOLDER_NAME,
-    ENSEMBL_GENOMES,
-    GTF_FOLDER_NAME,
     HOME_PATH,
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
@@ -24,7 +23,6 @@ from bedboss.const import (
     OS_HG38,
     OS_MM10,
     OUTPUT_FOLDER_NAME,
-    REFGENIE_API_URL,
 )
 from bbconf.modules.aggregation import round_floats, DEFAULT_PRECISION
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
@@ -106,196 +104,128 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
     return osm_path
 
 
-def _resolve_genome_digest(genome: str) -> Union[str, None]:
+def _get_chrom_sizes_seqcol(genome: str) -> Union[str, None]:
     """
-    Resolve a genome name (e.g. 'hg38') to a seqcol digest via the refgenie API.
+    Fallback: fetch chrom.sizes via seqcol API when refgenie doesn't have it.
 
-    Searches genome aliases, preferring exact '{genome}-refgenie' matches,
-    then falling back to any alias starting with the genome name.
+    Resolves genome name to a seqcol digest via the refgenie /v4/genomes
+    endpoint, then fetches chromosome names + lengths directly.
 
-    :param genome: genome name (e.g. hg38, hg19, mm10)
-    :return: seqcol digest string, or None if not found
+    :param genome: genome assembly name
+    :return: path to cached chrom.sizes file, or None
     """
     import requests
+    from refget.clients import SequenceCollectionClient
 
+    refgenie_api = "https://api.refgenie.org"
+    cache_dir = os.path.join(HOME_PATH, "chrom_sizes")
+
+    chrom_sizes_path = os.path.join(cache_dir, f"{genome}.chrom.sizes")
+    if os.path.exists(chrom_sizes_path):
+        _LOGGER.info(f"Chrom sizes (seqcol cache): {chrom_sizes_path}")
+        return chrom_sizes_path
+
+    # Resolve genome name -> seqcol digest
     try:
         resp = requests.get(
-            f"{REFGENIE_API_URL}/v4/genomes",
-            params={"limit": 1000},
-            timeout=30,
+            f"{refgenie_api}/v4/genomes", params={"limit": 1000}, timeout=30,
         )
         resp.raise_for_status()
     except Exception as e:
-        _LOGGER.warning(f"Failed to query refgenie genome list: {e}")
+        _LOGGER.warning(f"seqcol fallback: failed to query genome list: {e}")
         return None
 
     genome_lower = genome.lower()
-    fallback = None
-
+    digest = None
+    fallback_digest = None
     for entry in resp.json().get("items", []):
         for alias in entry.get("aliases", []):
             alias_lower = alias.lower()
-            # Prefer the canonical refgenie alias
             if alias_lower == f"{genome_lower}-refgenie":
-                return entry["digest"]
-            # Track first alias that starts with the genome name as fallback
-            if not fallback and alias_lower.startswith(genome_lower):
-                fallback = entry["digest"]
+                digest = entry["digest"]
+                break
+            if not fallback_digest and alias_lower.startswith(genome_lower):
+                fallback_digest = entry["digest"]
+        if digest:
+            break
+    digest = digest or fallback_digest
 
-    return fallback
-
-
-def get_chrom_sizes_path(genome: str, out_path: str = None) -> Union[str, None]:
-    """
-    Get a chrom.sizes file for a genome via the seqcol API.
-
-    Resolves the genome name to a seqcol digest, then fetches chromosome
-    names and lengths. Caches the result locally.
-
-    :param genome: genome assembly name (e.g. hg38, hg19, mm10)
-    :param out_path: cache directory override (default: ~/chrom_sizes/)
-    :return: path to chrom.sizes file, or None if unavailable
-    """
-    from refget.clients import SequenceCollectionClient
-
-    if not out_path:
-        cache_dir = os.path.join(HOME_PATH, CHROM_SIZES_FOLDER_NAME)
-    else:
-        cache_dir = os.path.join(out_path, CHROM_SIZES_FOLDER_NAME)
-
-    chrom_sizes_path = os.path.join(cache_dir, f"{genome}.chrom.sizes")
-
-    if os.path.exists(chrom_sizes_path):
-        _LOGGER.info(f"Chrom sizes (cached): {chrom_sizes_path}")
-        return chrom_sizes_path
-
-    _LOGGER.info(f"Resolving chrom.sizes for genome: {genome}")
-
-    digest = _resolve_genome_digest(genome)
     if not digest:
-        _LOGGER.warning(
-            f"Could not resolve genome '{genome}' to a seqcol digest. "
-            "Region distribution will not be normalized."
-        )
+        _LOGGER.warning(f"seqcol fallback: no digest found for '{genome}'")
         return None
 
     try:
-        client = SequenceCollectionClient(urls=[f"{REFGENIE_API_URL}/seqcol"])
+        client = SequenceCollectionClient(urls=[f"{refgenie_api}/seqcol"])
         os.makedirs(cache_dir, exist_ok=True)
         client.write_chrom_sizes(digest, chrom_sizes_path)
-        _LOGGER.info(f"Chrom sizes downloaded: {chrom_sizes_path}")
+        _LOGGER.info(f"Chrom sizes (seqcol): {chrom_sizes_path}")
         return chrom_sizes_path
     except Exception as e:
-        _LOGGER.warning(f"Failed to fetch chrom.sizes for {genome}: {e}")
+        _LOGGER.warning(f"seqcol fallback: failed to fetch chrom.sizes: {e}")
         return None
 
 
-_ENSEMBL_FTP_BASES = {
-    "ensembl": "https://ftp.ensembl.org/pub/release-{release}/gtf",
-    "grch37": "https://ftp.ensembl.org/pub/grch37/release-{release}/gtf",
-    "plants": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/plants/release-{release}/gtf",
-    "fungi": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/fungi/release-{release}/gtf",
-    "protists": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/protists/release-{release}/gtf",
-    "metazoa": "https://ftp.ebi.ac.uk/ensemblgenomes/pub/metazoa/release-{release}/gtf",
-}
-
-# Map Ensembl REST API division names to FTP division keys
-_DIVISION_MAP = {
-    "EnsemblVertebrates": "ensembl",
-    "EnsemblPlants": "plants",
-    "EnsemblFungi": "fungi",
-    "EnsemblProtists": "protists",
-    "EnsemblMetazoa": "metazoa",
-}
-
-
-def _ensembl_gtf_url(species: str, assembly: str, release: int, division: str = "ensembl") -> str:
-    """Build Ensembl FTP URL for a GTF annotation file."""
-    species_cap = species[0].upper() + species[1:]
-    filename = f"{species_cap}.{assembly}.{release}.gtf.gz"
-    base = _ENSEMBL_FTP_BASES.get(division, _ENSEMBL_FTP_BASES["ensembl"])
-    base = base.format(release=release)
-    return f"{base}/{species}/{filename}"
-
-
-def _resolve_ensembl_genome(genome: str) -> Union[tuple, None]:
+def get_chrom_sizes_path(genome: str, rfg_config=None) -> Union[str, None]:
     """
-    Resolve a genome name to (species, assembly, release, division).
+    Get a chrom.sizes file for a genome.
 
-    Checks the static ENSEMBL_GENOMES map first (covers UCSC aliases and legacy
-    assemblies), then falls back to the Ensembl REST API for ~350 vertebrate
-    species and ~2000 plants/fungi/protists/metazoa.
+    Tries refgenie first (rgc.seek/pull), falls back to the seqcol API.
 
-    :param genome: genome name (e.g. hg38, GRCh38, danio_rerio, GRCz11, tair10)
-    :return: (species, assembly, release, division) tuple or None
+    :param genome: genome assembly name (e.g. hg38, hg19, mm10)
+    :param rfg_config: path to the refgenie config file
+    :return: path to chrom.sizes file, or None if unavailable
     """
-    if genome in ENSEMBL_GENOMES:
-        return ENSEMBL_GENOMES[genome]
-
-    genome_lower = genome.lower()
-
-    # Dynamic lookup via main Ensembl REST API (vertebrates + model organisms)
+    rgc = get_rgc(rfg_config=rfg_config)
     try:
-        req = urllib.request.Request(
-            "https://rest.ensembl.org/info/software?content-type=application/json"
+        return rgc.seek(
+            genome_name=genome, asset_name="fasta",
+            tag_name="default", seek_key="chrom_sizes",
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            release = json.loads(resp.read().decode())["release"]
+    except (UndefinedAliasError, RefgenconfError):
+        _LOGGER.info(f"chrom.sizes not local for {genome}, pulling from refgenie")
+        try:
+            rgc.pull(genome=genome, asset="fasta", tag="default")
+            return rgc.seek(
+                genome_name=genome, asset_name="fasta",
+                tag_name="default", seek_key="chrom_sizes",
+            )
+        except Exception:
+            _LOGGER.info(f"refgenie pull failed for {genome}, trying seqcol API")
 
-        req = urllib.request.Request(
-            "https://rest.ensembl.org/info/species?content-type=application/json"
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            species_list = json.loads(resp.read().decode())["species"]
-
-        for sp in species_list:
-            if (
-                sp.get("assembly", "").lower() == genome_lower
-                or sp.get("name", "") == genome_lower
-                or sp.get("common_name", "").lower() == genome_lower
-                or genome_lower in [a.lower() for a in sp.get("aliases", [])]
-            ):
-                division = _DIVISION_MAP.get(sp.get("division", ""), "ensembl")
-                return (sp["name"], sp["assembly"], release, division)
-    except Exception as e:
-        _LOGGER.warning(f"Ensembl REST API lookup failed: {e}")
-
-    return None
+    return _get_chrom_sizes_seqcol(genome)
 
 
-def get_gda_path(genome: str, out_path: str = None) -> Union[str, None]:
+def get_gda_path(genome: str, rfg_config=None) -> Union[str, None]:
     """
     Get a GDA (GenomicDist Annotation) binary for a genome.
 
-    Downloads the Ensembl GTF and pre-compiles it to a GDA .bin (gene model
-    only — chromSizes are served separately). Falls back to the raw .gtf.gz
-    if ``gtars prep`` fails.
+    Pulls the Ensembl GTF from refgenie and pre-compiles it to a GDA .bin
+    using ``gtars prep``. Falls back to the raw .gtf.gz if compilation fails.
 
-    Supports UCSC aliases (hg38, hg19, mm10, mm39), Ensembl assembly names
-    (GRCh38, GRCm39, GRCz11), and Ensembl species names (danio_rerio, etc.).
-    For genomes not in the static map, queries the Ensembl REST API (~380 species).
-
-    :param genome: genome assembly name
-    :param out_path: cache directory override (default: ~/ensembl_gtf/)
-    :return: path to .bin GDA file (or raw .gtf.gz as fallback), None if unavailable
+    :param genome: genome assembly name (e.g. hg38, hg19, mm10)
+    :param rfg_config: path to the refgenie config file
+    :return: path to .gda.bin file (or raw .gtf.gz as fallback), None if unavailable
     """
     _LOGGER.info(f"Getting GDA annotation for genome: {genome}")
+    rgc = get_rgc(rfg_config=rfg_config)
 
-    resolved = _resolve_ensembl_genome(genome)
-    if not resolved:
-        _LOGGER.warning(f"Could not resolve genome '{genome}' to an Ensembl species")
-        return None
+    try:
+        gtf_path = rgc.seek(
+            genome_name=genome, asset_name="ensembl_gtf",
+            tag_name="default", seek_key="ensembl_gtf",
+        )
+    except (UndefinedAliasError, RefgenconfError):
+        _LOGGER.info(f"ensembl_gtf not local for {genome}, pulling from refgenie")
+        try:
+            rgc.pull(genome=genome, asset="ensembl_gtf", tag="default")
+            gtf_path = rgc.seek(
+                genome_name=genome, asset_name="ensembl_gtf",
+                tag_name="default", seek_key="ensembl_gtf",
+            )
+        except Exception as e:
+            _LOGGER.warning(f"Could not fetch GTF for {genome}: {e}")
+            return None
 
-    species, assembly, release, division = resolved
-    species_cap = species[0].upper() + species[1:]
-    gtf_filename = f"{species_cap}.{assembly}.{release}.gtf.gz"
-
-    if not out_path:
-        gtf_folder = os.path.join(HOME_PATH, GTF_FOLDER_NAME)
-    else:
-        gtf_folder = os.path.join(out_path, GTF_FOLDER_NAME)
-
-    gtf_path = os.path.join(gtf_folder, gtf_filename)
     gda_bin_path = gtf_path + ".gda.bin"
 
     # Return pre-compiled GDA binary if it already exists
@@ -303,29 +233,19 @@ def get_gda_path(genome: str, out_path: str = None) -> Union[str, None]:
         _LOGGER.info(f"GDA annotation (pre-compiled): {gda_bin_path}")
         return gda_bin_path
 
-    if not os.path.exists(gtf_path):
-        os.makedirs(gtf_folder, exist_ok=True)
-        url = _ensembl_gtf_url(species, assembly, release, division)
-        download_file(url=url, path=gtf_path, no_fail=True)
-
     # Pre-compile to GDA .bin
-    if os.path.exists(gtf_path):
-        _LOGGER.info(f"Pre-compiling GDA: {gtf_path}")
-        result = subprocess.run(
-            ["gtars", "prep", "--gtf", gtf_path, "-o", gda_bin_path],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0 and os.path.exists(gda_bin_path):
-            _LOGGER.info(f"GDA annotation (pre-compiled): {gda_bin_path}")
-            return gda_bin_path
-        else:
-            _LOGGER.warning(f"gtars prep (GDA) failed, using raw GTF: {result.stderr}")
+    _LOGGER.info(f"Pre-compiling GDA: {gtf_path}")
+    result = subprocess.run(
+        ["gtars", "prep", "--gtf", gtf_path, "-o", gda_bin_path],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0 and os.path.exists(gda_bin_path):
+        _LOGGER.info(f"GDA annotation (pre-compiled): {gda_bin_path}")
+        return gda_bin_path
+    else:
+        _LOGGER.warning(f"gtars prep (GDA) failed, using raw GTF: {result.stderr}")
 
-    if os.path.exists(gtf_path):
-        return gtf_path
-
-    _LOGGER.warning(f"GDA annotation not available for {genome}")
-    return None
+    return gtf_path
 
 
 # Keep old name as alias for backward compatibility
@@ -374,13 +294,13 @@ def bedstat(
 
     :return: dict with statistics and distributions
     """
-    # Auto-download GDA/GTF annotation if not provided
+    # Auto-fetch GDA/GTF annotation via refgenie if not provided
     if not ensdb:
         try:
-            ensdb = get_gda_path(genome)
+            ensdb = get_gda_path(genome, rfg_config=rfg_config)
         except Exception:
             _LOGGER.warning(
-                f"Could not auto-download annotation for {genome}. "
+                f"Could not fetch annotation for {genome}. "
                 "Partition and TSS analysis will be skipped."
             )
 
@@ -393,13 +313,13 @@ def bedstat(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
             )
 
-    # Auto-download chrom.sizes if not provided
+    # Auto-fetch chrom.sizes via refgenie if not provided
     if not chrom_sizes:
         try:
-            chrom_sizes = get_chrom_sizes_path(genome)
+            chrom_sizes = get_chrom_sizes_path(genome, rfg_config=rfg_config)
         except Exception:
             _LOGGER.warning(
-                f"Could not auto-download chrom.sizes for {genome}. "
+                f"Could not fetch chrom.sizes for {genome}. "
                 "Region distribution will not be normalized."
             )
 
