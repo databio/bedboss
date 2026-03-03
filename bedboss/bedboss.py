@@ -61,7 +61,6 @@ def run_all(
     force_overwrite: bool = False,
     update: bool = False,
     upload_qdrant: bool = False,
-    upload_s3: bool = False,
     upload_pephub: bool = False,
     lite: bool = False,
     # Universes
@@ -96,7 +95,6 @@ def run_all(
     :param bool force_overwrite: force overwrite analysis [Default: False]
     :param bool update: whether to update the record in the database [Default: False] (if True, overwrites 'force_overwrite' and ignores it)
     :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
-    :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
     :param bool lite: whether to run lite version of the pipeline [Default: False]
 
@@ -249,7 +247,6 @@ def run_all(
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=True,
             processed=not lite,
@@ -267,7 +264,6 @@ def run_all(
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=force_overwrite,
             processed=not lite,
@@ -303,7 +299,6 @@ def insert_pep(
     just_db_commit: bool = False,
     force_overwrite: bool = False,
     update: bool = False,
-    upload_s3: bool = False,
     upload_pephub: bool = False,
     upload_qdrant: bool = False,
     no_fail: bool = False,
@@ -332,7 +327,6 @@ def insert_pep(
     :param bool just_db_commit: whether save only to the database (Without saving locally )
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool update: whether to update the record in the database. This option will overwrite the force_overwrite option. [Default: False]
-    :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
@@ -418,7 +412,6 @@ def insert_pep(
                 force_overwrite=force_overwrite,
                 update=update,
                 upload_qdrant=upload_qdrant,
-                upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
                 universe=pep_sample.get("universe"),
                 universe_method=pep_sample.get("universe_method"),
@@ -446,7 +439,6 @@ def insert_pep(
             output_folder=output_folder,
             description=pep.description,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             no_fail=no_fail,
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
@@ -540,7 +532,6 @@ def reprocess_all(
                 just_db_commit=False,
                 update=True,
                 upload_qdrant=True,
-                upload_s3=False,
                 upload_pephub=True,
                 lite=False,
                 universe=False,
@@ -645,7 +636,6 @@ def reprocess_one(
         just_db_commit=False,
         update=True,
         upload_qdrant=True,
-        upload_s3=False,
         upload_pephub=True,
         lite=False,
         universe=False,
@@ -695,7 +685,6 @@ def reprocess_bedset(
         output_folder=output_folder,
         description=bedset_annot.description,
         upload_pephub=False,
-        upload_s3=False,
         no_fail=no_fail,
         force_overwrite=True,
         annotation={

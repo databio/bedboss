@@ -125,9 +125,6 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --upload-qdrant       --no-upload-qdrant             Upload to Qdrant     │
 │                                                         [default:            │
 │                                                         no-upload-qdrant]    │
-│    --upload-s3           --no-upload-s3                 Upload to S3         │
-│                                                         [default:            │
-│                                                         no-upload-s3]        │
 │    --upload-pephub       --no-upload-pephub             Upload to PEPHub     │
 │                                                         [default:            │
 │                                                         no-upload-pephub]    │
@@ -205,9 +202,6 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │    --upload-qdrant      --no-upload-qdrant              Upload to Qdrant     │
 │                                                         [default:            │
 │                                                         upload-qdrant]       │
-│    --upload-s3          --no-upload-s3                  Upload to S3         │
-│                                                         [default:            │
-│                                                         no-upload-s3]        │
 │    --upload-pephub      --no-upload-pephub              Upload to PEPHub     │
 │                                                         [default:            │
 │                                                         upload-pephub]       │
@@ -490,9 +484,6 @@ Here you can see the command-line usage instructions for the main bedboss comman
 │                                                       output files           │
 │                                                       [default:              │
 │                                                       no-force-overwrite]    │
-│    --upload-s3          --no-upload-s3                Upload to S3           │
-│                                                       [default:              │
-│                                                       no-upload-s3]          │
 │    --upload-pephub      --no-upload-pephub            Upload to PEPHub       │
 │                                                       [default:              │
 │                                                       no-upload-pephub]      │
@@ -662,22 +653,31 @@ Here you can see the command-line usage instructions for the main bedboss comman
 
 ## `bedboss prep --help`
 ```console
-                                                                                
- Usage: bedboss prep [OPTIONS]                                                  
-                                                                                
- Download and pre-compile reference files for a genome                          
-                                                                                
+
+ Usage: bedboss prep [OPTIONS]
+
+ Download and pre-compile reference files for a genome
+
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --genome                 TEXT  Genome name (e.g. hg38, mm10, danio_rerio).   │
-│                                Downloads GTF and signal matrix, then         │
-│                                pre-compiles to .bin                          │
-│ --gtf                    TEXT  Path to a local GTF/GTF.gz file to            │
-│                                pre-compile                                   │
-│ --signal-matrix          TEXT  Path to a local signal matrix TSV/TSV.gz file │
-│                                to pre-compile                                │
-│ --output         -o      TEXT  Output path for --gtf/--signal-matrix         │
-│                                (default: input path with .bin extension)     │
-│ --help                         Show this message and exit.                   │
+│ --genome                                TEXT  Genome name (e.g. hg38, mm10,  │
+│                                               danio_rerio). Downloads GTF    │
+│                                               and signal matrix, then        │
+│                                               pre-compiles to .bin           │
+│ --gtf                                   TEXT  Path to a local GTF/GTF.gz     │
+│                                               file to pre-compile            │
+│ --signal-matrix                         TEXT  Path to a local signal matrix  │
+│                                               TSV/TSV.gz file to pre-compile │
+│ --output          -o                    TEXT  Output path for                │
+│                                               --gtf/--signal-matrix          │
+│                                               (default: input path with .bin │
+│                                               extension)                     │
+│ --upload-s3           --no-upload-s3          Upload .bin files to S3 after  │
+│                                               prepping (requires             │
+│                                               --bedbase-config)              │
+│                                               [default: no-upload-s3]        │
+│ --bedbase-config                        TEXT  Path to bedbase config file    │
+│                                               (required for --upload-s3)     │
+│ --help                                        Show this message and exit.    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 

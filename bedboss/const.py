@@ -67,6 +67,10 @@ ENSEMBL_GENOMES = {
     "ax4": ("dictyostelium_discoideum", "dicty_2.7", ENSEMBL_GENOMES_RELEASE, "protists"),
 }
 
+# bedstat — chrom.sizes via seqcol
+REFGENIE_API_URL = "https://api.refgenie.org"
+CHROM_SIZES_FOLDER_NAME = "chrom_sizes"
+
 # bedbuncher
 DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
 

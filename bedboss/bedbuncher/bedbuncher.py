@@ -21,7 +21,6 @@ def run_bedbuncher(
     description: str = None,
     annotation: dict = None,
     upload_pephub: bool = False,
-    upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
     lite: bool = False,
@@ -38,7 +37,6 @@ def run_bedbuncher(
     :param annotation: Bedset annotation (author, source, summary, etc.)
     :param no_fail: whether to raise an error if bedset was not added to the database
     :param upload_pephub: whether to create a view in pephub
-    :param upload_s3: whether to upload files to s3
     :param force_overwrite: whether to overwrite the record in the database
     :param lite: whether to run the pipeline in lite mode
     :return:
@@ -67,7 +65,6 @@ def run_bedbuncher(
         statistics=True,
         description=description,
         upload_pephub=upload_pephub,
-        upload_s3=upload_s3,
         local_path=output_folder,
         no_fail=no_fail,
         overwrite=force_overwrite,
@@ -82,7 +79,6 @@ def run_bedbuncher_form_pep(
     output_folder: str,
     bedset_name: str = None,
     upload_pephub: bool = False,
-    upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
 ) -> str:
@@ -94,7 +90,6 @@ def run_bedbuncher_form_pep(
     :param bedset_name: name of the bedset
     :param output_folder: path to the output folder
     :param upload_pephub: whether to create a view in pephub
-    :param upload_s3: whether to upload files to s3
     :param no_fail: whether to raise an error if bedset was not added to the database
     :param force_overwrite: whether to overwrite the record in the database
 
@@ -125,7 +120,6 @@ def run_bedbuncher_form_pep(
         name=bedset_name or pep_of_bed.name,
         description=pep_of_bed.description,
         upload_pephub=upload_pephub,
-        upload_s3=upload_s3,
         no_fail=no_fail,
         force_overwrite=force_overwrite,
     )

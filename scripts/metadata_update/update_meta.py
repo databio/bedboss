@@ -17,7 +17,6 @@ def update_description(bed_id: str, new_description: str):
         identifier=bed_id,
         metadata={"description": new_description},
         upload_pephub=False,
-        upload_s3=False,
         upload_qdrant=False,
     )
     print("Description updated successfully.")
@@ -28,7 +27,6 @@ def update_assay(bed_id: str, new_assay: str):
         identifier=bed_id,
         metadata={"assay": new_assay},
         upload_pephub=False,
-        upload_s3=False,
         upload_qdrant=False,
     )
     print(f"Assay updated successfully for {bed_id}.")

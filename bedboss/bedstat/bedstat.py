@@ -14,6 +14,7 @@ from bedboss.bedstat.compress_distributions import compress_distributions, compr
 from bedboss.bedstat.gc_content import calculate_gc_content
 from bedboss.const import (
     BEDSTAT_OUTPUT,
+    CHROM_SIZES_FOLDER_NAME,
     ENSEMBL_GENOMES,
     GTF_FOLDER_NAME,
     HOME_PATH,
@@ -23,6 +24,7 @@ from bedboss.const import (
     OS_HG38,
     OS_MM10,
     OUTPUT_FOLDER_NAME,
+    REFGENIE_API_URL,
 )
 from bbconf.modules.aggregation import round_floats, DEFAULT_PRECISION
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
@@ -104,6 +106,90 @@ def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
     return osm_path
 
 
+def _resolve_genome_digest(genome: str) -> Union[str, None]:
+    """
+    Resolve a genome name (e.g. 'hg38') to a seqcol digest via the refgenie API.
+
+    Searches genome aliases, preferring exact '{genome}-refgenie' matches,
+    then falling back to any alias starting with the genome name.
+
+    :param genome: genome name (e.g. hg38, hg19, mm10)
+    :return: seqcol digest string, or None if not found
+    """
+    import requests
+
+    try:
+        resp = requests.get(
+            f"{REFGENIE_API_URL}/v4/genomes",
+            params={"limit": 1000},
+            timeout=30,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        _LOGGER.warning(f"Failed to query refgenie genome list: {e}")
+        return None
+
+    genome_lower = genome.lower()
+    fallback = None
+
+    for entry in resp.json().get("items", []):
+        for alias in entry.get("aliases", []):
+            alias_lower = alias.lower()
+            # Prefer the canonical refgenie alias
+            if alias_lower == f"{genome_lower}-refgenie":
+                return entry["digest"]
+            # Track first alias that starts with the genome name as fallback
+            if not fallback and alias_lower.startswith(genome_lower):
+                fallback = entry["digest"]
+
+    return fallback
+
+
+def get_chrom_sizes_path(genome: str, out_path: str = None) -> Union[str, None]:
+    """
+    Get a chrom.sizes file for a genome via the seqcol API.
+
+    Resolves the genome name to a seqcol digest, then fetches chromosome
+    names and lengths. Caches the result locally.
+
+    :param genome: genome assembly name (e.g. hg38, hg19, mm10)
+    :param out_path: cache directory override (default: ~/chrom_sizes/)
+    :return: path to chrom.sizes file, or None if unavailable
+    """
+    from refget.clients import SequenceCollectionClient
+
+    if not out_path:
+        cache_dir = os.path.join(HOME_PATH, CHROM_SIZES_FOLDER_NAME)
+    else:
+        cache_dir = os.path.join(out_path, CHROM_SIZES_FOLDER_NAME)
+
+    chrom_sizes_path = os.path.join(cache_dir, f"{genome}.chrom.sizes")
+
+    if os.path.exists(chrom_sizes_path):
+        _LOGGER.info(f"Chrom sizes (cached): {chrom_sizes_path}")
+        return chrom_sizes_path
+
+    _LOGGER.info(f"Resolving chrom.sizes for genome: {genome}")
+
+    digest = _resolve_genome_digest(genome)
+    if not digest:
+        _LOGGER.warning(
+            f"Could not resolve genome '{genome}' to a seqcol digest. "
+            "Region distribution will not be normalized."
+        )
+        return None
+
+    try:
+        client = SequenceCollectionClient(urls=[f"{REFGENIE_API_URL}/seqcol"])
+        os.makedirs(cache_dir, exist_ok=True)
+        client.write_chrom_sizes(digest, chrom_sizes_path)
+        _LOGGER.info(f"Chrom sizes downloaded: {chrom_sizes_path}")
+        return chrom_sizes_path
+    except Exception as e:
+        _LOGGER.warning(f"Failed to fetch chrom.sizes for {genome}: {e}")
+        return None
+
+
 _ENSEMBL_FTP_BASES = {
     "ensembl": "https://ftp.ensembl.org/pub/release-{release}/gtf",
     "grch37": "https://ftp.ensembl.org/pub/grch37/release-{release}/gtf",
@@ -177,21 +263,23 @@ def _resolve_ensembl_genome(genome: str) -> Union[tuple, None]:
     return None
 
 
-def get_gtf_path(genome: str, out_path: str = None) -> Union[str, None]:
+def get_gda_path(genome: str, out_path: str = None) -> Union[str, None]:
     """
-    Get GTF gene annotation file for a genome, downloading from Ensembl if needed.
+    Get a GDA (GenomicDist Annotation) binary for a genome.
+
+    Downloads the Ensembl GTF and pre-compiles it to a GDA .bin (gene model
+    only — chromSizes are served separately). Falls back to the raw .gtf.gz
+    if ``gtars prep`` fails.
 
     Supports UCSC aliases (hg38, hg19, mm10, mm39), Ensembl assembly names
     (GRCh38, GRCm39, GRCz11), and Ensembl species names (danio_rerio, etc.).
     For genomes not in the static map, queries the Ensembl REST API (~380 species).
 
-    Downloaded GTFs are cached and pre-compiled to .bin with ``gtars prep``.
-
     :param genome: genome assembly name
     :param out_path: cache directory override (default: ~/ensembl_gtf/)
-    :return: path to .bin file (or raw .gtf.gz if prep fails), None if unavailable
+    :return: path to .bin GDA file (or raw .gtf.gz as fallback), None if unavailable
     """
-    _LOGGER.info(f"Getting GTF annotation for genome: {genome}")
+    _LOGGER.info(f"Getting GDA annotation for genome: {genome}")
 
     resolved = _resolve_ensembl_genome(genome)
     if not resolved:
@@ -208,36 +296,40 @@ def get_gtf_path(genome: str, out_path: str = None) -> Union[str, None]:
         gtf_folder = os.path.join(out_path, GTF_FOLDER_NAME)
 
     gtf_path = os.path.join(gtf_folder, gtf_filename)
-    gtf_bin_path = gtf_path + ".bin"
+    gda_bin_path = gtf_path + ".gda.bin"
 
-    # Return pre-compiled binary if it already exists
-    if os.path.exists(gtf_bin_path):
-        _LOGGER.info(f"GTF annotation (pre-compiled): {gtf_bin_path}")
-        return gtf_bin_path
+    # Return pre-compiled GDA binary if it already exists
+    if os.path.exists(gda_bin_path):
+        _LOGGER.info(f"GDA annotation (pre-compiled): {gda_bin_path}")
+        return gda_bin_path
 
     if not os.path.exists(gtf_path):
         os.makedirs(gtf_folder, exist_ok=True)
         url = _ensembl_gtf_url(species, assembly, release, division)
         download_file(url=url, path=gtf_path, no_fail=True)
 
-    # Pre-compile to .bin for faster loading on subsequent runs
+    # Pre-compile to GDA .bin
     if os.path.exists(gtf_path):
-        _LOGGER.info(f"Pre-compiling GTF: {gtf_path}")
+        _LOGGER.info(f"Pre-compiling GDA: {gtf_path}")
         result = subprocess.run(
-            ["gtars", "prep", "--gtf", gtf_path, "-o", gtf_bin_path],
+            ["gtars", "prep", "--gtf", gtf_path, "-o", gda_bin_path],
             capture_output=True, text=True,
         )
-        if result.returncode == 0 and os.path.exists(gtf_bin_path):
-            _LOGGER.info(f"GTF annotation (pre-compiled): {gtf_bin_path}")
-            return gtf_bin_path
+        if result.returncode == 0 and os.path.exists(gda_bin_path):
+            _LOGGER.info(f"GDA annotation (pre-compiled): {gda_bin_path}")
+            return gda_bin_path
         else:
-            _LOGGER.warning(f"gtars prep failed, using raw GTF: {result.stderr}")
+            _LOGGER.warning(f"gtars prep (GDA) failed, using raw GTF: {result.stderr}")
 
     if os.path.exists(gtf_path):
         return gtf_path
 
-    _LOGGER.warning(f"GTF annotation not available for {genome}")
+    _LOGGER.warning(f"GDA annotation not available for {genome}")
     return None
+
+
+# Keep old name as alias for backward compatibility
+get_gtf_path = get_gda_path
 
 
 def bedstat(
@@ -282,13 +374,13 @@ def bedstat(
 
     :return: dict with statistics and distributions
     """
-    # Auto-download GTF annotation if not provided
+    # Auto-download GDA/GTF annotation if not provided
     if not ensdb:
         try:
-            ensdb = get_gtf_path(genome)
+            ensdb = get_gda_path(genome)
         except Exception:
             _LOGGER.warning(
-                f"Could not auto-download GTF for {genome}. "
+                f"Could not auto-download annotation for {genome}. "
                 "Partition and TSS analysis will be skipped."
             )
 
@@ -299,6 +391,16 @@ def bedstat(
         except OpenSignalMatrixException:
             _LOGGER.warning(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
+            )
+
+    # Auto-download chrom.sizes if not provided
+    if not chrom_sizes:
+        try:
+            chrom_sizes = get_chrom_sizes_path(genome)
+        except Exception:
+            _LOGGER.warning(
+                f"Could not auto-download chrom.sizes for {genome}. "
+                "Region distribution will not be normalized."
             )
 
     outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
@@ -382,12 +484,16 @@ def bedstat(
                 data[f"{db_name}_frequency"] = count
                 data[f"{db_name}_percentage"] = round(count / total * 100, 4)
 
-    # GC content: compute via Python bindings
+    # GC content: compute via Python bindings (requires refgenie FASTA)
     try:
         gc_contents = calculate_gc_content(
             bedfile=bed_object, genome=genome, rfg_config=rfg_config
         )
-    except BaseException:
+    except BaseException as e:
+        _LOGGER.warning(
+            f"GC content calculation skipped for {genome}: {e}. "
+            "Ensure refgenie is configured with a FASTA asset for this genome."
+        )
         gc_contents = None
 
     if gc_contents:

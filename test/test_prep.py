@@ -12,6 +12,7 @@ import pytest
 from bedboss.bedstat.bedstat import (
     _ensembl_gtf_url,
     _resolve_ensembl_genome,
+    get_gda_path,
     get_gtf_path,
     get_osm_path,
 )
@@ -89,43 +90,42 @@ def test_ensembl_gtf_url(args, expected_url):
 
 
 # ---------------------------------------------------------------------------
-# get_gtf_path: download + prep flow
+# get_gda_path: download + prep flow
 # ---------------------------------------------------------------------------
 
-def test_get_gtf_path_returns_cached_bin(tmp_path):
-    """If .bin already exists, return it immediately without downloading."""
+def test_get_gda_path_returns_cached_bin(tmp_path):
+    """If .gda.bin already exists, return it immediately without downloading."""
     gtf_dir = tmp_path / "ensembl_gtf"
     gtf_dir.mkdir()
-    bin_file = gtf_dir / "Homo_sapiens.GRCh38.114.gtf.gz.bin"
-    bin_file.write_bytes(b"fake bin")
+    bin_file = gtf_dir / "Homo_sapiens.GRCh38.114.gtf.gz.gda.bin"
+    bin_file.write_bytes(b"fake gda bin")
 
-    result = get_gtf_path("hg38", out_path=str(tmp_path))
+    result = get_gda_path("hg38", out_path=str(tmp_path))
     assert result == str(bin_file)
 
 
-def test_get_gtf_path_downloads_and_preps(tmp_path):
-    """Mocked download + successful gtars prep returns .bin path."""
+def test_get_gda_path_downloads_and_preps(tmp_path):
+    """Mocked download + successful gtars prep returns .gda.bin path."""
     def fake_download(url, path, no_fail=False):
         with open(path, "w") as f:
             f.write("fake gtf")
 
     def fake_subprocess_run(cmd, **kwargs):
-        # Simulate gtars prep creating the .bin file
         out_idx = cmd.index("-o") + 1
         with open(cmd[out_idx], "w") as f:
-            f.write("fake bin")
+            f.write("fake gda bin")
         return MagicMock(returncode=0)
 
     with patch("bedboss.bedstat.bedstat.download_file", side_effect=fake_download), \
          patch("bedboss.bedstat.bedstat.subprocess.run", side_effect=fake_subprocess_run):
-        result = get_gtf_path("hg38", out_path=str(tmp_path))
+        result = get_gda_path("hg38", out_path=str(tmp_path))
 
     assert result is not None
-    assert result.endswith(".bin")
+    assert result.endswith(".gda.bin")
     assert os.path.exists(result)
 
 
-def test_get_gtf_path_falls_back_to_raw(tmp_path):
+def test_get_gda_path_falls_back_to_raw_on_prep_failure(tmp_path):
     """If gtars prep fails, return the raw .gtf.gz."""
     def fake_download(url, path, no_fail=False):
         with open(path, "w") as f:
@@ -133,18 +133,23 @@ def test_get_gtf_path_falls_back_to_raw(tmp_path):
 
     with patch("bedboss.bedstat.bedstat.download_file", side_effect=fake_download), \
          patch("bedboss.bedstat.bedstat.subprocess.run", return_value=MagicMock(returncode=1, stderr="prep failed")):
-        result = get_gtf_path("hg38", out_path=str(tmp_path))
+        result = get_gda_path("hg38", out_path=str(tmp_path))
 
     assert result is not None
     assert result.endswith(".gtf.gz")
     assert os.path.exists(result)
 
 
-def test_get_gtf_path_unresolvable_genome(tmp_path):
+def test_get_gda_path_unresolvable_genome(tmp_path):
     """Unresolvable genome returns None."""
     with patch("bedboss.bedstat.bedstat.urllib.request.urlopen", side_effect=Exception("no network")):
-        result = get_gtf_path("totally_fake_xyz", out_path=str(tmp_path))
+        result = get_gda_path("totally_fake_xyz", out_path=str(tmp_path))
     assert result is None
+
+
+def test_get_gtf_path_alias():
+    """get_gtf_path is an alias for get_gda_path."""
+    assert get_gtf_path is get_gda_path
 
 
 # ---------------------------------------------------------------------------
