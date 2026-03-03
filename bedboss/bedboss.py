@@ -1,7 +1,7 @@
 import datetime
 import logging
 import os
-import subprocess
+
 from typing import Union
 from urllib.parse import urlparse
 
@@ -13,6 +13,7 @@ import yaml
 from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
+from bbconf.modules.aggregation import DEFAULT_PRECISION
 from eido import validate_project
 from geniml.bbclient import BBClient
 from pephubclient.helpers import MessageHandler as m
@@ -41,24 +42,8 @@ from bedboss.utils import (
     run_initial_qc,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
-
 _LOGGER = logging.getLogger(PKG_NAME)
 
-
-def requirements_check() -> None:
-    """
-    Check if all requirements are installed
-
-    :return: None
-    """
-    _LOGGER.info("Checking requirements...")
-    subprocess.run(
-        [
-            "bash",
-            f"{os.path.dirname(os.path.abspath(__file__))}/scripts/requirements_test.sh",
-        ]
-    )
 
 
 @calculate_time
@@ -75,14 +60,13 @@ def run_all(
     check_qc: bool = True,
     validate_reference: bool = True,
     chrom_sizes: str = None,
-    open_signal_matrix: str = None,
     ensdb: str = None,
+    open_signal_matrix: str = None,
     other_metadata: dict = None,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
     update: bool = False,
     upload_qdrant: bool = False,
-    upload_s3: bool = False,
     upload_pephub: bool = False,
     lite: bool = False,
     # Universes
@@ -90,8 +74,8 @@ def run_all(
     universe_method: str = None,
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
-    r_service: RServiceManager = None,
     reference_genome_validator: ReferenceValidator = None,
+    precision: int = DEFAULT_PRECISION,
 ) -> str:
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
@@ -109,7 +93,7 @@ def run_all(
     :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
     :param bool validate_reference: set True to run genome reference validator
     :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
-    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
+    :param str open_signal_matrix: path to open signal matrix TSV for cell-type enrichment [optional]
     :param dict other_metadata: a dict containing all attributes from the sample
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
         (basically genomes that's not in GDdata)
@@ -117,7 +101,6 @@ def run_all(
     :param bool force_overwrite: force overwrite analysis [Default: False]
     :param bool update: whether to update the record in the database [Default: False] (if True, overwrites 'force_overwrite' and ignores it)
     :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
-    :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
     :param bool lite: whether to run lite version of the pipeline [Default: False]
 
@@ -125,7 +108,6 @@ def run_all(
     :param str universe_method: method used to create the universe [Default: None]
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
-    :param RServiceManager r_service: RServiceManager object that will run R services
     :param reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility
     :return str bed_digest: bed digest
     """
@@ -197,12 +179,13 @@ def run_all(
             outfolder=outfolder,
             genome=genome,
             ensdb=ensdb,
-            bed_digest=bed_metadata.bed_digest,
+            chrom_sizes=chrom_sizes,
             open_signal_matrix=open_signal_matrix,
+            bed_digest=bed_metadata.bed_digest,
             just_db_commit=just_db_commit,
             rfg_config=rfg_config,
             pm=pm,
-            r_service=r_service,
+            precision=precision,
         )
 
     if "mean_region_width" not in statistics_dict:
@@ -285,7 +268,6 @@ def run_all(
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=True,
             processed=not lite,
@@ -303,7 +285,6 @@ def run_all(
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=force_overwrite,
             processed=not lite,
@@ -334,13 +315,11 @@ def insert_pep(
     rfg_config: str = None,
     license_id: str = DEFAULT_LICENSE,
     create_bedset: bool = False,
-    bedset_heavy: bool = False,
     check_qc: bool = True,
     ensdb: str = None,
     just_db_commit: bool = False,
     force_overwrite: bool = False,
     update: bool = False,
-    upload_s3: bool = False,
     upload_pephub: bool = False,
     upload_qdrant: bool = False,
     no_fail: bool = False,
@@ -348,6 +327,7 @@ def insert_pep(
     lite: bool = False,
     rerun: bool = False,
     pm: pypiper.PipelineManager = None,
+    precision: int = DEFAULT_PRECISION,
 ) -> None:
     """
     Run all bedboss pipelines for all samples in the pep file.
@@ -362,14 +342,12 @@ def insert_pep(
     :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
         This license will be used for bedfiles where license is not provided in PEP file
     :param bool create_bedset: whether to create bedset
-    :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
     :param bool upload_qdrant: whether to upload bedfiles to qdrant
     :param bool check_qc: whether to run quality control during badmaking
     :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
     :param bool just_db_commit: whether save only to the database (Without saving locally )
     :param bool force_overwrite: whether to overwrite the existing record
     :param bool update: whether to update the record in the database. This option will overwrite the force_overwrite option. [Default: False]
-    :param bool upload_s3: whether to upload to s3
     :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
     :param bool upload_qdrant: whether to execute qdrant indexing
     :param bool no_fail: whether to raise an error if bedset was not added to the database
@@ -418,11 +396,6 @@ def insert_pep(
     if rerun:
         skipper.reinitialize()
 
-    if not lite:
-        r_service = RServiceManager()
-    else:
-        r_service = None
-
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
         if is_processed:
@@ -458,7 +431,6 @@ def insert_pep(
                 license_id=pep_sample.get("license_id") or license_id,
                 narrowpeak=is_narrow_peak,
                 chrom_sizes=pep_sample.get("chrom_sizes"),
-                open_signal_matrix=pep_sample.get("open_signal_matrix"),
                 other_metadata=pep_sample.to_dict(),
                 outfolder=output_folder,
                 rfg_config=rfg_config,
@@ -468,14 +440,13 @@ def insert_pep(
                 force_overwrite=force_overwrite,
                 update=update,
                 upload_qdrant=upload_qdrant,
-                upload_s3=upload_s3,
                 upload_pephub=upload_pephub,
                 universe=pep_sample.get("universe"),
                 universe_method=pep_sample.get("universe_method"),
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
-                r_service=r_service,
+                precision=precision,
             )
 
             processed_ids.append(bed_id)
@@ -495,9 +466,7 @@ def insert_pep(
             name=bedset_name or pep.name,
             output_folder=output_folder,
             description=pep.description,
-            heavy=bedset_heavy,
             upload_pephub=upload_pephub,
-            upload_s3=upload_s3,
             no_fail=no_fail,
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
@@ -554,8 +523,6 @@ def reprocess_all(
     else:
         stop_pipeline = False
 
-    r_service = RServiceManager()
-
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
@@ -588,20 +555,17 @@ def reprocess_all(
                 check_qc=False,
                 validate_reference=True,
                 chrom_sizes=None,
-                open_signal_matrix=None,
                 ensdb=None,
                 other_metadata=None,
                 just_db_commit=False,
                 update=True,
                 upload_qdrant=True,
-                upload_s3=True,
                 upload_pephub=True,
                 lite=False,
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
                 pm=pm,
-                r_service=r_service,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
@@ -695,13 +659,11 @@ def reprocess_one(
         check_qc=False,
         validate_reference=True,
         chrom_sizes=None,
-        open_signal_matrix=None,
         ensdb=None,
         other_metadata=None,
         just_db_commit=False,
         update=True,
         upload_qdrant=True,
-        upload_s3=True,
         upload_pephub=True,
         lite=False,
         universe=False,
@@ -722,7 +684,6 @@ def reprocess_bedset(
     output_folder: str,
     identifier: str,
     no_fail: bool = True,
-    heavy: bool = False,
 ):
     """
     Recalculate bedset from the bedbase
@@ -731,7 +692,6 @@ def reprocess_bedset(
     :param output_folder: output folder of the pipeline
     :param identifier: bedset identifier
     :param no_fail: whether to raise an error if bedset was not added to the database
-    :param heavy: whether to use heavy processing. Calculate plots for bedset
 
     :return: None
     """
@@ -752,9 +712,7 @@ def reprocess_bedset(
         name=bedset_annot.name,
         output_folder=output_folder,
         description=bedset_annot.description,
-        heavy=heavy,
         upload_pephub=False,
-        upload_s3=heavy,
         no_fail=no_fail,
         force_overwrite=True,
         annotation={

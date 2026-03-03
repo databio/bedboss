@@ -17,7 +17,6 @@ def runn():
             input_type="bed",
             force_overwrite=True,
             upload_pephub=True,
-            upload_s3=True,
             upload_qdrant=True,
             name="test",
         )

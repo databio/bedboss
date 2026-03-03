@@ -1,13 +1,8 @@
 import logging
-import os
 from typing import List, Union
-
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from gtars.models import GenomeAssembly, RegionSet
 from gtars.genomic_distributions import calc_gc_content
-from matplotlib.ticker import MaxNLocator
 from refgenconf import RefgenconfError
 from yacman.exceptions import UndefinedAliasError
 
@@ -98,48 +93,3 @@ def calculate_gc_content(
         ignore_unk_chroms=True,
     )
     return gc_contents
-
-
-def create_gc_plot(
-    bed_id: str, gc_contents: List[float], outfolder: str, gc_mean: float
-) -> dict:
-    """
-    Create a GC content plot.
-
-    :param bed_id: bed ID
-    :param gc_contents: list of GC contents
-    :param outfolder: path to output file
-    :param gc_mean: mean GC content
-
-    :return str: path to output file
-    """
-    plt.rcParams["font.size"] = 10
-    plt.figure(figsize=(8, 8))
-    sns.kdeplot(gc_contents, linewidth=0.8, color="black")
-    plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=5))
-
-    plt.axvline(
-        gc_mean,
-        color="r",
-        linestyle="--",
-        linewidth=0.8,
-        label=f"Mean: {gc_mean:.2f}",
-    )
-    sns.despine()
-    plt.xlabel("GC Content")
-    plt.legend()
-
-    plt.title("GC Content Distribution")
-
-    pdf_path = os.path.join(outfolder, f"{bed_id}_gccontent.pdf")
-    png_path = os.path.join(outfolder, f"{bed_id}_gccontent.png")
-
-    plt.savefig(pdf_path)
-    plt.savefig(png_path)
-
-    return {
-        "name": "gccontent",
-        "title": "GC Content Distribution",
-        "thumbnail_path": png_path,
-        "path": pdf_path,
-    }

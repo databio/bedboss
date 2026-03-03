@@ -81,10 +81,8 @@ def run_all(
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
-    open_signal_matrix: str = typer.Option(
-        None, help="Path to the open signal matrix file"
-    ),
-    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    ensdb: str = typer.Option(None, help="Path to GTF file or pre-compiled .bin (run 'gtars prep --gtf' first for faster batch processing)"),
+    open_signal_matrix: str = typer.Option(None, help="Path to open signal matrix file or pre-compiled .bin"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
@@ -97,8 +95,8 @@ def run_all(
         False, help="Run the pipeline in lite mode. [Default: False]"
     ),
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
-    upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    precision: int = typer.Option(3, help="Decimal places for rounding float statistics (use -1 to disable)"),
     # Universes
     universe: bool = typer.Option(False, help="Create a universe"),
     universe_method: str = typer.Option(
@@ -133,20 +131,20 @@ def run_all(
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
-        open_signal_matrix=open_signal_matrix,
         ensdb=ensdb,
+        open_signal_matrix=open_signal_matrix,
         other_metadata=None,
         lite=lite,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
         update=update,
         upload_qdrant=upload_qdrant,
-        upload_s3=upload_s3,
         upload_pephub=upload_pephub,
         universe=universe,
         universe_method=universe_method,
         universe_bedset=universe_bedset,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
+        precision=precision if precision >= 0 else None,
     )
 
 
@@ -162,9 +160,6 @@ def run_pep(
         readable=True,
     ),
     create_bedset: bool = typer.Option(True, help="Create a new bedset"),
-    bedset_heavy: bool = typer.Option(
-        False, help="Run the heavy version of the bedbuncher pipeline"
-    ),
     bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
@@ -178,7 +173,6 @@ def run_pep(
         help="Update the bedbase database with the new record if it exists. This overwrites 'force_overwrite' option",
     ),
     upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
-    upload_s3: bool = typer.Option(True, help="Upload to S3"),
     upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
@@ -187,6 +181,7 @@ def run_pep(
         False, help="Run the pipeline in lite mode. [Default: False]"
     ),
     rerun: bool = typer.Option(False, help="Rerun already processed samples"),
+    precision: int = typer.Option(3, help="Decimal places for rounding float statistics (use -1 to disable)"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -212,14 +207,12 @@ def run_pep(
         bedset_id=bedset_id,
         rfg_config=rfg_config,
         create_bedset=create_bedset,
-        bedset_heavy=bedset_heavy,
         check_qc=check_qc,
         ensdb=ensdb,
         just_db_commit=just_db_commit,
         force_overwrite=force_overwrite,
         update=update,
         license_id=license_id,
-        upload_s3=upload_s3,
         upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
@@ -227,6 +220,7 @@ def run_pep(
         lite=lite,
         rerun=rerun,
         pm=pm,
+        precision=precision if precision >= 0 else None,
     )
 
     pm.stop_pipeline()
@@ -295,7 +289,6 @@ def reprocess_bedset(
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     identifier: str = typer.Option(..., help="Bedset ID"),
     no_fail: bool = typer.Option(True, help="Do not fail on error"),
-    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
 ):
     from bedboss.bedboss import reprocess_bedset as reprocess_bedset_function
 
@@ -304,7 +297,6 @@ def reprocess_bedset(
         output_folder=outfolder,
         identifier=identifier,
         no_fail=no_fail,
-        heavy=heavy,
     )
 
 
@@ -389,10 +381,9 @@ def run_stats(
     ),
     genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
-    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
-    open_signal_matrix: str = typer.Option(
-        None, help="Path to the open signal matrix file"
-    ),
+    ensdb: str = typer.Option(None, help="Path to GTF file or pre-compiled .bin (run 'gtars prep --gtf' first for faster batch processing)"),
+    chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
+    open_signal_matrix: str = typer.Option(None, help="Path to open signal matrix file or pre-compiled .bin"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
@@ -406,6 +397,7 @@ def run_stats(
         genome=genome,
         outfolder=outfolder,
         ensdb=ensdb,
+        chrom_sizes=chrom_sizes,
         open_signal_matrix=open_signal_matrix,
         just_db_commit=just_db_commit,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
@@ -466,11 +458,9 @@ def make_bedset(
         readable=True,
     ),
     bedset_name: str = typer.Option(..., help="Name of the bedset"),
-    heavy: bool = typer.Option(False, help="Run the heavy version of the pipeline"),
     force_overwrite: bool = typer.Option(
         False, help="Force overwrite the output files"
     ),
-    upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
 ):
@@ -481,9 +471,7 @@ def make_bedset(
         bedset_pep=pep,
         output_folder=outfolder,
         bedset_name=bedset_name,
-        heavy=heavy,
         upload_pephub=upload_pephub,
-        upload_s3=upload_s3,
         no_fail=no_fail,
         force_overwrite=force_overwrite,
     )
@@ -700,27 +688,115 @@ def download_umap(
     )
 
 
-@app.command(help="Check installed R packages")
-def check_requirements():
-    from bedboss.bedboss import requirements_check
 
-    print("Checking pipelines requirements...")
-    requirements_check()
+@app.command(help="Download and pre-compile reference files for a genome")
+def prep(
+    genome: str = typer.Option(None, help="Genome name (e.g. hg38, mm10, danio_rerio). Downloads GTF and signal matrix, then pre-compiles to .bin"),
+    gtf: str = typer.Option(None, help="Path to a local GTF/GTF.gz file to pre-compile"),
+    signal_matrix: str = typer.Option(None, help="Path to a local signal matrix TSV/TSV.gz file to pre-compile"),
+    output: str = typer.Option(None, "-o", "--output", help="Output path for --gtf/--signal-matrix (default: input path with .bin extension)"),
+    upload_s3: bool = typer.Option(False, help="Upload .bin files to S3 after prepping (requires --bedbase-config)"),
+    bedbase_config: str = typer.Option(None, help="Path to bedbase config file (required for --upload-s3)"),
+):
+    """
+    Download and pre-compile reference files (.bin) for faster batch processing.
 
+    Use --genome to automatically download and prep all reference files for a genome
+    assembly. Files are cached in ~/ensembl_gtf/ and ~/openSignalMatrix/ so subsequent
+    runs (including run-all) skip the download.
 
-@app.command(help="Install R dependencies")
-def install_requirements():
+    Use --gtf or --signal-matrix to prep your own local files instead.
+
+    Use --upload-s3 to upload the .bin files to S3 for serving via the API.
+
+    Examples:
+
+        bedboss prep --genome hg38
+
+        bedboss prep --genome hg38 --upload-s3 --bedbase-config bedbase.yaml
+
+        bedboss prep --gtf my_annotation.gtf.gz
+
+        bedboss prep --signal-matrix my_matrix.txt.gz
+    """
     import subprocess
 
-    r_path = os.path.abspath(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "scripts", "installRdeps.R"
-        )
-    )
+    if not genome and not gtf and not signal_matrix:
+        printm.print_error("Provide --genome, --gtf, or --signal-matrix")
+        raise typer.Exit(code=1)
 
-    subprocess.run(
-        ["Rscript", r_path],
-    )
+    if upload_s3 and not bedbase_config:
+        printm.print_error("--upload-s3 requires --bedbase-config")
+        raise typer.Exit(code=1)
+
+    s3_uploads = []  # collect (local_path, s3_path) tuples
+
+    if genome:
+        from bedboss.bedstat.bedstat import get_gtf_path, get_osm_path
+        from bedboss.exceptions import OpenSignalMatrixException
+
+        printm.print_success(f"Preparing reference files for genome: {genome}")
+
+        # GTF
+        try:
+            gtf_path = get_gtf_path(genome)
+            if gtf_path:
+                printm.print_success(f"GTF ready: {gtf_path}")
+                if upload_s3 and gtf_path.endswith(".bin"):
+                    s3_uploads.append((gtf_path, f"ref/{genome}/genemodel.bin"))
+            else:
+                printm.print_error(f"Could not resolve GTF for genome '{genome}'")
+        except Exception as e:
+            printm.print_error(f"GTF download/prep failed: {e}")
+
+        # Open signal matrix
+        try:
+            osm_path = get_osm_path(genome)
+            if osm_path:
+                printm.print_success(f"Signal matrix ready: {osm_path}")
+                if upload_s3 and osm_path.endswith(".bin"):
+                    s3_uploads.append((osm_path, f"ref/{genome}/signal_matrix.bin"))
+        except OpenSignalMatrixException:
+            printm.print_error(f"No open signal matrix available for genome '{genome}'")
+        except Exception as e:
+            printm.print_error(f"Signal matrix download/prep failed: {e}")
+
+    if gtf:
+        cmd = ["gtars", "prep", "--gtf", gtf]
+        if output:
+            cmd.extend(["-o", output])
+        printm.print_success(f"Pre-compiling GTF: {gtf}")
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            printm.print_error("GTF pre-compilation failed")
+            raise typer.Exit(code=1)
+        bin_path = output or (gtf + ".bin")
+        if upload_s3 and os.path.exists(bin_path):
+            s3_uploads.append((bin_path, f"ref/{os.path.basename(bin_path)}"))
+
+    if signal_matrix:
+        cmd = ["gtars", "prep", "--signal-matrix", signal_matrix]
+        if output and not gtf:
+            cmd.extend(["-o", output])
+        printm.print_success(f"Pre-compiling signal matrix: {signal_matrix}")
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            printm.print_error("Signal matrix pre-compilation failed")
+            raise typer.Exit(code=1)
+        bin_path = (output if output and not gtf else None) or (signal_matrix + ".bin")
+        if upload_s3 and os.path.exists(bin_path):
+            s3_uploads.append((bin_path, f"ref/{os.path.basename(bin_path)}"))
+
+    if upload_s3 and s3_uploads:
+        from bbconf.bbagent import BedBaseAgent
+
+        agent = BedBaseAgent(bedbase_config)
+        for local_path, s3_path in s3_uploads:
+            try:
+                agent.config.upload_s3(local_path, s3_path)
+                printm.print_success(f"Uploaded to S3: {s3_path}")
+            except Exception as e:
+                printm.print_error(f"S3 upload failed for {s3_path}: {e}")
 
 
 @app.command(help="Verify configuration file")

@@ -88,6 +88,7 @@ class BedStatCLIModel(BaseModel):
     bed_digest: str = None
     bigbed: Union[str, pathlib.Path] = None
     ensdb: str = None
+    chrom_sizes: str = None
     open_signal_matrix: str = None
     just_db_commit: bool = False
     pm: pypiper.PipelineManager = None

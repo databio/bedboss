@@ -27,8 +27,6 @@ MAX_FILE_SIZE_QC = 1024 * 1024 * 25  # 25 MB
 MAX_REGION_NUMBER = 5000000
 MIN_REGION_WIDTH = 10
 
-# bedstat
-
 # bedbuncher
 DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
 

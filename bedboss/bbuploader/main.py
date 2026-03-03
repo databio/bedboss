@@ -45,7 +45,6 @@ from bedboss.utils import (
     run_initial_qc,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
 from bedboss._version import __version__
 
 _LOGGER = logging.getLogger(PKG_NAME)
@@ -139,13 +138,6 @@ def upload_all(
         recover=True,
     )
 
-    if not lite:
-        _LOGGER.info("Initializing R service for statistics")
-        r_service = RServiceManager()
-    else:
-        _LOGGER.info("Lite mode: R service disabled")
-        r_service = None
-
     for gse_pep in pep_annotation_list.results:
         count += 1
         gse_id = build_gse_identifier(gse_pep.name, geo_tag)
@@ -205,7 +197,6 @@ def upload_all(
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
                     lite=lite,
-                    r_service=r_service,
                     pm=pm,
                 )
             except Exception as err:
@@ -532,7 +523,6 @@ def _upload_gse(
     preload: bool = True,
     lite=False,
     max_file_size: int = 20 * 1000000,
-    r_service: RServiceManager = None,
     pm: pypiper.PipelineManager = None,
 ) -> ProjectProcessingStatus:
     """
@@ -557,7 +547,6 @@ def _upload_gse(
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     :param max_file_size: maximum file size in bytes. Default: 20MB
     :param pypiper.PipelineManager pm: pypiper object
-    :param r_service: RServiceManager object
     :return: None
     """
     if isinstance(bedbase_config, str):
@@ -606,13 +595,6 @@ def _upload_gse(
         stop_pipeline = True
     else:
         stop_pipeline = False
-
-    if not lite and not r_service:
-        r_service = RServiceManager()
-    elif lite:
-        r_service = None
-    else:
-        r_service = r_service
 
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
@@ -752,12 +734,10 @@ def _upload_gse(
                 narrowpeak=required_metadata.narrowpeak,
                 other_metadata=required_metadata.pep.model_dump(),
                 upload_pephub=True,
-                upload_s3=True,
                 upload_qdrant=True,
                 force_overwrite=overwrite,
                 lite=lite,
                 pm=pm,
-                r_service=r_service,
                 reference_genome_validator=reference_validator,
             )
             _LOGGER.info(
@@ -828,9 +808,7 @@ def _upload_gse(
             output_folder=os.path.join(outfolder, "outputs"),
             name=gse,
             description=project.description,
-            heavy=False,  # TODO: set to False because can't handle bedset > 10 files
             upload_pephub=True,
-            upload_s3=True,
             no_fail=True,
             force_overwrite=overwrite_bedset,
             lite=lite,
