@@ -18,6 +18,8 @@ from functools import lru_cache
 
 import joblib
 from bbconf import BedBaseAgent
+from bbconf.db_utils import Bed, BedMetadata, BedStats
+from sqlalchemy.orm import Session, joinedload
 import json
 
 from bedboss.const import PKG_NAME
@@ -49,8 +51,6 @@ def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None
     _LOGGER.info(f"Model saved to {model_path}")
 
 
-# @lru_cache()
-# TODO: can we make this function cached, without using credentials as part of the cache key?
 def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     """
     Fetch data from Qdrant collection and return it as a DataFrame.
@@ -95,31 +95,88 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     return merged
 
 
+def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
+    """
+    Fetch bed_stats and annotation metadata from PostgreSQL for the given bed IDs.
+
+    Returns a DataFrame indexed by bed ID with stats and annotation columns.
+    """
+    _LOGGER.info(f"Fetching DB metadata for {len(bed_ids)} beds...")
+
+    rows = []
+    with Session(agent.config.db_engine.engine) as session:
+        # Batch query to avoid N+1
+        for bed_obj in (
+            session.query(Bed)
+            .options(joinedload(Bed.stats), joinedload(Bed.annotations))
+            .filter(Bed.id.in_(bed_ids))
+            .all()
+        ):
+            row = {"id": bed_obj.id}
+
+            # Stats
+            if bed_obj.stats:
+                stats = bed_obj.stats
+                row["number_of_regions"] = stats.number_of_regions
+                row["mean_region_width"] = stats.mean_region_width
+                row["gc_content"] = stats.gc_content
+                row["median_tss_dist"] = stats.median_tss_dist
+                row["exon_frequency"] = stats.exon_frequency
+                row["exon_percentage"] = stats.exon_percentage
+                row["intron_frequency"] = stats.intron_frequency
+                row["intron_percentage"] = stats.intron_percentage
+                row["intergenic_frequency"] = stats.intergenic_frequency
+                row["intergenic_percentage"] = stats.intergenic_percentage
+                row["promotercore_frequency"] = stats.promotercore_frequency
+                row["promotercore_percentage"] = stats.promotercore_percentage
+                row["fiveutr_frequency"] = stats.fiveutr_frequency
+                row["fiveutr_percentage"] = stats.fiveutr_percentage
+                row["threeutr_frequency"] = stats.threeutr_frequency
+                row["threeutr_percentage"] = stats.threeutr_percentage
+                row["promoterprox_frequency"] = stats.promoterprox_frequency
+                row["promoterprox_percentage"] = stats.promoterprox_percentage
+
+            # Annotation (tier 2 fields not in Qdrant payload)
+            if bed_obj.annotations:
+                anno = bed_obj.annotations
+                row["antibody"] = anno.antibody
+                row["library_source"] = anno.library_source
+                row["original_file_name"] = anno.original_file_name
+                row["global_sample_id"] = (
+                    ";".join(anno.global_sample_id)
+                    if anno.global_sample_id
+                    else None
+                )
+                row["global_experiment_id"] = (
+                    ";".join(anno.global_experiment_id)
+                    if anno.global_experiment_id
+                    else None
+                )
+
+            # Classification (from Bed table)
+            row["bed_compliance"] = bed_obj.bed_compliance
+            row["data_format"] = bed_obj.data_format
+
+            rows.append(row)
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.set_index("id")
+    _LOGGER.info(f"Fetched DB metadata for {len(df)} beds.")
+    return df
+
+
 def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     """
-    Save a DataFrame as a JSON file in the specified format.
-    It includes the following columns:
-    - x, y, z (coordinates)
-    - id (string identifier)
-    - name (string)
-    - description (string)
-    - assay (string)
-    - cell_line (string)
-
-    :param df: DataFrame to save
-    :param output_path: Path to save the JSON file
-    :return: None
-
+    Save a DataFrame as a JSON file in the legacy format.
+    Kept for backward compatibility during migration.
     """
-    # Select the required columns
     columns_to_include = [
         "x",
         "y",
         "id",
         "name",
         "description",
-        # "data_format",
-        # "bed_compliance",
         "assay",
         "cell_line",
     ]
@@ -128,29 +185,103 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
         columns_to_include.insert(2, "z")
 
     output_path = os.path.abspath(output_path)
-    (f"Saving DataFrame as JSON to {output_path}")
 
-    df.loc[:, "id"] = df.index.astype(str)  # Ensure 'id' is a string
+    df.loc[:, "id"] = df.index.astype(str)
     df = df.fillna("")
 
     coord_cols = [c for c in ["x", "y", "z"] if c in df.columns]
 
-    # Create the nodes structure
     nodes = df[columns_to_include].to_dict(orient="records")
     for node in nodes:
         for col in coord_cols:
             if col in node:
                 node[col] = round(float(node[col]), 2)
 
-    # Create the final JSON structure
     json_data = {"nodes": nodes, "links": []}
 
-    # Save to a JSON file
     output_path = f"{output_path}_{python_version}.json"
     with open(output_path, "w") as json_file:
         json.dump(json_data, json_file, indent=4)
 
-    _LOGGER.info(f"Data saved to {output_path} successfully.")
+    _LOGGER.info(f"Legacy JSON saved to {output_path}")
+
+
+def save_parquet_tiers(
+    df: pd.DataFrame,
+    db_meta: pd.DataFrame,
+    output_dir: str,
+) -> None:
+    """
+    Save UMAP data as tiered Parquet files.
+
+    Produces:
+      - hg38_geometry.parquet  (x, y, id)
+      - hg38_meta_t1.parquet   (core biological annotation + region stats)
+      - hg38_meta_t2.parquet   (extended annotation)
+      - hg38_meta_t3.parquet   (genomic partition frequencies)
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Ensure id is a column (not just index)
+    if "id" not in df.columns:
+        df = df.copy()
+        df["id"] = df.index.astype(str)
+
+    # Join DB metadata
+    if not db_meta.empty:
+        combined = df.join(db_meta, how="left", rsuffix="_db")
+    else:
+        combined = df
+
+    # --- Geometry ---
+    coord_cols = ["id", "x", "y"]
+    if "z" in combined.columns:
+        coord_cols.append("z")
+    geometry = combined[coord_cols].copy()
+    for col in ["x", "y", "z"]:
+        if col in geometry.columns:
+            geometry[col] = geometry[col].round(2).astype("float32")
+    geometry.to_parquet(
+        os.path.join(output_dir, "hg38_geometry.parquet"), index=False
+    )
+    _LOGGER.info(f"Geometry: {len(geometry)} rows")
+
+    # --- Tier 1: Core metadata ---
+    t1_cols = ["id", "name", "description", "assay", "target", "cell_line",
+               "cell_type", "tissue", "number_of_regions", "mean_region_width",
+               "gc_content"]
+    t1 = combined[[c for c in t1_cols if c in combined.columns]].copy()
+    t1 = t1.fillna("")
+    t1.to_parquet(
+        os.path.join(output_dir, "hg38_meta_t1.parquet"), index=False
+    )
+    _LOGGER.info(f"Tier 1: {len(t1)} rows, {len(t1.columns)} columns")
+
+    # --- Tier 2: Extended annotation ---
+    t2_cols = ["id", "treatment", "antibody", "species_name", "genome_alias",
+               "bed_compliance", "data_format", "median_tss_dist",
+               "library_source", "global_sample_id", "global_experiment_id",
+               "original_file_name"]
+    t2 = combined[[c for c in t2_cols if c in combined.columns]].copy()
+    t2 = t2.fillna("")
+    t2.to_parquet(
+        os.path.join(output_dir, "hg38_meta_t2.parquet"), index=False
+    )
+    _LOGGER.info(f"Tier 2: {len(t2)} rows, {len(t2.columns)} columns")
+
+    # --- Tier 3: Genomic partitions ---
+    t3_cols = ["id", "exon_frequency", "exon_percentage",
+               "intron_frequency", "intron_percentage",
+               "intergenic_frequency", "intergenic_percentage",
+               "promotercore_frequency", "promotercore_percentage",
+               "fiveutr_frequency", "fiveutr_percentage",
+               "threeutr_frequency", "threeutr_percentage",
+               "promoterprox_frequency", "promoterprox_percentage"]
+    t3 = combined[[c for c in t3_cols if c in combined.columns]].copy()
+    t3.to_parquet(
+        os.path.join(output_dir, "hg38_meta_t3.parquet"), index=False
+    )
+    _LOGGER.info(f"Tier 3: {len(t3)} rows, {len(t3.columns)} columns")
 
 
 def create_umap(
@@ -317,7 +448,6 @@ def get_embeddings(
 
     if output_file.endswith(".json"):
         output_file = output_file[:-5]
-        # output_file += ".json"
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     CELL_LINE = "cell_line"
@@ -325,35 +455,6 @@ def get_embeddings(
 
     return_df = merged.copy()
 
-    ##############################################################
-    ######## Option 1 ############################################
-    ######### Remove empty/None cell lines and assays ############
-    ##############################################################
-
-    # # Select top cell lines available in the dataset
-    # if top_cell_lines is not None:
-    #     top_cell_lines_list = [
-    #         x
-    #         for x in merged[CELL_LINE].value_counts().nlargest(top_cell_lines).index
-    #         if x is not None and x != ""
-    #     ]
-    #
-    #     return_df = return_df[return_df[CELL_LINE].isin(top_cell_lines_list)]
-    #
-    # # Select top assays available in the dataset
-    # if top_assays is not None:
-    #     top_assays_list = [
-    #         x
-    #         for x in merged[ASSAY].value_counts().nlargest(top_assays).index
-    #         if x is not None and x != ""
-    #     ]
-    #
-    #     return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
-
-    ################################################################################
-    ######################### Option 2 #############################################
-    ## Label empty/None cell lines and assays as "na" instead of removing them #####
-    ################################################################################
     na_name = "UNKNOWN"
 
     return_df[CELL_LINE] = return_df[CELL_LINE].fillna(na_name).replace("", na_name)
@@ -374,8 +475,6 @@ def get_embeddings(
         )
         return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
 
-    ###############################################################################
-
     umap_return = create_umap(
         return_df,
         n_components=n_components,
@@ -383,11 +482,16 @@ def get_embeddings(
         label_column=plot_label,
         method=method,
     )
+
+    # Legacy JSON output
     save_df_as_json(umap_return.dataframe, output_file)
 
+    # Parquet tiered output
+    parquet_dir = os.path.dirname(os.path.abspath(output_file))
+    db_meta = fetch_db_metadata(agent, list(umap_return.dataframe.index))
+    save_parquet_tiers(umap_return.dataframe, db_meta, parquet_dir)
+
     if save_model:
-        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
-        ## I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
         save_umap_model(

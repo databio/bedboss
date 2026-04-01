@@ -700,6 +700,45 @@ def download_umap(
     )
 
 
+@app.command(help="Update UMAP metadata Parquet tiers without regenerating geometry")
+def update_umap_metadata(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    output_dir: str = typer.Option(
+        ...,
+        help="Directory to write Parquet tier files",
+    ),
+    geometry: str = typer.Option(
+        None,
+        help="Path to existing geometry Parquet (to read bed IDs). If not provided, fetches IDs from Qdrant.",
+    ),
+):
+    import pandas as pd
+    from bbconf import BedBaseAgent
+    from bedboss.scripts.make_umap import fetch_data, fetch_db_metadata, save_parquet_tiers
+
+    agent = BedBaseAgent(config=config)
+
+    if geometry:
+        geo_df = pd.read_parquet(geometry)
+        bed_ids = list(geo_df["id"])
+        # Fetch Qdrant data to get payload metadata
+        qdrant_df = fetch_data(agent=agent)
+        # Filter to IDs in geometry
+        qdrant_df = qdrant_df.loc[qdrant_df.index.isin(bed_ids)]
+    else:
+        qdrant_df = fetch_data(agent=agent)
+        bed_ids = list(qdrant_df.index)
+
+    db_meta = fetch_db_metadata(agent, bed_ids)
+    save_parquet_tiers(qdrant_df, db_meta, output_dir)
+
+
 @app.command(help="Check installed R packages")
 def check_requirements():
     from bedboss.bedboss import requirements_check
