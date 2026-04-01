@@ -106,46 +106,48 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
     _LOGGER.info(f"Fetching DB metadata for {len(bed_ids)} beds...")
 
     rows = []
+    batch_size = 5000
     with Session(agent.config.db_engine.engine) as session:
-        # Batch query to avoid N+1
-        for bed_obj in (
-            session.query(Bed)
-            .options(joinedload(Bed.stats), joinedload(Bed.annotations))
-            .filter(Bed.id.in_(bed_ids))
-            .all()
-        ):
-            row = {"id": bed_obj.id}
+        for i in range(0, len(bed_ids), batch_size):
+            batch = bed_ids[i : i + batch_size]
+            for bed_obj in (
+                session.query(Bed)
+                .options(joinedload(Bed.stats), joinedload(Bed.annotations))
+                .filter(Bed.id.in_(batch))
+                .all()
+            ):
+                row = {"id": bed_obj.id}
 
-            # Stats (tier 1 region characteristics + tier 2 TSS distance)
-            if bed_obj.stats:
-                stats = bed_obj.stats
-                row["number_of_regions"] = stats.number_of_regions
-                row["mean_region_width"] = stats.mean_region_width
-                row["gc_content"] = stats.gc_content
-                row["median_tss_dist"] = stats.median_tss_dist
-                row["promoterprox_frequency"] = stats.promoterprox_frequency
-                row["promoterprox_percentage"] = stats.promoterprox_percentage
+                # Stats (tier 1 region characteristics + tier 2 TSS distance)
+                if bed_obj.stats:
+                    stats = bed_obj.stats
+                    row["number_of_regions"] = stats.number_of_regions
+                    row["mean_region_width"] = stats.mean_region_width
+                    row["gc_content"] = stats.gc_content
+                    row["median_tss_dist"] = stats.median_tss_dist
 
-            # Annotation (tier 2 fields not in Qdrant payload)
-            if bed_obj.annotations:
-                anno = bed_obj.annotations
-                row["antibody"] = anno.antibody
-                row["library_source"] = anno.library_source
-                row["original_file_name"] = anno.original_file_name
-                row["global_sample_id"] = (
-                    ";".join(anno.global_sample_id) if anno.global_sample_id else None
-                )
-                row["global_experiment_id"] = (
-                    ";".join(anno.global_experiment_id)
-                    if anno.global_experiment_id
-                    else None
-                )
+                # Annotation (tier 2 fields not in Qdrant payload)
+                if bed_obj.annotations:
+                    anno = bed_obj.annotations
+                    row["antibody"] = anno.antibody
+                    row["library_source"] = anno.library_source
+                    row["original_file_name"] = anno.original_file_name
+                    row["global_sample_id"] = (
+                        ";".join(anno.global_sample_id)
+                        if anno.global_sample_id
+                        else None
+                    )
+                    row["global_experiment_id"] = (
+                        ";".join(anno.global_experiment_id)
+                        if anno.global_experiment_id
+                        else None
+                    )
 
-            # Classification (from Bed table)
-            row["bed_compliance"] = bed_obj.bed_compliance
-            row["data_format"] = bed_obj.data_format
+                # Classification (from Bed table)
+                row["bed_compliance"] = bed_obj.bed_compliance
+                row["data_format"] = bed_obj.data_format
 
-            rows.append(row)
+                rows.append(row)
 
     df = pd.DataFrame(rows)
     if not df.empty:
@@ -529,7 +531,13 @@ def get_embeddings(
 
     # Parquet tiered output
     parquet_dir = os.path.dirname(os.path.abspath(output_file))
-    db_meta = fetch_db_metadata(agent, list(umap_return.dataframe.index))
+    try:
+        db_meta = fetch_db_metadata(agent, list(umap_return.dataframe.index))
+    except Exception as e:
+        _LOGGER.warning(
+            f"Failed to fetch DB metadata, Parquet tiers will lack stats/annotation: {e}"
+        )
+        db_meta = pd.DataFrame()
     save_parquet_tiers(umap_return.dataframe, db_meta, parquet_dir)
 
     if save_model:
