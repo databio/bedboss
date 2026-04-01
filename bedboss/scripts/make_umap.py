@@ -51,6 +51,8 @@ def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None
     _LOGGER.info(f"Model saved to {model_path}")
 
 
+# @lru_cache()
+# TODO: can we make this function cached, without using credentials as part of the cache key?
 def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     """
     Fetch data from Qdrant collection and return it as a DataFrame.
@@ -154,15 +156,29 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
 
 def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     """
-    Save a DataFrame as a JSON file in the legacy format.
-    Kept for backward compatibility during migration.
+    Save a DataFrame as a JSON file in the specified format.
+    It includes the following columns:
+    - x, y, z (coordinates)
+    - id (string identifier)
+    - name (string)
+    - description (string)
+    - assay (string)
+    - cell_line (string)
+
+    :param df: DataFrame to save
+    :param output_path: Path to save the JSON file
+    :return: None
+
     """
+    # Select the required columns
     columns_to_include = [
         "x",
         "y",
         "id",
         "name",
         "description",
+        # "data_format",
+        # "bed_compliance",
         "assay",
         "cell_line",
     ]
@@ -171,25 +187,29 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
         columns_to_include.insert(2, "z")
 
     output_path = os.path.abspath(output_path)
+    (f"Saving DataFrame as JSON to {output_path}")
 
-    df.loc[:, "id"] = df.index.astype(str)
+    df.loc[:, "id"] = df.index.astype(str)  # Ensure 'id' is a string
     df = df.fillna("")
 
     coord_cols = [c for c in ["x", "y", "z"] if c in df.columns]
 
+    # Create the nodes structure
     nodes = df[columns_to_include].to_dict(orient="records")
     for node in nodes:
         for col in coord_cols:
             if col in node:
                 node[col] = round(float(node[col]), 2)
 
+    # Create the final JSON structure
     json_data = {"nodes": nodes, "links": []}
 
+    # Save to a JSON file
     output_path = f"{output_path}_{python_version}.json"
     with open(output_path, "w") as json_file:
         json.dump(json_data, json_file, indent=4)
 
-    _LOGGER.info(f"Legacy JSON saved to {output_path}")
+    _LOGGER.info(f"Data saved to {output_path} successfully.")
 
 
 def save_parquet_tiers(
@@ -437,6 +457,7 @@ def get_embeddings(
 
     if output_file.endswith(".json"):
         output_file = output_file[:-5]
+        # output_file += ".json"
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
     CELL_LINE = "cell_line"
@@ -444,6 +465,35 @@ def get_embeddings(
 
     return_df = merged.copy()
 
+    ##############################################################
+    ######## Option 1 ############################################
+    ######### Remove empty/None cell lines and assays ############
+    ##############################################################
+
+    # # Select top cell lines available in the dataset
+    # if top_cell_lines is not None:
+    #     top_cell_lines_list = [
+    #         x
+    #         for x in merged[CELL_LINE].value_counts().nlargest(top_cell_lines).index
+    #         if x is not None and x != ""
+    #     ]
+    #
+    #     return_df = return_df[return_df[CELL_LINE].isin(top_cell_lines_list)]
+    #
+    # # Select top assays available in the dataset
+    # if top_assays is not None:
+    #     top_assays_list = [
+    #         x
+    #         for x in merged[ASSAY].value_counts().nlargest(top_assays).index
+    #         if x is not None and x != ""
+    #     ]
+    #
+    #     return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
+
+    ################################################################################
+    ######################### Option 2 #############################################
+    ## Label empty/None cell lines and assays as "na" instead of removing them #####
+    ################################################################################
     na_name = "UNKNOWN"
 
     return_df[CELL_LINE] = return_df[CELL_LINE].fillna(na_name).replace("", na_name)
@@ -464,6 +514,8 @@ def get_embeddings(
         )
         return_df = return_df[return_df[ASSAY].isin(top_assays_list)]
 
+    ###############################################################################
+
     umap_return = create_umap(
         return_df,
         n_components=n_components,
@@ -481,6 +533,8 @@ def get_embeddings(
     save_parquet_tiers(umap_return.dataframe, db_meta, parquet_dir)
 
     if save_model:
+        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        ## I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
         save_umap_model(
