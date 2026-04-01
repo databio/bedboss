@@ -720,7 +720,11 @@ def update_umap_metadata(
 ):
     import pandas as pd
     from bbconf import BedBaseAgent
-    from bedboss.scripts.make_umap import fetch_data, fetch_db_metadata, save_parquet_tiers
+    from bedboss.scripts.make_umap import (
+        fetch_data,
+        fetch_db_metadata,
+        save_parquet_tiers,
+    )
 
     agent = BedBaseAgent(config=config)
 

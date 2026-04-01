@@ -114,25 +114,13 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
         ):
             row = {"id": bed_obj.id}
 
-            # Stats
+            # Stats (tier 1 region characteristics + tier 2 TSS distance)
             if bed_obj.stats:
                 stats = bed_obj.stats
                 row["number_of_regions"] = stats.number_of_regions
                 row["mean_region_width"] = stats.mean_region_width
                 row["gc_content"] = stats.gc_content
                 row["median_tss_dist"] = stats.median_tss_dist
-                row["exon_frequency"] = stats.exon_frequency
-                row["exon_percentage"] = stats.exon_percentage
-                row["intron_frequency"] = stats.intron_frequency
-                row["intron_percentage"] = stats.intron_percentage
-                row["intergenic_frequency"] = stats.intergenic_frequency
-                row["intergenic_percentage"] = stats.intergenic_percentage
-                row["promotercore_frequency"] = stats.promotercore_frequency
-                row["promotercore_percentage"] = stats.promotercore_percentage
-                row["fiveutr_frequency"] = stats.fiveutr_frequency
-                row["fiveutr_percentage"] = stats.fiveutr_percentage
-                row["threeutr_frequency"] = stats.threeutr_frequency
-                row["threeutr_percentage"] = stats.threeutr_percentage
                 row["promoterprox_frequency"] = stats.promoterprox_frequency
                 row["promoterprox_percentage"] = stats.promoterprox_percentage
 
@@ -143,9 +131,7 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
                 row["library_source"] = anno.library_source
                 row["original_file_name"] = anno.original_file_name
                 row["global_sample_id"] = (
-                    ";".join(anno.global_sample_id)
-                    if anno.global_sample_id
-                    else None
+                    ";".join(anno.global_sample_id) if anno.global_sample_id else None
                 )
                 row["global_experiment_id"] = (
                     ";".join(anno.global_experiment_id)
@@ -241,47 +227,50 @@ def save_parquet_tiers(
     for col in ["x", "y", "z"]:
         if col in geometry.columns:
             geometry[col] = geometry[col].round(2).astype("float32")
-    geometry.to_parquet(
-        os.path.join(output_dir, "hg38_geometry.parquet"), index=False
-    )
+    geometry.to_parquet(os.path.join(output_dir, "hg38_geometry.parquet"), index=False)
     _LOGGER.info(f"Geometry: {len(geometry)} rows")
 
     # --- Tier 1: Core metadata ---
-    t1_cols = ["id", "name", "description", "assay", "target", "cell_line",
-               "cell_type", "tissue", "number_of_regions", "mean_region_width",
-               "gc_content"]
+    t1_cols = [
+        "id",
+        "name",
+        "description",
+        "assay",
+        "target",
+        "cell_line",
+        "cell_type",
+        "tissue",
+        "number_of_regions",
+        "mean_region_width",
+        "gc_content",
+    ]
     t1 = combined[[c for c in t1_cols if c in combined.columns]].copy()
     t1 = t1.fillna("")
-    t1.to_parquet(
-        os.path.join(output_dir, "hg38_meta_t1.parquet"), index=False
-    )
+    t1.to_parquet(os.path.join(output_dir, "hg38_meta_t1.parquet"), index=False)
     _LOGGER.info(f"Tier 1: {len(t1)} rows, {len(t1.columns)} columns")
 
     # --- Tier 2: Extended annotation ---
-    t2_cols = ["id", "treatment", "antibody", "species_name", "genome_alias",
-               "bed_compliance", "data_format", "median_tss_dist",
-               "library_source", "global_sample_id", "global_experiment_id",
-               "original_file_name"]
+    t2_cols = [
+        "id",
+        "treatment",
+        "antibody",
+        "species_name",
+        "genome_alias",
+        "bed_compliance",
+        "data_format",
+        "median_tss_dist",
+        "library_source",
+        "global_sample_id",
+        "global_experiment_id",
+        "original_file_name",
+    ]
     t2 = combined[[c for c in t2_cols if c in combined.columns]].copy()
     t2 = t2.fillna("")
-    t2.to_parquet(
-        os.path.join(output_dir, "hg38_meta_t2.parquet"), index=False
-    )
+    t2.to_parquet(os.path.join(output_dir, "hg38_meta_t2.parquet"), index=False)
     _LOGGER.info(f"Tier 2: {len(t2)} rows, {len(t2.columns)} columns")
 
-    # --- Tier 3: Genomic partitions ---
-    t3_cols = ["id", "exon_frequency", "exon_percentage",
-               "intron_frequency", "intron_percentage",
-               "intergenic_frequency", "intergenic_percentage",
-               "promotercore_frequency", "promotercore_percentage",
-               "fiveutr_frequency", "fiveutr_percentage",
-               "threeutr_frequency", "threeutr_percentage",
-               "promoterprox_frequency", "promoterprox_percentage"]
-    t3 = combined[[c for c in t3_cols if c in combined.columns]].copy()
-    t3.to_parquet(
-        os.path.join(output_dir, "hg38_meta_t3.parquet"), index=False
-    )
-    _LOGGER.info(f"Tier 3: {len(t3)} rows, {len(t3.columns)} columns")
+    # Tier 3 reserved for future analysis results (gtars genomic distributions,
+    # enrichment profiles, embedding quality scores). Not generated in this version.
 
 
 def create_umap(
