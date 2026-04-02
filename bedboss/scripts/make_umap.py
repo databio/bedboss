@@ -19,7 +19,7 @@ from functools import lru_cache
 import joblib
 from bbconf import BedBaseAgent
 from bbconf.db_utils import Bed, BedMetadata, BedStats
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, load_only
 import json
 
 from bedboss.const import PKG_NAME
@@ -64,11 +64,18 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
 
     _LOGGER.info("Fetching data from Qdrant...")
 
-    client = QdrantClient(
-        host=agent.config.config.qdrant.host,
-        port=6333,
-        api_key=agent.config.config.qdrant.api_key,
-    )
+    qdrant_host = agent.config.config.qdrant.host
+    if qdrant_host.startswith("http://") or qdrant_host.startswith("https://"):
+        client = QdrantClient(
+            url=qdrant_host,
+            api_key=agent.config.config.qdrant.api_key,
+        )
+    else:
+        client = QdrantClient(
+            host=qdrant_host,
+            port=6333,
+            api_key=agent.config.config.qdrant.api_key,
+        )
 
     points = []
     next_offset = 0
@@ -112,7 +119,15 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
             batch = bed_ids[i : i + batch_size]
             for bed_obj in (
                 session.query(Bed)
-                .options(joinedload(Bed.stats), joinedload(Bed.annotations))
+                .options(
+                    joinedload(Bed.stats).load_only(
+                        BedStats.number_of_regions,
+                        BedStats.mean_region_width,
+                        BedStats.gc_content,
+                        BedStats.median_tss_dist,
+                    ),
+                    joinedload(Bed.annotations),
+                )
                 .filter(Bed.id.in_(batch))
                 .all()
             ):
@@ -241,16 +256,21 @@ def save_parquet_tiers(
     else:
         combined = df
 
-    # --- Geometry ---
-    coord_cols = ["id", "x", "y"]
-    if "z" in combined.columns:
-        coord_cols.append("z")
-    geometry = combined[coord_cols].copy()
-    for col in ["x", "y", "z"]:
-        if col in geometry.columns:
-            geometry[col] = geometry[col].round(2).astype("float32")
-    geometry.to_parquet(os.path.join(output_dir, "hg38_geometry.parquet"), index=False)
-    _LOGGER.info(f"Geometry: {len(geometry)} rows")
+    # --- Geometry (only when coordinates are present) ---
+    if "x" in combined.columns and "y" in combined.columns:
+        coord_cols = ["id", "x", "y"]
+        if "z" in combined.columns:
+            coord_cols.append("z")
+        geometry = combined[coord_cols].copy()
+        for col in ["x", "y", "z"]:
+            if col in geometry.columns:
+                geometry[col] = geometry[col].round(2).astype("float32")
+        geometry.to_parquet(
+            os.path.join(output_dir, "hg38_geometry.parquet"), index=False
+        )
+        _LOGGER.info(f"Geometry: {len(geometry)} rows")
+    else:
+        _LOGGER.info("No coordinates found, skipping geometry file.")
 
     # --- Tier 1: Core metadata ---
     t1_cols = [
@@ -267,7 +287,8 @@ def save_parquet_tiers(
         "gc_content",
     ]
     t1 = combined[[c for c in t1_cols if c in combined.columns]].copy()
-    t1 = t1.fillna("")
+    str_cols = t1.select_dtypes(include="object").columns
+    t1[str_cols] = t1[str_cols].fillna("")
     t1.to_parquet(os.path.join(output_dir, "hg38_meta_t1.parquet"), index=False)
     _LOGGER.info(f"Tier 1: {len(t1)} rows, {len(t1.columns)} columns")
 
@@ -287,7 +308,8 @@ def save_parquet_tiers(
         "original_file_name",
     ]
     t2 = combined[[c for c in t2_cols if c in combined.columns]].copy()
-    t2 = t2.fillna("")
+    str_cols = t2.select_dtypes(include="object").columns
+    t2[str_cols] = t2[str_cols].fillna("")
     t2.to_parquet(os.path.join(output_dir, "hg38_meta_t2.parquet"), index=False)
     _LOGGER.info(f"Tier 2: {len(t2)} rows, {len(t2.columns)} columns")
 
