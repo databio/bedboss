@@ -76,13 +76,15 @@ def _get_chrom_sizes_seqcol(genome: str) -> Union[str, None]:
 def get_chrom_sizes_path(genome: str, rfg_config=None) -> Union[str, None]:
     """Get a chrom.sizes file for a genome.
 
-    Tries refgenie first (rgc.seek/pull), falls back to the seqcol API.
+    Tries refgenie local seek first, then seqcol API (lightweight ~50KB),
+    then refgenie pull as last resort (pulls full FASTA asset ~3GB).
     """
     from refgenconf import RefgenconfError
     from yacman.exceptions import UndefinedAliasError
 
     from bedboss.bedmaker.utils import get_rgc
 
+    # 1. Check local refgenie cache (instant)
     rgc = get_rgc(rfg_config=rfg_config)
     try:
         return rgc.seek(
@@ -92,19 +94,28 @@ def get_chrom_sizes_path(genome: str, rfg_config=None) -> Union[str, None]:
             seek_key="chrom_sizes",
         )
     except (UndefinedAliasError, RefgenconfError):
-        _LOGGER.info(f"chrom.sizes not local for {genome}, pulling from refgenie")
-        try:
-            rgc.pull(genome=genome, asset="fasta", tag="default")
-            return rgc.seek(
-                genome_name=genome,
-                asset_name="fasta",
-                tag_name="default",
-                seek_key="chrom_sizes",
-            )
-        except Exception:
-            _LOGGER.info(f"refgenie pull failed for {genome}, trying seqcol API")
+        pass
 
-    return _get_chrom_sizes_seqcol(genome)
+    # 2. Try seqcol API (lightweight — fetches only chrom.sizes, ~50KB)
+    _LOGGER.info(f"chrom.sizes not local for {genome}, trying seqcol API")
+    result = _get_chrom_sizes_seqcol(genome)
+    if result:
+        return result
+
+    # 3. Last resort: pull full FASTA asset from refgenie (~3GB)
+    _LOGGER.info(f"seqcol failed for {genome}, pulling FASTA asset from refgenie")
+    try:
+        rgc.pull(genome=genome, asset="fasta", tag="default")
+        return rgc.seek(
+            genome_name=genome,
+            asset_name="fasta",
+            tag_name="default",
+            seek_key="chrom_sizes",
+        )
+    except Exception:
+        _LOGGER.warning(f"Could not fetch chrom.sizes for {genome}")
+
+    return None
 
 
 def get_gda_path(genome: str, rfg_config=None) -> Union[str, None]:
