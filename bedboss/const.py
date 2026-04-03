@@ -28,6 +28,8 @@ MAX_REGION_NUMBER = 5000000
 MIN_REGION_WIDTH = 10
 
 # bedstat
+BACKEND_R = "r"
+BACKEND_GTARS = "gtars"
 
 # bedbuncher
 DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
