@@ -8,6 +8,7 @@ import pypiper
 from bedboss.bedstat.backends import create_backend
 from bedboss.bedstat.r_service import RServiceManager
 from bedboss.const import (
+    BACKEND_R,
     HOME_PATH,
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
@@ -72,7 +73,7 @@ def bedstat(
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
     r_service: RServiceManager = None,
-    backend: str = "r",
+    backend: str = BACKEND_R,
 ) -> dict:
     """
     Run bedstat pipeline - compute statistics for a BED file using the
