@@ -102,6 +102,7 @@ def run_bedbuncher(
     no_fail: bool = False,
     force_overwrite: bool = False,
     lite: bool = False,
+    backend: str = "r",
 ) -> None:
     """
     Add bedset to the database
@@ -114,16 +115,17 @@ def run_bedbuncher(
     :param description: Bedset description
     :param annotation: Bedset annotation (author, source, summary, etc.)
     :param heavy: whether to use heavy processing (add all columns to the database).
-        if False -> R-script won't be executed, only basic statistics will be calculated
+        if False -> R-script won't be executed, only basic statistics will be calculated.
+        Ignored when backend is "gtars" (no R plots available).
     :param no_fail: whether to raise an error if bedset was not added to the database
     :param upload_pephub: whether to create a view in pephub
     :param upload_s3: whether to upload files to s3
     :param force_overwrite: whether to overwrite the record in the database
     :param lite: whether to run the pipeline in lite mode
-    # TODO: force_overwrite is not working!!! Fix it!
+    :param backend: analysis backend ("r" or "gtars"). When "gtars", heavy is ignored.
     :return:
     """
-    _LOGGER.info(f"Adding bedset { record_id} to the database")
+    _LOGGER.info(f"Adding bedset {record_id} to the database")
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(bedbase_config)
@@ -140,7 +142,7 @@ def run_bedbuncher(
         "bedsets",
     )
 
-    if heavy:
+    if heavy and backend != "gtars":
         _LOGGER.info("Heavy processing is True. Calculating plots...")
         plot_value = create_plots(
             bedset=bed_set,
@@ -148,7 +150,12 @@ def run_bedbuncher(
         )
         plots = BedSetPlots(region_commonality=FileModel(**plot_value))
     else:
-        _LOGGER.info("Heavy processing is False. Plots won't be calculated")
+        if backend == "gtars" and heavy:
+            _LOGGER.info(
+                "Heavy processing ignored for gtars backend (no R plots available)"
+            )
+        else:
+            _LOGGER.info("Heavy processing is False. Plots won't be calculated")
         plots = None
 
     bbagent.bedset.create(
@@ -178,6 +185,7 @@ def run_bedbuncher_form_pep(
     upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
+    backend: str = "r",
 ) -> str:
     """
     Create bedset from pep and add it to the database
@@ -224,6 +232,7 @@ def run_bedbuncher_form_pep(
         upload_s3=upload_s3,
         no_fail=no_fail,
         force_overwrite=force_overwrite,
+        backend=backend,
     )
     return bedset_name
 

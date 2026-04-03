@@ -30,6 +30,7 @@ MIN_REGION_WIDTH = 10
 # bedstat
 BACKEND_R = "r"
 BACKEND_GTARS = "gtars"
+DEFAULT_PRECISION = 3
 
 # bedbuncher
 DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"

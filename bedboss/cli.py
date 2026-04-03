@@ -99,6 +99,10 @@ def run_all(
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
+    backend: str = typer.Option(
+        None,
+        help="Override analysis backend ('r' or 'gtars'). If not set, uses config file value.",
+    ),
     # Universes
     universe: bool = typer.Option(False, help="Create a universe"),
     universe_method: str = typer.Option(
@@ -121,6 +125,9 @@ def run_all(
     from bedboss.bedboss import run_all as run_all_bedboss
 
     agent = BedBaseAgent(bedbase_config)
+
+    if backend:
+        agent.config.config.analysis.backend = backend
 
     run_all_bedboss(
         input_file=input_file,
@@ -394,6 +401,10 @@ def run_stats(
         None, help="Path to the open signal matrix file"
     ),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    backend: str = typer.Option(
+        "r",
+        help="Analysis backend ('r' or 'gtars'). Default: 'r'.",
+    ),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -408,6 +419,7 @@ def run_stats(
         ensdb=ensdb,
         open_signal_matrix=open_signal_matrix,
         just_db_commit=just_db_commit,
+        backend=backend,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 

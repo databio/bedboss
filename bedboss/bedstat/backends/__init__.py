@@ -1,8 +1,9 @@
 from bedboss.bedstat.backends.base import StatBackend
+from bedboss.bedstat.backends.gtars_backend import GtarsStatBackend
 from bedboss.bedstat.backends.r_backend import RStatBackend
 from bedboss.const import BACKEND_GTARS, BACKEND_R
 
-__all__ = ["StatBackend", "RStatBackend", "create_backend"]
+__all__ = ["StatBackend", "RStatBackend", "GtarsStatBackend", "create_backend"]
 
 
 def create_backend(name: str, **kwargs) -> StatBackend:
@@ -15,6 +16,6 @@ def create_backend(name: str, **kwargs) -> StatBackend:
     if name == BACKEND_R:
         return RStatBackend(**kwargs)
     elif name == BACKEND_GTARS:
-        raise NotImplementedError("gtars backend not yet available. Install via PR 2a.")
+        return GtarsStatBackend(**kwargs)
     else:
         raise ValueError(f"Unknown analysis backend: {name!r}. Use 'r' or 'gtars'.")

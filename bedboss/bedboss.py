@@ -420,7 +420,9 @@ def insert_pep(
     if rerun:
         skipper.reinitialize()
 
-    if not lite:
+    backend = bbagent.config.config.analysis.backend
+
+    if not lite and backend == "r":
         r_service = RServiceManager()
     else:
         r_service = None
@@ -504,6 +506,7 @@ def insert_pep(
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
             lite=lite,
+            backend=backend,
         )
     else:
         _LOGGER.info(
