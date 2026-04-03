@@ -685,6 +685,10 @@ def download_umap(
         "umap",
         help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'. To use UMAP, 'umap-learn' package must be installed.",
     ),
+    save_parquet: bool = typer.Option(
+        True,
+        help="Whether to save Parquet tier files alongside JSON",
+    ),
 ):
     from bedboss.scripts.make_umap import get_embeddings
 
@@ -697,6 +701,7 @@ def download_umap(
         top_assays=top_assays,
         top_cell_lines=top_cell_lines,
         method=method,
+        save_parquet=save_parquet,
     )
 
 
@@ -718,29 +723,9 @@ def update_umap_metadata(
         help="Path to existing geometry Parquet (to read bed IDs). If not provided, fetches IDs from Qdrant.",
     ),
 ):
-    import pandas as pd
-    from bbconf import BedBaseAgent
-    from bedboss.scripts.make_umap import (
-        fetch_data,
-        fetch_db_metadata,
-        save_parquet_tiers,
-    )
+    from bedboss.scripts.make_umap import update_umap_metadata as _update
 
-    agent = BedBaseAgent(config=config)
-
-    if geometry:
-        geo_df = pd.read_parquet(geometry)
-        bed_ids = list(geo_df["id"])
-        # Fetch Qdrant data to get payload metadata
-        qdrant_df = fetch_data(agent=agent)
-        # Filter to IDs in geometry
-        qdrant_df = qdrant_df.loc[qdrant_df.index.isin(bed_ids)]
-    else:
-        qdrant_df = fetch_data(agent=agent)
-        bed_ids = list(qdrant_df.index)
-
-    db_meta = fetch_db_metadata(agent, bed_ids)
-    save_parquet_tiers(qdrant_df, db_meta, output_dir)
+    _update(bbconf=config, output_dir=output_dir, geometry=geometry)
 
 
 @app.command(help="Check installed R packages")
