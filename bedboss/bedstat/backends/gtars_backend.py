@@ -186,7 +186,7 @@ class GtarsStatBackend(StatBackend):
                 db_name = PARTITION_NAME_MAP.get(name)
                 if db_name and total > 0:
                     data[f"{db_name}_frequency"] = count
-                    data[f"{db_name}_percentage"] = round(count / total * 100, 4)
+                    data[f"{db_name}_percentage"] = round(count / total, 4)
 
         # GC content: compute via Python bindings (requires refgenie FASTA)
         try:
