@@ -1,7 +1,7 @@
 """Reference file resolution for gtars genomicdist.
 
 Handles auto-fetching and pre-compilation of GTF annotations, chrom.sizes,
-and open signal matrices via refgenie with seqcol API fallback.
+open signal matrices, and FASTA files via refgenie with seqcol API fallback.
 """
 
 import logging
@@ -12,6 +12,34 @@ from typing import Union
 from bedboss.const import HOME_PATH
 
 _LOGGER = logging.getLogger("bedboss")
+
+
+def get_fasta_path(genome: str, rfg_config: str = None) -> Union[str, None]:
+    """Return path to the FASTA file for the given genome via refgenie.
+
+    Pure refgenie lookup — no gtars dependency. Used by the gtars CLI
+    backend to get a FASTA path to pass to `gtars genomicdist --fasta`.
+
+    :param genome: genome assembly name
+    :param rfg_config: path to refgenie config file (optional)
+    :return: path to the FASTA file, or None if unavailable
+    """
+    from refgenconf import RefgenconfError
+    from yacman.exceptions import UndefinedAliasError
+
+    from bedboss.bedmaker.utils import get_rgc
+
+    try:
+        rgc = get_rgc(rfg_config=rfg_config)
+        return rgc.seek(
+            genome_name=genome,
+            asset_name="fasta",
+            tag_name="default",
+            seek_key="fasta",
+        )
+    except (UndefinedAliasError, RefgenconfError) as e:
+        _LOGGER.warning(f"Could not resolve FASTA for {genome}: {e}")
+        return None
 
 
 def _get_chrom_sizes_seqcol(genome: str) -> Union[str, None]:

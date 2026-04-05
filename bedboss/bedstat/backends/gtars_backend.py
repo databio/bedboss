@@ -1,3 +1,15 @@
+"""gtars genomicdist CLI backend (pure subprocess, no Python bindings).
+
+Invokes the `gtars genomicdist` CLI as a subprocess per file. All
+computation — scalars, region distribution, GC content, dinucleotide
+frequencies, partitions, signal matrix overlap — happens inside the
+CLI binary. This backend only orchestrates the subprocess and parses
+the JSON output.
+
+For the Python-bindings counterpart (no subprocess, in-process gtars
+calls) see GtarsPyStatBackend.
+"""
+
 import json
 import logging
 import os
@@ -6,16 +18,15 @@ from pathlib import Path
 from typing import Union
 
 import pypiper
-from gtars.models import RegionSet
 
 from bedboss.bedstat.backends.base import StatBackend
 from bedboss.bedstat.compress_distributions import (
     compress_distributions,
     compress_to_kde,
 )
-from bedboss.bedstat.gc_content import calculate_gc_content
 from bedboss.bedstat.ref_utils import (
     get_chrom_sizes_path,
+    get_fasta_path,
     get_gda_path,
     get_osm_path_with_precompile,
 )
@@ -48,7 +59,7 @@ def round_floats(obj, precision: int = 4):
 
 
 class GtarsStatBackend(StatBackend):
-    """gtars genomicdist-based statistics backend."""
+    """gtars genomicdist CLI backend — pure subprocess, no Python bindings."""
 
     def __init__(
         self,
@@ -75,6 +86,13 @@ class GtarsStatBackend(StatBackend):
         rfg_config: Union[str, Path] = None,
         pm: pypiper.PipelineManager = None,
     ) -> dict:
+        if bed_digest is None:
+            raise BedBossException(
+                "GtarsStatBackend.compute() requires bed_digest; the backend "
+                "does not parse BED files in Python. Pass bed_digest from the "
+                "orchestrator (bedstat() resolves it when absent)."
+            )
+
         # Auto-fetch GDA/GTF annotation via refgenie if not provided
         if not ensdb:
             try:
@@ -99,15 +117,14 @@ class GtarsStatBackend(StatBackend):
                 "Region distribution will not be normalized."
             )
 
+        # Resolve FASTA path so the CLI can compute GC content + dinucl freq
+        fasta_path = get_fasta_path(genome, rfg_config=rfg_config)
+
         outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
         os.makedirs(outfolder_stats, exist_ok=True)
 
         # Used to stop pipeline if bedstat is used independently
         stop_pipeline = not pm
-
-        bed_object = RegionSet(bedfile)
-        if not bed_digest:
-            bed_digest = bed_object.identifier
 
         outfolder_stats_results = os.path.abspath(
             os.path.join(outfolder_stats, bed_digest)
@@ -145,6 +162,8 @@ class GtarsStatBackend(StatBackend):
                 cmd_parts.extend(["--chrom-sizes", chrom_sizes])
             if open_signal_matrix:
                 cmd_parts.extend(["--signal-matrix", open_signal_matrix])
+            if fasta_path:
+                cmd_parts.extend(["--fasta", fasta_path, "--ignore-unk-chroms"])
             cmd_parts.extend(
                 [
                     "--bins",
@@ -204,29 +223,21 @@ class GtarsStatBackend(StatBackend):
                     data[f"{db_name}_frequency"] = count
                     data[f"{db_name}_percentage"] = round(count / total, 4)
 
-        # GC content: compute via Python bindings (requires refgenie FASTA)
-        try:
-            gc_contents = calculate_gc_content(
-                bedfile=bed_object, genome=genome, rfg_config=rfg_config
-            )
-        except BaseException as e:
-            _LOGGER.warning(
-                f"GC content calculation skipped for {genome}: {e}. "
-                "Ensure refgenie is configured with a FASTA asset."
-            )
-            gc_contents = None
-
-        if gc_contents:
-            gc_mean = round(statistics.mean(gc_contents), 4)
+        # GC content: read from CLI output (computed by `gtars genomicdist --fasta`)
+        gc_block = gtars_output.get("gc_content")
+        if gc_block:
+            gc_mean = round(gc_block.get("mean", 0.0), 4)
             data["gc_content"] = gc_mean
-
-            # Compress per-region GC values to 512-pt KDE, inject into distributions
-            gc_kde = compress_to_kde(gc_contents, n_points=512, log_transform=False)
-            if gc_kde:
-                gc_kde["mean"] = gc_mean
-                if "distributions" not in gtars_output:
-                    gtars_output["distributions"] = {}
-                gtars_output["distributions"]["gc_content"] = gc_kde
+            gc_per_region = gc_block.get("per_region") or []
+            if gc_per_region:
+                gc_kde = compress_to_kde(
+                    gc_per_region, n_points=512, log_transform=False
+                )
+                if gc_kde:
+                    gc_kde["mean"] = gc_mean
+                    if "distributions" not in gtars_output:
+                        gtars_output["distributions"] = {}
+                    gtars_output["distributions"]["gc_content"] = gc_kde
         else:
             data["gc_content"] = None
 
