@@ -122,7 +122,7 @@ def run_bedbuncher(
     :param upload_s3: whether to upload files to s3
     :param force_overwrite: whether to overwrite the record in the database
     :param lite: whether to run the pipeline in lite mode
-    :param backend: analysis backend ("r" or "gtars"). When "gtars", heavy is ignored.
+    :param backend: analysis backend ("r", "gtars", or "gtars-py"). For gtars variants, heavy is ignored.
     :return:
     """
     _LOGGER.info(f"Adding bedset {record_id} to the database")
@@ -142,7 +142,8 @@ def run_bedbuncher(
         "bedsets",
     )
 
-    if heavy and backend != "gtars":
+    gtars_like = backend in ("gtars", "gtars-py")
+    if heavy and not gtars_like:
         _LOGGER.info("Heavy processing is True. Calculating plots...")
         plot_value = create_plots(
             bedset=bed_set,
@@ -150,9 +151,9 @@ def run_bedbuncher(
         )
         plots = BedSetPlots(region_commonality=FileModel(**plot_value))
     else:
-        if backend == "gtars" and heavy:
+        if gtars_like and heavy:
             _LOGGER.info(
-                "Heavy processing ignored for gtars backend (no R plots available)"
+                f"Heavy processing ignored for {backend} backend (no R plots available)"
             )
         else:
             _LOGGER.info("Heavy processing is False. Plots won't be calculated")

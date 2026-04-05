@@ -30,6 +30,7 @@ MIN_REGION_WIDTH = 10
 # bedstat
 BACKEND_R = "r"
 BACKEND_GTARS = "gtars"
+BACKEND_GTARS_PY = "gtars-py"
 DEFAULT_PRECISION = 3
 
 # bedbuncher
