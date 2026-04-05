@@ -45,7 +45,7 @@ from bedboss.utils import (
     run_initial_qc,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
+from bedboss.bedstat.backends import StatBackend, build_backend
 from bedboss._version import __version__
 
 _LOGGER = logging.getLogger(PKG_NAME)
@@ -140,11 +140,11 @@ def upload_all(
     )
 
     if not lite:
-        _LOGGER.info("Initializing R service for statistics")
-        r_service = RServiceManager()
+        _LOGGER.info("Initializing stats backend")
+        stat_backend = build_backend(bbagent.config.config.analysis.backend)
     else:
-        _LOGGER.info("Lite mode: R service disabled")
-        r_service = None
+        _LOGGER.info("Lite mode: stats backend disabled")
+        stat_backend = None
 
     for gse_pep in pep_annotation_list.results:
         count += 1
@@ -205,7 +205,7 @@ def upload_all(
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
                     lite=lite,
-                    r_service=r_service,
+                    backend=stat_backend,
                     pm=pm,
                 )
             except Exception as err:
@@ -224,6 +224,8 @@ def upload_all(
                 break
 
     pm.stop_pipeline()
+    if stat_backend is not None:
+        stat_backend.cleanup()
 
     return None
 
@@ -532,7 +534,7 @@ def _upload_gse(
     preload: bool = True,
     lite=False,
     max_file_size: int = 20 * 1000000,
-    r_service: RServiceManager = None,
+    backend: StatBackend = None,
     pm: pypiper.PipelineManager = None,
 ) -> ProjectProcessingStatus:
     """
@@ -557,7 +559,9 @@ def _upload_gse(
     :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
     :param max_file_size: maximum file size in bytes. Default: 20MB
     :param pypiper.PipelineManager pm: pypiper object
-    :param r_service: RServiceManager object
+    :param StatBackend backend: pre-built stats backend (reused across all samples
+        in the GSE). When None, one is built locally — use a pre-built backend
+        when processing many GSEs so persistent resources are amortized.
     :return: None
     """
     if isinstance(bedbase_config, str):
@@ -607,12 +611,12 @@ def _upload_gse(
     else:
         stop_pipeline = False
 
-    if not lite and not r_service:
-        r_service = RServiceManager()
+    owns_backend = False
+    if not lite and backend is None:
+        backend = build_backend(bedbase_config.config.config.analysis.backend)
+        owns_backend = True
     elif lite:
-        r_service = None
-    else:
-        r_service = r_service
+        backend = None
 
     for counter, project_sample in enumerate(project.samples):
         _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
@@ -757,7 +761,7 @@ def _upload_gse(
                 force_overwrite=overwrite,
                 lite=lite,
                 pm=pm,
-                r_service=r_service,
+                backend=backend,
                 reference_genome_validator=reference_validator,
             )
             _LOGGER.info(
@@ -851,6 +855,9 @@ def _upload_gse(
 
     if stop_pipeline:
         pm.stop_pipeline()
+
+    if owns_backend and backend is not None:
+        backend.cleanup()
 
     _LOGGER.info(
         f"Processing of '{gse_id}' completed: "

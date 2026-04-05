@@ -41,7 +41,7 @@ from bedboss.utils import (
     run_initial_qc,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
+from bedboss.bedstat.backends import StatBackend, build_backend
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -90,7 +90,7 @@ def run_all(
     universe_method: str = None,
     universe_bedset: str = None,
     pm: pypiper.PipelineManager = None,
-    r_service: RServiceManager = None,
+    backend: StatBackend = None,
     reference_genome_validator: ReferenceValidator = None,
 ) -> str:
     """
@@ -125,7 +125,11 @@ def run_all(
     :param str universe_method: method used to create the universe [Default: None]
     :param str universe_bedset: bedset identifier for the universe [Default: None]
     :param pypiper.PipelineManager pm: pypiper object
-    :param RServiceManager r_service: RServiceManager object that will run R services
+    :param StatBackend backend: pre-built statistics backend instance (reused across
+        calls by batch orchestrators). When None, one is built from the bbconf
+        config's ``analysis.backend`` value and cleaned up before return — use
+        that path for single-file invocations; batch callers should build and
+        reuse one via :func:`bedboss.bedstat.backends.build_backend`.
     :param reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility
     :return str bed_digest: bed digest
     """
@@ -192,20 +196,27 @@ def run_all(
         statistics_dict = {}
         statistics_dict["number_of_regions"] = len(bed_metadata.bed_object)
     else:
-        backend = bbagent.config.config.analysis.backend
-        statistics_dict = bedstat(
-            bedfile=bed_metadata.bed_file,
-            outfolder=outfolder,
-            genome=genome,
-            ensdb=ensdb,
-            bed_digest=bed_metadata.bed_digest,
-            open_signal_matrix=open_signal_matrix,
-            just_db_commit=just_db_commit,
-            rfg_config=rfg_config,
-            pm=pm,
-            r_service=r_service,
-            backend=backend,
-        )
+        # Build a backend for this call if none was passed in (single-file use).
+        # Batch orchestrators pass a pre-built backend to amortize setup costs.
+        owns_backend = backend is None
+        if owns_backend:
+            backend = build_backend(bbagent.config.config.analysis.backend)
+        try:
+            statistics_dict = bedstat(
+                bedfile=bed_metadata.bed_file,
+                outfolder=outfolder,
+                genome=genome,
+                ensdb=ensdb,
+                bed_digest=bed_metadata.bed_digest,
+                open_signal_matrix=open_signal_matrix,
+                just_db_commit=just_db_commit,
+                rfg_config=rfg_config,
+                pm=pm,
+                backend=backend,
+            )
+        finally:
+            if owns_backend:
+                backend.cleanup()
 
     if "mean_region_width" not in statistics_dict:
         statistics_dict["mean_region_width"] = (
@@ -420,10 +431,12 @@ def insert_pep(
     if rerun:
         skipper.reinitialize()
 
-    if not lite:
-        r_service = RServiceManager()
-    else:
-        r_service = None
+    # Build the stats backend once for the whole batch. The backend holds
+    # per-backend resources (persistent R service, gtars reference caches,
+    # etc.) that should be reused across files.
+    stat_backend = (
+        build_backend(bbagent.config.config.analysis.backend) if not lite else None
+    )
 
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
@@ -477,7 +490,7 @@ def insert_pep(
                 universe_bedset=pep_sample.get("universe_bedset"),
                 lite=lite,
                 pm=pm,
-                r_service=r_service,
+                backend=stat_backend,
             )
 
             processed_ids.append(bed_id)
@@ -487,6 +500,9 @@ def insert_pep(
             _LOGGER.error(f"Failed to process {pep_sample.sample_name}. See {e}")
             failed_samples.append(pep_sample.sample_name)
             skipper.add_failed(pep_sample.sample_name, f"{e}")
+
+    if stat_backend is not None:
+        stat_backend.cleanup()
 
     if create_bedset:
         _LOGGER.info(f"Creating bedset from {pep.name}")
@@ -556,14 +572,15 @@ def reprocess_all(
     else:
         stop_pipeline = False
 
-    r_service = RServiceManager()
-
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config)
     elif isinstance(bedbase_config, bbconf.BedBaseAgent):
         bbagent = bedbase_config
     else:
         raise BedBossException("Incorrect bedbase_config type. Exiting...")
+
+    # Build the stats backend once for the reprocess batch.
+    stat_backend = build_backend(bbagent.config.config.analysis.backend)
 
     unprocessed_beds = bbagent.bed.get_unprocessed(
         limit=limit, genome=["hg38", "hg19", "mm10"]
@@ -603,7 +620,7 @@ def reprocess_all(
                 universe_method=None,
                 universe_bedset=None,
                 pm=pm,
-                r_service=r_service,
+                backend=stat_backend,
             )
         except Exception as e:
             _LOGGER.error(f"Failed to process {bed_annot.name}. See {e}")
@@ -616,6 +633,8 @@ def reprocess_all(
                     "error": e,
                 }
             )
+
+    stat_backend.cleanup()
 
     if failed_samples:
         date_now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")

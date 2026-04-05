@@ -394,22 +394,30 @@ def run_stats(
         None, help="Path to the open signal matrix file"
     ),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    backend: str = typer.Option(
+        "r", help="Analysis backend ('r' or 'gtars'). Default: 'r'."
+    ),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
     dirty: bool = typer.Option(False, help="Run without removing existing files"),
 ):
     from bedboss.bedstat.bedstat import bedstat
+    from bedboss.bedstat.backends import build_backend
 
-    bedstat(
-        bedfile=bed_file,
-        genome=genome,
-        outfolder=outfolder,
-        ensdb=ensdb,
-        open_signal_matrix=open_signal_matrix,
-        just_db_commit=just_db_commit,
-        pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
-    )
+    with build_backend(backend) as backend_obj:
+        bedstat(
+            bedfile=bed_file,
+            genome=genome,
+            outfolder=outfolder,
+            backend=backend_obj,
+            ensdb=ensdb,
+            open_signal_matrix=open_signal_matrix,
+            just_db_commit=just_db_commit,
+            pm=create_pm(
+                outfolder=outfolder, multi=multi, recover=recover, dirty=dirty
+            ),
+        )
 
 
 @app.command(
