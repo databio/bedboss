@@ -178,6 +178,24 @@ class GtarsStatBackend(StatBackend):
         data["mean_region_width"] = scalars.get("mean_region_width")
         data["median_tss_dist"] = scalars.get("median_tss_dist")
 
+        # Derive median_neighbor_distance from the raw neighbor_distances list.
+        # (The gtars CLI output includes the full list; we reduce it to one
+        # scalar here rather than aggregating the full distribution at bedset
+        # level — see bbconf aggregation decisions.)
+        neighbor_distances = gtars_output.get("distributions", {}).get(
+            "neighbor_distances"
+        )
+        if neighbor_distances:
+            abs_vals = [abs(d) for d in neighbor_distances if d is not None]
+            if abs_vals:
+                data["median_neighbor_distance"] = round(
+                    statistics.median(abs_vals), 4
+                )
+            else:
+                data["median_neighbor_distance"] = None
+        else:
+            data["median_neighbor_distance"] = None
+
         # Populate legacy partition flat columns
         partitions = gtars_output.get("partitions")
         if partitions:
