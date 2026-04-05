@@ -5,10 +5,8 @@ from typing import Union
 
 import pypiper
 
-from bedboss.bedstat.backends import create_backend
-from bedboss.bedstat.r_service import RServiceManager
+from bedboss.bedstat.backends import StatBackend
 from bedboss.const import (
-    BACKEND_R,
     HOME_PATH,
     OPEN_SIGNAL_FOLDER_NAME,
     OPEN_SIGNAL_URL,
@@ -66,30 +64,36 @@ def bedstat(
     bedfile: str,
     genome: str,
     outfolder: str,
+    backend: StatBackend,
     bed_digest: str = None,
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
     rfg_config: Union[str, Path] = None,
     pm: pypiper.PipelineManager = None,
-    r_service: RServiceManager = None,
-    backend: str = BACKEND_R,
 ) -> dict:
     """
-    Run bedstat pipeline - compute statistics for a BED file using the
-    configured analysis backend.
+    Run bedstat pipeline — compute statistics for a BED file using the
+    provided analysis backend.
+
+    The backend is passed in as an instance so callers can reuse it across
+    many files (amortizing R service startup, FASTA loads, etc.) without
+    this function managing backend lifetime. Build one via
+    :func:`bedboss.bedstat.backends.build_backend` at the top of a batch
+    and call :meth:`StatBackend.cleanup` (or use the backend as a context
+    manager) when done.
 
     :param str bedfile: the full path to the bed file to process
     :param str genome: genome assembly of the sample
     :param str outfolder: The folder for storing the pipeline results.
+    :param StatBackend backend: statistics backend instance (reused across
+        calls; lifetime managed by the caller)
     :param str bed_digest: the digest of the bed file. Defaults to None.
     :param str ensdb: a full path to the ensdb gtf file
     :param str open_signal_matrix: a full path to the openSignalMatrix
     :param bool just_db_commit: if True, skip computation and just read existing results
     :param str rfg_config: path to the refgenie config file
     :param pm: pypiper object
-    :param r_service: RServiceManager object (used only with backend="r")
-    :param str backend: analysis backend to use ("r" or "gtars")
     :return: dict with statistics and plots metadata
     """
     # Resolve open signal matrix
@@ -101,8 +105,7 @@ def bedstat(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
             )
 
-    backend_obj = create_backend(backend, r_service=r_service)
-    return backend_obj.compute(
+    return backend.compute(
         bedfile=bedfile,
         genome=genome,
         outfolder=outfolder,

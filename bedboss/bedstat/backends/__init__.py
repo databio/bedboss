@@ -10,11 +10,16 @@ __all__ = [
     "GtarsStatBackend",
     "GtarsPyStatBackend",
     "create_backend",
+    "build_backend",
 ]
 
 
 def create_backend(name: str, **kwargs) -> StatBackend:
     """Create a statistics computation backend by name.
+
+    Low-level factory: pass backend-specific kwargs directly. Most callers
+    should use :func:`build_backend` instead, which handles backend-specific
+    prerequisites (e.g. starting an RServiceManager for the R backend).
 
     :param name: Backend name (BACKEND_R, BACKEND_GTARS, BACKEND_GTARS_PY)
     :param kwargs: Backend-specific keyword arguments
@@ -30,3 +35,24 @@ def create_backend(name: str, **kwargs) -> StatBackend:
         raise ValueError(
             f"Unknown analysis backend: {name!r}. Use 'r', 'gtars', or 'gtars-py'."
         )
+
+
+def build_backend(name: str) -> StatBackend:
+    """Build a backend with any backend-specific prerequisites attached.
+
+    High-level constructor used by batch orchestrators. Handles the lifetime
+    of backend-internal resources (e.g. starts an RServiceManager for the R
+    backend so the single R process is reused across all files in a batch).
+
+    Callers are responsible for calling :meth:`StatBackend.cleanup` when
+    done to release backend-held resources. See `StatBackend` as a context
+    manager for automatic cleanup.
+
+    :param name: Backend name (BACKEND_R, BACKEND_GTARS, BACKEND_GTARS_PY)
+    :return: StatBackend instance ready for batch processing
+    """
+    if name == BACKEND_R:
+        from bedboss.bedstat.r_service import RServiceManager
+
+        return create_backend(name, r_service=RServiceManager())
+    return create_backend(name)
