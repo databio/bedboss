@@ -188,9 +188,7 @@ class GtarsStatBackend(StatBackend):
         if neighbor_distances:
             abs_vals = [abs(d) for d in neighbor_distances if d is not None]
             if abs_vals:
-                data["median_neighbor_distance"] = round(
-                    statistics.median(abs_vals), 4
-                )
+                data["median_neighbor_distance"] = round(statistics.median(abs_vals), 4)
             else:
                 data["median_neighbor_distance"] = None
         else:
