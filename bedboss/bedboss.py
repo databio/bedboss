@@ -6,15 +6,15 @@ from typing import Union
 from urllib.parse import urlparse
 
 import bbconf
-import pephubclient
-import peppy
+import peprs
 import pypiper
 import yaml
 from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
-from eido import validate_project
+from peprs.eido import validate_project
 from geniml.bbclient import BBClient
+from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
 
@@ -22,7 +22,7 @@ from bedboss._version import __version__
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
-from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME, MAX_FILE_SIZE_QC
+from bedboss.const import PKG_NAME, MAX_FILE_SIZE_QC
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.models import (
     BedClassificationUpload,
@@ -328,7 +328,7 @@ def run_all(
 def insert_pep(
     bedbase_config: str,
     output_folder: str,
-    pep: Union[str, peppy.Project],
+    pep: Union[str, peprs.Project],
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
@@ -355,7 +355,7 @@ def insert_pep(
 
     :param str bedbase_config: bedbase configuration file path
     :param str output_folder: output statistics folder
-    :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
+    :param Union[str, peprs.Project] pep: path to the pep file or pephub registry path
     :param str bedset_id: bedset identifier
     :param str bedset_name: bedset name
     :param str rfg_config: path to the genome config file (refgenie)
@@ -382,15 +382,7 @@ def insert_pep(
 
     failed_samples = []
     processed_ids = []
-    if isinstance(pep, peppy.Project):
-        pass
-    elif isinstance(pep, str):
-        if is_registry_path(pep):
-            pep = pephubclient.PEPHubClient().load_project(pep)
-        else:
-            pep = peppy.Project(pep)
-    else:
-        raise BedBossException("Incorrect pep type. Exiting...")
+    pep: peprs.Project = pep_any_to_object(pep)
 
     if standardize_pep:
         pep = pep_standardizer(pep)
@@ -410,10 +402,11 @@ def insert_pep(
 
     bbagent = BedBaseAgent(bedbase_config)
 
-    validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
+    phc = PEPHubClient()
+    validate_project(pep, phc.schema.get("databio", "pipelines-bedboss"))
 
-    bedset_annotation = BedSetAnnotations(**pep.config).model_dump()
-    skipper = Skipper(output_folder, pep.name)
+    bedset_annotation = BedSetAnnotations(**(pep.config or {})).model_dump()
+    skipper = Skipper(output_folder, pep.name or "")
 
     if rerun:
         skipper.reinitialize()
@@ -517,6 +510,27 @@ def insert_pep(
 
     m.print_success(f"Processing of '{pep.name}' completed successfully")
     return None
+
+
+def pep_any_to_object(pep: str | peprs.Project) -> peprs.Project:
+    """
+    Convert String and pep object to pep object.
+    If the input is a string, it can be either a path to a local pep file or a pephub registry path.
+
+    :param pep: str or peprs.Project object
+
+    :return: peprs.Project object
+    """
+
+    if isinstance(pep, peprs.Project):
+        return pep
+    elif isinstance(pep, str):
+        if is_registry_path(pep):
+            return peprs.Project.from_pephub(pep)
+        else:
+            return peprs.Project(pep)
+    else:
+        raise BedBossException("Incorrect pep type. Exiting...")
 
 
 @calculate_time

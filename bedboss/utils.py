@@ -10,11 +10,11 @@ import pandas as pd
 from typing import Union
 from gtars.models import RegionSet
 
-import peppy
+import peprs
 import requests
 from bedms import AttrStandardizer
 from pephubclient.files_manager import FilesManager
-from peppy.const import SAMPLE_RAW_DICT_KEY
+from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
 from bedboss.refgenome_validator.main import ReferenceValidator
@@ -156,16 +156,17 @@ def save_example_bedbase_config(path: str) -> None:
 
 
 def standardize_pep(
-    pep: peppy.Project, standard_columns: list = None, model: str = "BEDBASE"
-) -> peppy.Project:
+    pep: peprs.Project, standard_columns: list = None, model: str = "BEDBASE"
+) -> peprs.Project:
     """
     Standardize PEP file by using bedMS standardization model
-    :param pep: peppy project
+    :param pep: peprs project
     :param standard_columns: list of columns to standardize
 
-    :return: peppy project
+    :return: peprs project
 
     """
+
     if standard_columns is None:
         standard_columns = ["library_source", "assay", "genome", "species_name"]
     model = AttrStandardizer(model)
@@ -183,7 +184,7 @@ def standardize_pep(
                     if list(changes[suggestion].values())[0] < value:
                         changes[suggestion] = {original: value}
 
-    raw_pep = pep.to_dict(extended=True)
+    raw_pep = pep.to_dict(raw=True)
     for suggestion, original_dict in changes.items():
         original_key = list(original_dict.keys())[0]
         if (
@@ -195,7 +196,7 @@ def standardize_pep(
             ]
             del raw_pep[SAMPLE_RAW_DICT_KEY][original_key]
 
-    return peppy.Project.from_dict(raw_pep)
+    return peprs.Project.from_dict(raw_pep)
 
 
 def cleanup_pm_temp(pm: PipelineManager) -> None:
