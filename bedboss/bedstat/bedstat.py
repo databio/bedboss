@@ -3,12 +3,12 @@ import logging
 import os
 import statistics
 from pathlib import Path
-from typing import Union
 
 import pypiper
 from gtars.models import RegionSet
 
 from bedboss.bedstat.gc_content import calculate_gc_content, create_gc_plot
+from bedboss.bedstat.r_service import RServiceManager
 from bedboss.const import (
     BEDSTAT_OUTPUT,
     HOME_PATH,
@@ -21,7 +21,6 @@ from bedboss.const import (
 )
 from bedboss.exceptions import BedBossException, OpenSignalMatrixException
 from bedboss.utils import download_file
-from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -30,13 +29,16 @@ SCHEMA_PATH_BEDSTAT = os.path.join(
 )
 
 
-def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
+def get_osm_path(genome: str, out_path: str = None) -> str | None:
     """
-    By providing genome name download Open Signal Matrix
+    By providing genome name download Open Signal Matrix.
 
-    :param genome: genome assembly
-    :param out_path: working directory, where osm should be saved. If None, current working directory will be used
-    :return: path to the Open Signal Matrix
+    Args:
+        genome: Genome assembly.
+        out_path: Working directory where osm should be saved. If None, current working directory will be used.
+
+    Returns:
+        Path to the Open Signal Matrix.
     """
     # TODO: add more osm
     _LOGGER.info("Getting Open Signal Matrix file path...")
@@ -75,28 +77,27 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
-    rfg_config: Union[str, Path] = None,
+    rfg_config: str | Path = None,
     pm: pypiper.PipelineManager = None,
     r_service: RServiceManager = None,
 ) -> dict:
     """
-    Run bedstat pipeline - pipeline for obtaining statistics about bed files
-        and inserting them into the database
+    Run bedstat pipeline — pipeline for obtaining statistics about bed files and inserting them into the database.
 
-    :param str bedfile: the full path to the bed file to process
-    :param str bed_digest: the digest of the bed file. Defaults to None.
-    :param str open_signal_matrix: a full path to the openSignalMatrix
-        required for the tissue specificity plots
-    :param str outfolder: The folder for storing the pipeline results.
-    :param str genome: genome assembly of the sample
-    :param bool just_db_commit: if True, the pipeline will only commit to the database
-    :param str rfg_config: path to the refgenie config file
-    :param str ensdb: a full path to the ensdb gtf file required for genomes
-        not in GDdata
-    :param pm: pypiper object
-    :param r_service: RServiceManager object
+    Args:
+        bedfile: The full path to the bed file to process.
+        genome: Genome assembly of the sample.
+        outfolder: The folder for storing the pipeline results.
+        bed_digest: The digest of the bed file. Defaults to None.
+        ensdb: A full path to the ensdb gtf file required for genomes not in GDdata.
+        open_signal_matrix: A full path to the openSignalMatrix required for the tissue specificity plots.
+        just_db_commit: If True, the pipeline will only commit to the database.
+        rfg_config: Path to the refgenie config file.
+        pm: Pypiper object.
+        r_service: RServiceManager object.
 
-    :return: dict with statistics and plots metadata
+    Returns:
+        Dict with statistics and plots metadata.
     """
     outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
     try:
@@ -204,7 +205,7 @@ def bedstat(
         gc_contents = calculate_gc_content(
             bedfile=bed_object, genome=genome, rfg_config=rfg_config
         )
-    except BaseException as e:
+    except BaseException:
         gc_contents = None
 
     if gc_contents:

@@ -1,10 +1,10 @@
 import logging
 import os
-from typing import Literal, Union
+from importlib.metadata import version as _pkg_version
+from typing import Literal
 
+import peprs
 import pypiper
-
-import peppy
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from geniml.exceptions import GenimlBaseError
@@ -20,33 +20,34 @@ from bedboss.bbuploader.constants import (
     PKG_NAME,
     STATUS,
 )
-from bedboss.bbuploader.metadata_extractor import find_cell_line, find_assay
+from bedboss.bbuploader.metadata_extractor import find_assay, find_cell_line
 from bedboss.bbuploader.models import (
     BedBossMetadata,
+    BedBossMetadataSeries,
     BedBossRequired,
     ProjectProcessingStatus,
-    BedBossMetadataSeries,
 )
 from bedboss.bbuploader.utils import (
-    create_gsm_sub_name,
     build_gse_identifier,
+    create_gsm_sub_name,
     middle_underscored,
 )
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
+from bedboss.bedstat.r_service import RServiceManager
 from bedboss.const import MAX_FILE_SIZE
 from bedboss.exceptions import BedBossException, QualityException
-from bedboss.skipper import Skipper
 from bedboss.refgenome_validator.main import ReferenceValidator
+from bedboss.skipper import Skipper
 from bedboss.utils import (
     calculate_time,
     download_file,
-    standardize_genome_name,
     run_initial_qc,
+    standardize_genome_name,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
-from bedboss._version import __version__
+
+__version__ = _pkg_version("bedboss")
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)
@@ -79,27 +80,27 @@ def upload_all(
     lite=False,
 ):
     """
-    This is main function that is responsible for processing bed files from PEPHub.
+    Main function responsible for processing bed files from PEPHub.
 
-    :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
-    :param bedbase_config: path to bedbase configuration file
-    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
-    :param start_date: The earliest date when opep was updated [Default: 2000/01/01]
-    :param end_date: The latest date when opep was updated [Default: today's date]
-    :param search_limit: limit of projects to be searched
-    :param search_offset: offset of projects to be searched
-    :param download_limit: limit of GSE projects to be downloaded (used for testing purposes) [Default: 100]
-    :param genome: reference genome [Default: None] (e.g. hg38) - if None, all genomes will be processed
-    :param create_bedset: create bedset from bed files
-    :param preload: pre - download files to the local folder (used for faster reproducibility)
-    :param rerun: rerun processing of the series. Used in logging system. If you want to reupload file use overwrite
-    :param run_skipped: rerun files that were skipped. Used in logging system. If you want to reupload file use overwrite
-    :param run_failed: rerun failed files. Used in logging system. If you want to reupload file use overwrite
-    :param standardize_pep: standardize pep metadata using BEDMS
-    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
-        and failed files.
-    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
-    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
+    Args:
+        outfolder: Working directory where files will be downloaded, processed and statistics saved.
+        bedbase_config: Path to bedbase configuration file.
+        geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series').
+        start_date: The earliest date when pep was updated. Default: 2000/01/01.
+        end_date: The latest date when pep was updated. Default: today's date.
+        search_limit: Limit of projects to be searched.
+        search_offset: Offset of projects to be searched.
+        download_limit: Limit of GSE projects to be downloaded (used for testing). Default: 100.
+        genome: Reference genome (e.g. hg38). If None, all genomes will be processed.
+        create_bedset: Create bedset from bed files.
+        preload: Pre-download files to the local folder (used for faster reproducibility).
+        rerun: Rerun processing of the series. If you want to reupload file use overwrite.
+        run_skipped: Rerun files that were skipped. If you want to reupload file use overwrite.
+        run_failed: Rerun failed files. If you want to reupload file use overwrite.
+        standardize_pep: Standardize pep metadata using BEDMS.
+        use_skipper: Use skipper to skip already processed files logged locally.
+        reinit_skipper: If True, skipper will be reinitialized and all log files cleaned.
+        lite: Lite mode, skipping statistic processing for memory optimization and time saving.
     """
 
     phc = PEPHubClient()
@@ -229,22 +230,21 @@ def upload_all(
 
 
 def process_pep_sample(
-    bed_sample: peppy.Sample,
+    bed_sample: peprs.Sample,
     geo_tag: str = DEFAULT_GEO_TAG,
 ) -> BedBossRequired:
     """
-    Process pep sample that contains bed file. Download bed file and compose BedBossRequired data model
-        that contains all required bed file metadata (e.g. reference genome, type, organism...)
+    Process pep sample that contains a bed file.
 
-    :param bed_sample: peppy sample with bed file url
-    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
-    :return: BedBossRequired {sample_name: str,
-                              gse: str,
-                              gsm: str,
-                              file_path: str,
-                              ref_genome:str,
-                              ...
-                                }
+    Downloads the bed file and composes a BedBossRequired data model with all required metadata
+    (e.g. reference genome, type, organism).
+
+    Args:
+        bed_sample: peprs sample with bed file url.
+        geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series').
+
+    Returns:
+        BedBossRequired with sample_name, gse, gsm, file_path, ref_genome, and other fields.
     """
     _LOGGER.debug(
         f"Standardizing metadata for: '{bed_sample.sample_name}' . GSE: {bed_sample.gse}"
@@ -324,17 +324,20 @@ def get_pep(
     phc: PEPHubClient = None,
 ):
     """
-    Retrieve PEP from PEPHub
+    Retrieve PEP from PEPHub.
 
-    :param namespace: namespace of the project
-    :param name: name of the project
-    :param tag: tag of the project
-    :param phc: PEPHubClient instance
-    :return: ProjectModel
+    Args:
+        namespace: Namespace of the project.
+        name: Name of the project.
+        tag: Tag of the project.
+        phc: PEPHubClient instance.
+
+    Returns:
+        ProjectModel for the requested PEP.
     """
     if not phc:
         phc = PEPHubClient()
-    return phc.load_project(f"{namespace}/{name}:{tag}")
+    return peprs.Project.from_pephub(f"{namespace}/{name}:{tag}")
 
 
 def find_peps(
@@ -347,20 +350,19 @@ def find_peps(
     phc: PEPHubClient = None,
 ) -> SearchReturnModel:
     """
-    Retrieve list of PEPs from 'bedbase' namespace in certain time period
+    Retrieve list of PEPs from 'bedbase' namespace in a certain time period.
 
-    :param start_date: earliest date when opep was updated [Default: 2000/01/01]
-    :param end_date: latest date when opep was updated [Default: today's date]
-    :param filter_by: filter by submission date [Default: submission_date] Option: [submission_date, last_update_date]
-    :param limit: limit of projects to be searched
-    :param offset: offset of projects to be searched
-    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
-    :param phc: PEPHubClient instance
-    :return SearchReturnModel: {count: int
-                                limit: int
-                                offset: int
-                                items: List[ProjectAnnotationModel]
-                            }
+    Args:
+        start_date: Earliest date when pep was updated. Default: 2000/01/01.
+        end_date: Latest date when pep was updated. Default: today's date.
+        filter_by: Filter by submission_date or last_update_date.
+        limit: Limit of projects to be searched.
+        offset: Offset of projects to be searched.
+        geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series').
+        phc: PEPHubClient instance.
+
+    Returns:
+        SearchReturnModel with count, limit, offset, and list of ProjectAnnotationModel items.
     """
     if not phc:
         phc = PEPHubClient()
@@ -382,7 +384,7 @@ def find_peps(
 @calculate_time
 def upload_gse(
     gse: str,
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     outfolder: str = os.getcwd(),
     geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,
@@ -399,27 +401,25 @@ def upload_gse(
     lite=False,
 ):
     """
-    Upload bed files from GEO series to BedBase
+    Upload bed files from GEO series to BedBase.
 
-    :param gse: GEO series number
-    :param bedbase_config: path to bedbase configuration file, or bbagent object
-    :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
-    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
-    :param create_bedset: create bedset from bed files
-    :param genome: reference genome to upload to database. If None, all genomes will be processed
-    :param preload: pre - download files to the local folder (used for faster reproducibility)
-    :param rerun: rerun processing of the series
-    :param run_skipped: rerun files that were skipped
-    :param run_failed: rerun failed files
-    :param standardize_pep: standardize pep metadata using BEDMS
-    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
-        and failed files.
-    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs files will be cleaned
-    :param overwrite: overwrite existing bedfiles
-    :param overwrite_bedset: overwrite existing bedset
-    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
-
-    :return: None
+    Args:
+        gse: GEO series number.
+        bedbase_config: Path to bedbase configuration file, or bbagent object.
+        outfolder: Working directory where files will be downloaded, processed and statistics saved.
+        geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series').
+        create_bedset: Create bedset from bed files.
+        genome: Reference genome to upload. If None, all genomes will be processed.
+        preload: Pre-download files to the local folder (used for faster reproducibility).
+        rerun: Rerun processing of the series.
+        run_skipped: Rerun files that were skipped.
+        run_failed: Rerun failed files.
+        standardize_pep: Standardize pep metadata using BEDMS.
+        use_skipper: Use skipper to skip already processed files logged locally.
+        reinit_skipper: If True, skipper will be reinitialized and all log files cleaned.
+        overwrite: Overwrite existing bedfiles.
+        overwrite_bedset: Overwrite existing bedset.
+        lite: Lite mode, skipping statistic processing for memory optimization and time saving.
     """
     _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
@@ -494,10 +494,11 @@ def status_parser(
     gse_status: GeoGseStatus, upload_result: ProjectProcessingStatus
 ) -> None:
     """
-    Update status in SA object
+    Update status in SA object.
 
-    :param gse_status: gse status of project (Sqlalchemy object)
-    :param upload_result: project processing status (status object)
+    Args:
+        gse_status: GSE status of project (SQLAlchemy object).
+        upload_result: Project processing status.
     """
 
     gse_status.number_of_files = upload_result.number_of_samples
@@ -516,7 +517,7 @@ def status_parser(
 
 def _upload_gse(
     gse: str,
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     outfolder: str = os.getcwd(),
     geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,
@@ -536,29 +537,31 @@ def _upload_gse(
     pm: pypiper.PipelineManager = None,
 ) -> ProjectProcessingStatus:
     """
-    Upload bed files from GEO series to BedBase
+    Upload bed files from GEO series to BedBase.
 
-    :param gse: GEO series number
-    :param bedbase_config: path to bedbase configuration file, or bbagent object
-    :param outfolder: working directory, where files will be downloaded, processed and statistics will be saved
-    :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
-    :param create_bedset: create bedset from bed files
-    :param genome: reference genome to upload to database. If None, all genomes will be processed
-    :param sa_session: opened session to the database
-    :param gse_status_sa_model: sqlalchemy model for project status
-    :param standardize_pep: standardize pep metadata using BEDMS
-    :param rerun: rerun processing of the series
-    :param overwrite: overwrite existing bedfiles
-    :param overwrite_bedset: overwrite existing bedset
-    :param use_skipper: use skipper to skip already processed logged locally. Skipper creates local log of processed
-        and failed files.
-    :param reinit_skipper: reinitialize skipper, if set to True, skipper will be reinitialized and all logs will be
-    :param preload: pre - download files to the local folder (used for faster reproducibility)
-    :param lite: lite mode, where skipping statistic processing for memory optimization and time saving
-    :param max_file_size: maximum file size in bytes. Default: 20MB
-    :param pypiper.PipelineManager pm: pypiper object
-    :param r_service: RServiceManager object
-    :return: None
+    Args:
+        gse: GEO series number.
+        bedbase_config: Path to bedbase configuration file, or bbagent object.
+        outfolder: Working directory where files will be downloaded, processed and statistics saved.
+        geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series').
+        create_bedset: Create bedset from bed files.
+        genome: Reference genome to upload. If None, all genomes will be processed.
+        sa_session: Opened session to the database.
+        gse_status_sa_model: SQLAlchemy model for project status.
+        standardize_pep: Standardize pep metadata using BEDMS.
+        rerun: Rerun processing of the series.
+        overwrite: Overwrite existing bedfiles.
+        overwrite_bedset: Overwrite existing bedset.
+        use_skipper: Use skipper to skip already processed files logged locally.
+        reinit_skipper: If True, skipper will be reinitialized and all logs cleaned.
+        preload: Pre-download files to the local folder (used for faster reproducibility).
+        lite: Lite mode, skipping statistic processing for memory optimization and time saving.
+        max_file_size: Maximum file size in bytes. Default: 20MB.
+        pm: PipelineManager object.
+        r_service: RServiceManager object.
+
+    Returns:
+        ProjectProcessingStatus with counts of processed, skipped, and failed samples.
     """
     if isinstance(bedbase_config, str):
         bedbase_config = BedBaseAgent(config=bedbase_config)
@@ -569,11 +572,10 @@ def _upload_gse(
 
     gse_id = build_gse_identifier(gse, geo_tag)
 
-    phc = PEPHubClient()
     os.makedirs(outfolder, exist_ok=True)
 
     _LOGGER.info(f"Loading project from PEPHub: 'bedbase/{gse}:{geo_tag}'")
-    project = phc.load_project(f"bedbase/{gse}:{geo_tag}")
+    project = peprs.Project.from_pephub(f"bedbase/{gse}:{geo_tag}")
     _LOGGER.info(f"Loaded project with {len(project.samples)} samples")
 
     if standardize_pep:
@@ -615,7 +617,7 @@ def _upload_gse(
         r_service = r_service
 
     for counter, project_sample in enumerate(project.samples):
-        _LOGGER.info(f">> Processing {counter+1} / {total_sample_number}")
+        _LOGGER.info(f">> Processing {counter + 1} / {total_sample_number}")
         sample_gsm = project_sample.get("sample_geo_accession", "").lower()
         sample_sample_name = project_sample.get("sample_name", "").lower()
 

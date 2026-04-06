@@ -1,11 +1,12 @@
 import os
-from typing import Union
+from importlib.metadata import version as _pkg_version
 
 import typer
 
-from bedboss import __version__
-from bedboss.bbuploader.cli import app_bbuploader
+__version__ = _pkg_version("bedboss")
 from pephubclient.helpers import MessageHandler as printm
+
+from bedboss.bbuploader.cli import app_bbuploader
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -165,7 +166,7 @@ def run_pep(
     bedset_heavy: bool = typer.Option(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
-    bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
+    bedset_id: str | None = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
@@ -640,6 +641,7 @@ def update_genomes(
     ),
 ):
     from bbconf.bbagent import BedBaseAgent
+
     from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
 
     bbagent = BedBaseAgent(config)
@@ -685,6 +687,10 @@ def download_umap(
         "umap",
         help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'. To use UMAP, 'umap-learn' package must be installed.",
     ),
+    save_parquet: bool = typer.Option(
+        False,
+        help="Whether to save Parquet tier files alongside JSON",
+    ),
 ):
     from bedboss.scripts.make_umap import get_embeddings
 
@@ -697,7 +703,31 @@ def download_umap(
         top_assays=top_assays,
         top_cell_lines=top_cell_lines,
         method=method,
+        save_parquet=save_parquet,
     )
+
+
+@app.command(help="Update UMAP metadata Parquet tiers without regenerating geometry")
+def update_umap_metadata(
+    config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    output_dir: str = typer.Option(
+        ...,
+        help="Directory to write Parquet tier files",
+    ),
+    geometry: str = typer.Option(
+        None,
+        help="Path to existing geometry Parquet (to read bed IDs). If not provided, fetches IDs from Qdrant.",
+    ),
+):
+    from bedboss.scripts.make_umap import update_umap_metadata as _update
+
+    _update(bbconf=config, output_dir=output_dir, geometry=geometry)
 
 
 @app.command(help="Check installed R packages")

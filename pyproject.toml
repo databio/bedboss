@@ -1,0 +1,78 @@
+[project]
+name = "bedboss"
+version = "0.10.0"
+description = "Pipelines for genomic region file to produce bed files, and its statistics"
+readme = "README.md"
+license = "BSD-2-Clause"
+requires-python = ">=3.10"
+authors = [
+    { name = "Oleksandr Khoroshevskyi", email = "khorosh@virginia.edu" },
+    { name = "Michal Stolarczyk" },
+    { name = "Ognen Duzlevski" },
+    { name = "Jose Verdezoto" },
+    { name = "Bingjie Xue" },
+    { name = "Donald Campbell" },
+]
+keywords = ["project", "bioinformatics", "sequencing", "ngs", "workflow"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "logmuse>=0.2.7",
+    "coloredlogs>=15.0.1",
+    "eido>=0.2.5",
+    "peppy>=0.40.7",
+    "peprs>=0.1.2",
+    "yacman==0.9.4",
+    "requests>=2.28.2",
+    "piper>=0.14.3",
+    "bbconf>=0.14.10",
+    "refgenconf==0.12.2",
+    "pandas>=2.0.0",
+    "ubiquerg>=0.6.2",
+    "bedms>=0.1.0",
+    "pephubclient>=0.5.0",
+]
+
+[project.urls]
+Homepage = "https://databio.org"
+Documentation = "https://bedboss.databio.org"
+Repository = "https://github.com/databio/bedboss"
+
+[project.scripts]
+bedboss = "bedboss.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = ["bedboss"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>7.1",
+    "pytest-cov>=2.4.0",
+    "coveralls>=1.1",
+]
+
+[tool.pytest.ini_options]
+addopts = "-rfE"
+testpaths = ["test"]
+
+[tool.ruff]
+line-length = 88
+exclude = ["test", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["F403", "F405", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bedboss"]

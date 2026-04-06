@@ -1,7 +1,6 @@
 # functions for tokenization of bed files
 import logging
 import os
-from typing import Union
 
 from bbconf.bbagent import BedBaseAgent
 from geniml.bbclient import BBClient
@@ -16,22 +15,21 @@ _LOGGER = logging.getLogger("bedboss")
 def tokenize_bed_file(
     universe: str,
     bed: str,
-    cache_folder: Union[str, os.PathLike] = DEFAULT_CACHE_FOLDER,
+    cache_folder: str | os.PathLike = DEFAULT_CACHE_FOLDER,
     add_to_db: bool = False,
     config: str = None,
     overwrite: bool = False,
 ) -> None:
     """
-    Tokenize all bed file and add to the local cache
+    Tokenize all bed file and add to the local cache.
 
-    :param universe: universe name to which the bed file will be tokenized
-    :param bed: bed file to be tokenized
-    :param cache_folder: path to the cache folder
-    :param add_to_db: flag to add tokenized bed file to the bedbase database [config should be provided if True]
-    :param config: path to the bedbase config file
-    :param overwrite: flag to overwrite the existing tokenized bed file
-
-    :return: None
+    Args:
+        universe: Universe name to which the bed file will be tokenized.
+        bed: Bed file to be tokenized.
+        cache_folder: Path to the cache folder.
+        add_to_db: Flag to add tokenized bed file to the bedbase database (config should be provided if True).
+        config: Path to the bedbase config file.
+        overwrite: Flag to overwrite the existing tokenized bed file.
     """
     bbc = BBClient(cache_folder=cache_folder or DEFAULT_CACHE_FOLDER)
 
@@ -63,13 +61,12 @@ def delete_tokenized(
     config: str = None,
 ) -> None:
     """
-    Delete tokenized bed file from the database
+    Delete tokenized bed file from the database.
 
-    :param universe: universe name to which the bed file will be tokenized
-    :param bed: bed file to be tokenized
-    :param config: path to the bedbase config file
-
-    :return: None
+    Args:
+        universe: Universe name to which the bed file will be tokenized.
+        bed: Bed file to be tokenized.
+        config: Path to the bedbase config file.
     """
     bba = BedBaseAgent(config=config)
 

@@ -76,7 +76,7 @@ def run_gse():
 
 
 def reprocess_id():
-    from bedboss.bedboss import reprocess_one, reprocess_all
+    from bedboss.bedboss import reprocess_one
 
     reprocess_one(
         identifier="b4712e0051aa975d450baf576a9aa6a2",

@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from bedboss.bbuploader.metadata_extractor import (
@@ -10,21 +8,21 @@ from bedboss.bbuploader.metadata_extractor import (
 
 class BedBossMetadata(BaseModel):
     genome: str = Field(None, alias="ref_genome")
-    species_name: Optional[str] = Field("", alias="sample_organism_ch1")
-    species_id: Optional[str] = Field("", alias="sample_taxid_ch1")
-    cell_type: Optional[str] = ""
-    cell_line: Optional[str] = Field("", alias="line")
-    genotype: Optional[str] = ""
-    assay: Optional[str] = Field("", alias="sample_library_strategy")
-    library_source: Optional[str] = Field("", alias="sample_library_source")
-    target: Optional[str] = Field("")
-    antibody: Optional[str] = Field("", alias="chip_antibody")
-    treatment: Optional[str] = Field("", alias="sample_treatment_protocol_ch1")
-    tissue: Optional[str] = ""
+    species_name: str | None = Field("", alias="sample_organism_ch1")
+    species_id: str | None = Field("", alias="sample_taxid_ch1")
+    cell_type: str | None = ""
+    cell_line: str | None = Field("", alias="line")
+    genotype: str | None = ""
+    assay: str | None = Field("", alias="sample_library_strategy")
+    library_source: str | None = Field("", alias="sample_library_source")
+    target: str | None = Field("")
+    antibody: str | None = Field("", alias="chip_antibody")
+    treatment: str | None = Field("", alias="sample_treatment_protocol_ch1")
+    tissue: str | None = ""
 
-    global_sample_id: Optional[str] = Field("", alias="sample_geo_accession")
-    global_experiment_id: Optional[str] = Field("", alias="gse")
-    description: Optional[str] = Field("", alias="sample_description")
+    global_sample_id: str | None = Field("", alias="sample_geo_accession")
+    global_experiment_id: str | None = Field("", alias="gse")
+    description: str | None = Field("", alias="sample_description")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -55,10 +53,10 @@ class BedBossMetadata(BaseModel):
 
 class BedBossMetadataSeries(BedBossMetadata):
     # TODO: check if all this values are correct:
-    description: Optional[str] = Field("", alias="series_title")
+    description: str | None = Field("", alias="series_title")
     genome: str = Field(None, alias="ref_genome")
-    species_name: Optional[str] = Field("", alias="series_sample_organism")
-    species_id: Optional[str] = Field("", alias="series_sample_taxid")
+    species_name: str | None = Field("", alias="series_sample_organism")
+    species_id: str | None = Field("", alias="series_sample_taxid")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -70,12 +68,12 @@ class BedBossRequired(BaseModel):
     sample_name: str
     file_path: str
     ref_genome: str
-    type: Optional[str] = "bed"
-    narrowpeak: Optional[bool] = False
-    description: Optional[str] = ""
-    organism: Optional[str] = None
-    pep: Optional[Union[BedBossMetadata, BedBossMetadataSeries]] = None
-    title: Optional[str] = None
+    type: str | None = "bed"
+    narrowpeak: bool | None = False
+    description: str | None = ""
+    organism: str | None = None
+    pep: BedBossMetadata | BedBossMetadataSeries | None = None
+    title: str | None = None
 
 
 class ProjectProcessingStatus(BaseModel):

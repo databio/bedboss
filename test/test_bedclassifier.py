@@ -5,7 +5,7 @@ import pytest
 from bedboss.bedclassifier import (
     get_bed_classification,
 )
-from bedboss.models import BedClassificationOutput, DATA_FORMAT
+from bedboss.models import DATA_FORMAT, BedClassificationOutput
 
 FILE_DIR = os.path.dirname(os.path.realpath(__file__))
 HG19_CORRECT_DIR = os.path.join(FILE_DIR, "test_data", "bed", "hg19", "correct")

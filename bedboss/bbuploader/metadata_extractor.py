@@ -293,8 +293,11 @@ def standardize_cell_line(cell_line: str) -> str:
     """
     Standardize cell line names to a consistent format.
 
-    :param cell_line: The input cell line name.
-    :return: The standardized cell line name.
+    Args:
+        cell_line: The input cell line name.
+
+    Returns:
+        The standardized cell line name.
     """
 
     key = cell_line.lower()
@@ -307,8 +310,11 @@ def standardize_assay(assay: str) -> str:
     """
     Standardize assay names to a consistent format.
 
-    :param assay: The input assay name.
-    :return: The standardized assay name.
+    Args:
+        assay: The input assay name.
+
+    Returns:
+        The standardized assay name.
     """
 
     key = assay.lower()
@@ -320,11 +326,15 @@ def standardize_assay(assay: str) -> str:
 def find_assay(description: str) -> str:
     """
     Identify the assay type from a given description string.
-    e.g. "encff285mhb_idr_thresholded_peaks_grch38_bed TF ChIP-seq from K562 (ENCSR861UWB)"
-    will return "TF ChIP-seq"
 
-    :param description: The input description string.
-    :return: The identified assay type or "" (empty string) if not found.
+    e.g. "encff285mhb_idr_thresholded_peaks_grch38_bed TF ChIP-seq from K562 (ENCSR861UWB)"
+    will return "TF ChIP-seq".
+
+    Args:
+        description: The input description string.
+
+    Returns:
+        The identified assay type, or "" if not found.
     """
     description_lower = description.lower()
     for key in assay_map.keys():
@@ -337,11 +347,13 @@ def find_cell_line(description: str) -> str:
     """
     Identify the cell line from a given description string.
 
-    e.g. encff285mhb_idr_thresholded_k562_peaks_grch38_bed
-    will return "K562"
+    e.g. encff285mhb_idr_thresholded_k562_peaks_grch38_bed will return "K562".
 
-    :param description: The input description string.
-    :return: The identified cell line or "" (empty string) if not found.
+    Args:
+        description: The input description string.
+
+    Returns:
+        The identified cell line, or "" if not found.
     """
     description_lower = description.lower()
     for key in cell_lines.keys():

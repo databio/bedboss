@@ -1,5 +1,3 @@
-from typing import Union
-
 from pydantic import BaseModel, ConfigDict
 
 
@@ -14,7 +12,7 @@ class ChromNameStats(BaseModel):
 
 
 class ChromLengthStats(BaseModel):
-    oobr: Union[float, None] = None
+    oobr: float | None = None
     beyond_range: bool = False
     num_of_chrom_beyond: int = 0
     percentage_bed_chrom_beyond: float = 0.0
@@ -22,7 +20,7 @@ class ChromLengthStats(BaseModel):
 
 
 class SequenceFitStats(BaseModel):
-    sequence_fit: Union[float, None] = None
+    sequence_fit: float | None = None
 
 
 class RatingModel(BaseModel):
@@ -35,15 +33,15 @@ class CompatibilityStats(BaseModel):
     chrom_name_stats: ChromNameStats
     chrom_length_stats: ChromLengthStats
     chrom_sequence_fit_stats: SequenceFitStats
-    igd_stats: Union[dict, None] = None
-    compatibility: Union[RatingModel, None] = None
+    igd_stats: dict | None = None
+    compatibility: RatingModel | None = None
 
     model_config = ConfigDict(extra="forbid")
 
 
 class CompatibilityConcise(BaseModel):
     xs: float = 0.0
-    oobr: Union[float, None] = None
-    sequence_fit: Union[float, None] = None
+    oobr: float | None = None
+    sequence_fit: float | None = None
     assigned_points: int
     tier_ranking: int

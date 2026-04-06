@@ -2,27 +2,28 @@ import datetime
 import logging
 import os
 import subprocess
-from typing import Union
+from importlib.metadata import version as _pkg_version
 from urllib.parse import urlparse
 
 import bbconf
-import pephubclient
-import peppy
+import peprs
 import pypiper
 import yaml
 from bbconf.bbagent import BedBaseAgent
 from bbconf.const import DEFAULT_LICENSE
 from bbconf.models.base_models import FileModel
-from eido import validate_project
 from geniml.bbclient import BBClient
+from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
+from peprs.eido import validate_project
 
-from bedboss._version import __version__
+__version__ = _pkg_version("bedboss")
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
-from bedboss.const import BEDBOSS_PEP_SCHEMA_PATH, PKG_NAME, MAX_FILE_SIZE_QC
+from bedboss.bedstat.r_service import RServiceManager
+from bedboss.const import MAX_FILE_SIZE_QC, PKG_NAME
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.models import (
     BedClassificationUpload,
@@ -37,21 +38,16 @@ from bedboss.skipper import Skipper
 from bedboss.utils import (
     calculate_time,
     get_genome_digest,
-    standardize_genome_name,
     run_initial_qc,
+    standardize_genome_name,
 )
 from bedboss.utils import standardize_pep as pep_standardizer
-from bedboss.bedstat.r_service import RServiceManager
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
 
 def requirements_check() -> None:
-    """
-    Check if all requirements are installed
-
-    :return: None
-    """
+    """Check if all requirements are installed."""
     _LOGGER.info("Checking requirements...")
     subprocess.run(
         [
@@ -67,7 +63,7 @@ def run_all(
     input_type: str,
     outfolder: str,
     genome: str,
-    bedbase_config: Union[str, bbconf.BedBaseAgent],
+    bedbase_config: str | bbconf.BedBaseAgent,
     name: str = None,
     license_id: str = DEFAULT_LICENSE,
     rfg_config: str = None,
@@ -96,38 +92,38 @@ def run_all(
     """
     Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
 
-    :param str input_file: Input file [required]
-    :param str input_type: Input type [required] options: (bigwig|bedgraph|bed|bigbed|wig)
-    :param str outfolder: Folder, where output should be saved  [required]
-    :param str genome: genome_assembly of the sample. [required] options: (hg19, hg38, mm10) # TODO: add more
-    :param str name: name of the sample (human-readable name, e.g. "H3K27ac in liver") [optional]
-    :param Union[str, bbconf.BedBaseConf] bedbase_config: The path to the bedbase configuration file, or bbconf object.
-    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
-    :param str rfg_config: file path to the genome config file [optional]
-    :param bool narrowpeak: whether the regions are narrow. Used to create bed file from bedgraph or bigwig
-        (transcription factor implies narrow, histone mark implies broad peaks) [optional]
-    :param bool check_qc: set True to run quality control during badmaking [optional] (default: True)
-    :param bool validate_reference: set True to run genome reference validator
-    :param str chrom_sizes: a full path to the chrom.sizes required for the bedtobigbed conversion [optional]
-    :param str open_signal_matrix: a full path to the openSignalMatrix required for the tissue [optional]
-    :param dict other_metadata: a dict containing all attributes from the sample
-    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata [optional]
-        (basically genomes that's not in GDdata)
-    :param bool just_db_commit: whether just to commit the JSON to the database [Default: False]
-    :param bool force_overwrite: force overwrite analysis [Default: False]
-    :param bool update: whether to update the record in the database [Default: False] (if True, overwrites 'force_overwrite' and ignores it)
-    :param bool upload_qdrant: whether to skip qdrant indexing [Default: False]
-    :param bool upload_s3: whether to upload to s3
-    :param bool upload_pephub: whether to push bedfiles and metadata to pephub [Default: False]
-    :param bool lite: whether to run lite version of the pipeline [Default: False]
+    Args:
+        input_file: Input file path.
+        input_type: Input type, one of (bigwig|bedgraph|bed|bigbed|wig).
+        outfolder: Folder where output should be saved.
+        genome: Genome assembly of the sample (e.g. hg19, hg38, mm10).
+        bedbase_config: The path to the bedbase configuration file, or bbconf object.
+        name: Name of the sample (human-readable name, e.g. "H3K27ac in liver").
+        license_id: License identifier. Default: "DUO:0000042".
+        rfg_config: File path to the genome config file.
+        narrowpeak: Whether the regions are narrow. Used to create bed file from bedgraph or bigwig.
+        check_qc: Set True to run quality control during bedmaking. Default: True.
+        validate_reference: Set True to run genome reference validator.
+        chrom_sizes: A full path to the chrom.sizes required for the bedtobigbed conversion.
+        open_signal_matrix: A full path to the openSignalMatrix required for the tissue.
+        ensdb: A full path to the ensdb gtf file required for genomes not in GDdata.
+        other_metadata: A dict containing all attributes from the sample.
+        just_db_commit: Whether just to commit the JSON to the database. Default: False.
+        force_overwrite: Force overwrite analysis. Default: False.
+        update: Whether to update the record in the database. If True, overwrites 'force_overwrite'. Default: False.
+        upload_qdrant: Whether to upload to qdrant. Default: False.
+        upload_s3: Whether to upload to s3.
+        upload_pephub: Whether to push bedfiles and metadata to pephub. Default: False.
+        lite: Whether to run lite version of the pipeline. Default: False.
+        universe: Whether to add the sample as the universe. Default: False.
+        universe_method: Method used to create the universe.
+        universe_bedset: Bedset identifier for the universe.
+        pm: Pypiper object.
+        r_service: RServiceManager object that will run R services.
+        reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility.
 
-    :param bool universe: whether to add the sample as the universe [Default: False]
-    :param str universe_method: method used to create the universe [Default: None]
-    :param str universe_bedset: bedset identifier for the universe [Default: None]
-    :param pypiper.PipelineManager pm: pypiper object
-    :param RServiceManager r_service: RServiceManager object that will run R services
-    :param reference_genome_validator: ReferenceValidator object that will validate reference genome compatibility
-    :return str bed_digest: bed digest
+    Returns:
+        Bed digest string.
     """
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
@@ -328,7 +324,7 @@ def run_all(
 def insert_pep(
     bedbase_config: str,
     output_folder: str,
-    pep: Union[str, peppy.Project],
+    pep: str | peprs.Project,
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
@@ -351,46 +347,37 @@ def insert_pep(
 ) -> None:
     """
     Run all bedboss pipelines for all samples in the pep file.
-    bedmaker -> bedqc -> bedstat -> qdrant_indexing -> bedbuncher
 
-    :param str bedbase_config: bedbase configuration file path
-    :param str output_folder: output statistics folder
-    :param Union[str, peppy.Project] pep: path to the pep file or pephub registry path
-    :param str bedset_id: bedset identifier
-    :param str bedset_name: bedset name
-    :param str rfg_config: path to the genome config file (refgenie)
-    :param str license_id: license identifier [optional] (default: "DUO:0000042").; Find All licenses in bedbase.org
-        This license will be used for bedfiles where license is not provided in PEP file
-    :param bool create_bedset: whether to create bedset
-    :param bool bedset_heavy: whether to use heavy processing (add all columns to the database)
-    :param bool upload_qdrant: whether to upload bedfiles to qdrant
-    :param bool check_qc: whether to run quality control during badmaking
-    :param str ensdb: a full path to the ensdb gtf file required for genomes not in GDdata
-    :param bool just_db_commit: whether save only to the database (Without saving locally )
-    :param bool force_overwrite: whether to overwrite the existing record
-    :param bool update: whether to update the record in the database. This option will overwrite the force_overwrite option. [Default: False]
-    :param bool upload_s3: whether to upload to s3
-    :param bool upload_pephub: whether to push bedfiles and metadata to pephub (default: False)
-    :param bool upload_qdrant: whether to execute qdrant indexing
-    :param bool no_fail: whether to raise an error if bedset was not added to the database
-    :param bool lite: whether to run lite version of the pipeline
-    :param bool standardize_pep: whether to standardize the pep file before processing by using bedms. (default: False)
-    :param bool rerun: whether to rerun processed samples
-    :param pypiper.PipelineManager pm: pypiper object
-    :return: None
+    Pipeline order: bedmaker -> bedqc -> bedstat -> qdrant_indexing -> bedbuncher.
+
+    Args:
+        bedbase_config: Bedbase configuration file path.
+        output_folder: Output statistics folder.
+        pep: Path to the pep file or pephub registry path.
+        bedset_id: Bedset identifier.
+        bedset_name: Bedset name.
+        rfg_config: Path to the genome config file (refgenie).
+        license_id: License identifier. Default: "DUO:0000042". Used for bedfiles where license is not provided in PEP file.
+        create_bedset: Whether to create bedset.
+        bedset_heavy: Whether to use heavy processing (add all columns to the database).
+        check_qc: Whether to run quality control during bedmaking.
+        ensdb: A full path to the ensdb gtf file required for genomes not in GDdata.
+        just_db_commit: Whether save only to the database (without saving locally).
+        force_overwrite: Whether to overwrite the existing record.
+        update: Whether to update the record in the database. Overwrites force_overwrite. Default: False.
+        upload_s3: Whether to upload to s3.
+        upload_pephub: Whether to push bedfiles and metadata to pephub. Default: False.
+        upload_qdrant: Whether to execute qdrant indexing.
+        no_fail: Whether to raise an error if bedset was not added to the database.
+        standardize_pep: Whether to standardize the pep file before processing by using bedms. Default: False.
+        lite: Whether to run lite version of the pipeline.
+        rerun: Whether to rerun processed samples.
+        pm: Pypiper object.
     """
 
     failed_samples = []
     processed_ids = []
-    if isinstance(pep, peppy.Project):
-        pass
-    elif isinstance(pep, str):
-        if is_registry_path(pep):
-            pep = pephubclient.PEPHubClient().load_project(pep)
-        else:
-            pep = peppy.Project(pep)
-    else:
-        raise BedBossException("Incorrect pep type. Exiting...")
+    pep: peprs.Project = pep_any_to_object(pep)
 
     if standardize_pep:
         pep = pep_standardizer(pep)
@@ -410,10 +397,11 @@ def insert_pep(
 
     bbagent = BedBaseAgent(bedbase_config)
 
-    validate_project(pep, BEDBOSS_PEP_SCHEMA_PATH)
+    phc = PEPHubClient()
+    validate_project(pep, phc.schema.get("databio", "pipelines-bedboss"))
 
-    bedset_annotation = BedSetAnnotations(**pep.config).model_dump()
-    skipper = Skipper(output_folder, pep.name)
+    bedset_annotation = BedSetAnnotations(**(pep.config or {})).model_dump()
+    skipper = Skipper(output_folder, pep.name or "")
 
     if rerun:
         skipper.reinitialize()
@@ -422,6 +410,8 @@ def insert_pep(
         r_service = RServiceManager()
     else:
         r_service = None
+
+    reference_genome_validator = ReferenceValidator()
 
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
@@ -442,7 +432,6 @@ def insert_pep(
         else:
             is_narrow_peak = False
         try:
-
             if pep_sample.get("file_size", None):
                 if int(pep_sample.file_size) > MAX_FILE_SIZE_QC:
                     raise QualityException(
@@ -476,6 +465,7 @@ def insert_pep(
                 lite=lite,
                 pm=pm,
                 r_service=r_service,
+                reference_genome_validator=reference_genome_validator,
             )
 
             processed_ids.append(bed_id)
@@ -519,26 +509,49 @@ def insert_pep(
     return None
 
 
+def pep_any_to_object(pep: str | peprs.Project) -> peprs.Project:
+    """
+    Convert String and pep object to pep object.
+
+    If the input is a string, it can be either a path to a local pep file or a pephub registry path.
+
+    Args:
+        pep: String path or pephub registry path, or peprs.Project object.
+
+    Returns:
+        peprs.Project object.
+    """
+
+    if isinstance(pep, peprs.Project):
+        return pep
+    elif isinstance(pep, str):
+        if is_registry_path(pep):
+            return peprs.Project.from_pephub(pep)
+        else:
+            return peprs.Project(pep)
+    else:
+        raise BedBossException("Incorrect pep type. Exiting...")
+
+
 @calculate_time
 def reprocess_all(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     limit: int = 10,
     no_fail: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
-    Run bedboss pipeline for all unprocessed beds in the bedbase
+    Run bedboss pipeline for all unprocessed beds in the bedbase.
 
     Currently only beds with genomes hg19, hg38, and mm10 are processed.
 
-    :param bedbase_config: bedbase configuration file path
-    :param output_folder: output folder of the pipeline
-    :param limit: limit of the number of beds to process
-    :param no_fail: whether to raise an error if bedset was not added to the database
-    :param pm: pypiper object
-
-    :return: None
+    Args:
+        bedbase_config: Bedbase configuration file path.
+        output_folder: Output folder of the pipeline.
+        limit: Limit of the number of beds to process.
+        no_fail: Whether to raise an error if bedset was not added to the database.
+        pm: Pypiper object.
     """
 
     if not pm:
@@ -624,7 +637,7 @@ def reprocess_all(
 
             m.print_warning(f"Logs with failed samples are saved in {output_folder}")
 
-    m.print_success(f"Processing completed successfully")
+    m.print_success("Processing completed successfully")
 
     print_values = dict(
         unprocessed_files=unprocessed_beds.count,
@@ -642,20 +655,19 @@ def reprocess_all(
 
 @calculate_time
 def reprocess_one(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
-    Run bedboss pipeline for one bed in the bedbase [Reprocess]
+    Run bedboss pipeline for one bed in the bedbase (Reprocess).
 
-    :param bedbase_config: bedbase configuration file path
-    :param output_folder: output folder of the pipeline
-    :param identifier: bed identifier
-    :param pm: pypiper object
-
-    :return: None
+    Args:
+        bedbase_config: Bedbase configuration file path.
+        output_folder: Output folder of the pipeline.
+        identifier: Bed identifier.
+        pm: Pypiper object.
     """
 
     if pm is None:
@@ -718,22 +730,21 @@ def reprocess_one(
 
 @calculate_time
 def reprocess_bedset(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
     no_fail: bool = True,
     heavy: bool = False,
 ):
     """
-    Recalculate bedset from the bedbase
+    Recalculate bedset from the bedbase.
 
-    :param bedbase_config: bedbase configuration file path
-    :param output_folder: output folder of the pipeline
-    :param identifier: bedset identifier
-    :param no_fail: whether to raise an error if bedset was not added to the database
-    :param heavy: whether to use heavy processing. Calculate plots for bedset
-
-    :return: None
+    Args:
+        bedbase_config: Bedbase configuration file path.
+        output_folder: Output folder of the pipeline.
+        identifier: Bedset identifier.
+        no_fail: Whether to raise an error if bedset was not added to the database.
+        heavy: Whether to use heavy processing. Calculate plots for bedset.
     """
 
     if isinstance(bedbase_config, str):

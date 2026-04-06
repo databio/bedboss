@@ -2,10 +2,9 @@ import json
 import logging
 import os
 import subprocess
-from typing import List, Union
 
 import pephubclient
-import peppy
+import peprs
 from bbconf import BedBaseAgent
 from bbconf.models.base_models import FileModel
 from bbconf.models.bedset_models import BedSetPlots
@@ -20,11 +19,11 @@ _LOGGER = logging.getLogger("bedboss")
 
 def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
     """
-    Create a file with bed_set_list (Later this file is used in R script)
+    Create a file with bed_set_list (later this file is used in R script).
 
-    :param bedset: bed_set object
-    :param file_path: path to the file
-    :return: None
+    Args:
+        bedset: Bed_set object.
+        file_path: Path to the file.
     """
     list_of_samples = [sample.path for sample in bedset]
 
@@ -36,15 +35,18 @@ def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
 
 
 def create_plots(
-    bedset: List[str],
+    bedset: list[str],
     output_folder: str,
 ) -> dict:
     """
-    Create plots for a bedset (commonality region plot)
+    Create plots for a bedset (commonality region plot).
 
-    :param bedset: list of bedfiles ids
-    :param output_folder: path to the output folder
-    :return: dict with information about crated plots
+    Args:
+        bedset: List of bedfiles ids.
+        output_folder: Path to the output folder.
+
+    Returns:
+        Dict with information about created plots.
     """
     bbclient_obj = BBClient()
 
@@ -89,9 +91,9 @@ def create_plots(
 
 
 def run_bedbuncher(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     record_id: str,
-    bed_set: List[str],
+    bed_set: list[str],
     output_folder: str,
     name: str = None,
     description: str = None,
@@ -104,26 +106,25 @@ def run_bedbuncher(
     lite: bool = False,
 ) -> None:
     """
-    Add bedset to the database
+    Add bedset to the database.
 
-    :param bedbase_config: BedBaseConf object
-    :param record_id: record identifier or name to be used in database
-    :param name: name of the bedset
-    :param output_folder: path to the output folder
-    :param bed_set: Bedset object or list of bedfiles ids
-    :param description: Bedset description
-    :param annotation: Bedset annotation (author, source, summary, etc.)
-    :param heavy: whether to use heavy processing (add all columns to the database).
-        if False -> R-script won't be executed, only basic statistics will be calculated
-    :param no_fail: whether to raise an error if bedset was not added to the database
-    :param upload_pephub: whether to create a view in pephub
-    :param upload_s3: whether to upload files to s3
-    :param force_overwrite: whether to overwrite the record in the database
-    :param lite: whether to run the pipeline in lite mode
-    # TODO: force_overwrite is not working!!! Fix it!
-    :return:
+    Args:
+        bedbase_config: BedBaseConf object or path to config file.
+        record_id: Record identifier or name to be used in database.
+        bed_set: Bedset object or list of bedfiles ids.
+        output_folder: Path to the output folder.
+        name: Name of the bedset.
+        description: Bedset description.
+        annotation: Bedset annotation (author, source, summary, etc.).
+        heavy: Whether to use heavy processing (add all columns to the database).
+            If False, R-script won't be executed, only basic statistics will be calculated.
+        upload_pephub: Whether to create a view in pephub.
+        upload_s3: Whether to upload files to s3.
+        no_fail: Whether to raise an error if bedset was not added to the database.
+        force_overwrite: Whether to overwrite the record in the database.
+        lite: Whether to run the pipeline in lite mode.
     """
-    _LOGGER.info(f"Adding bedset { record_id} to the database")
+    _LOGGER.info(f"Adding bedset {record_id} to the database")
 
     if isinstance(bedbase_config, str):
         bbagent = BedBaseAgent(bedbase_config)
@@ -170,7 +171,7 @@ def run_bedbuncher(
 
 def run_bedbuncher_form_pep(
     bedbase_config: str,
-    bedset_pep: Union[str, peppy.Project],
+    bedset_pep: str | peprs.Project,
     output_folder: str,
     bedset_name: str = None,
     heavy: bool = False,
@@ -180,28 +181,30 @@ def run_bedbuncher_form_pep(
     force_overwrite: bool = False,
 ) -> str:
     """
-    Create bedset from pep and add it to the database
+    Create bedset from pep and add it to the database.
 
-    :param bedbase_config: BedBaseConf object or path to the config file
-    :param bedset_pep: path to the pep file or pephub registry path
-    :param bedset_name: name of the bedset
-    :param output_folder: path to the output folder
-    :param heavy: whether to use heavy processing (add all columns to the database).
-        if False -> R-script won't be executed, only basic statistics will be calculated
-    :param upload_pephub: whether to create a view in pephub
-    :param upload_s3: whether to upload files to s3
-    :param no_fail: whether to raise an error if bedset was not added to the database
-    :param force_overwrite: whether to overwrite the record in the database
+    Args:
+        bedbase_config: BedBaseConf object or path to the config file.
+        bedset_pep: Path to the pep file or pephub registry path.
+        output_folder: Path to the output folder.
+        bedset_name: Name of the bedset.
+        heavy: Whether to use heavy processing (add all columns to the database).
+            If False, R-script won't be executed, only basic statistics will be calculated.
+        upload_pephub: Whether to create a view in pephub.
+        upload_s3: Whether to upload files to s3.
+        no_fail: Whether to raise an error if bedset was not added to the database.
+        force_overwrite: Whether to overwrite the record in the database.
 
-    return bedset_name
+    Returns:
+        Bedset name.
     """
-    if isinstance(bedset_pep, peppy.Project):
+    if isinstance(bedset_pep, peprs.Project):
         pep_of_bed = bedset_pep
     elif isinstance(bedset_pep, str):
         if is_registry_path(bedset_pep):
             pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
         else:
-            pep_of_bed = peppy.Project(bedset_pep)
+            pep_of_bed = peprs.Project(bedset_pep)
     else:
         raise ValueError(
             "bedset_pep should be either path to the pep file or pephub registry path"
