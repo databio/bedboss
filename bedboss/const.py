@@ -28,7 +28,7 @@ MIN_REGION_WIDTH: int = 10
 # bedstat
 
 # bedbuncher
-DEFAULT_BEDBASE_CACHE_PATH: str = "./bedabse_cache"
+DEFAULT_BEDBASE_CACHE_PATH: str = "./bedbase_cache"
 
 BEDBOSS_PEP_SCHEMA_PATH: str = "https://schema.databio.org/pipelines/bedboss.yaml"
 REFGENIE_ENV_VAR: str = "REFGENIE"
