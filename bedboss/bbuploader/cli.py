@@ -1,6 +1,8 @@
 import typer
 
-from bedboss._version import __version__
+from importlib.metadata import version as _pkg_version
+
+__version__ = _pkg_version("bedboss")
 
 app_bbuploader = typer.Typer(
     pretty_exceptions_short=False,

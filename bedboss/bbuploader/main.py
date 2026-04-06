@@ -46,7 +46,9 @@ from bedboss.utils import (
 )
 from bedboss.utils import standardize_pep as pep_standardizer
 from bedboss.bedstat.r_service import RServiceManager
-from bedboss._version import __version__
+from importlib.metadata import version as _pkg_version
+
+__version__ = _pkg_version("bedboss")
 
 _LOGGER = logging.getLogger(PKG_NAME)
 _LOGGER.setLevel(logging.DEBUG)

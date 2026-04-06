@@ -4,8 +4,6 @@ import logging
 
 import coloredlogs
 
-from bedboss._version import __version__
-
 __package_name__ = "bedboss"
 
 __author__ = [
@@ -19,7 +17,6 @@ __author__ = [
 __email__ = "khorosh@virginia.edu"
 
 __all__ = [
-    "__version__",
     "__package_name__",
     "__author__",
 ]

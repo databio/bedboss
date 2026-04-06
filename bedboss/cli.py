@@ -3,7 +3,9 @@ from typing import Union
 
 import typer
 
-from bedboss import __version__
+from importlib.metadata import version as _pkg_version
+
+__version__ = _pkg_version("bedboss")
 from bedboss.bbuploader.cli import app_bbuploader
 from pephubclient.helpers import MessageHandler as printm
 

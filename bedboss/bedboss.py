@@ -18,7 +18,9 @@ from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler as m
 from pephubclient.helpers import is_registry_path
 
-from bedboss._version import __version__
+from importlib.metadata import version as _pkg_version
+
+__version__ = _pkg_version("bedboss")
 from bedboss.bedbuncher import run_bedbuncher
 from bedboss.bedmaker.bedmaker import make_all
 from bedboss.bedstat.bedstat import bedstat
