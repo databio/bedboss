@@ -4,7 +4,7 @@ from typing import Literal, Union
 
 import pypiper
 
-import peppy
+import peprs
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from geniml.exceptions import GenimlBaseError
@@ -229,14 +229,14 @@ def upload_all(
 
 
 def process_pep_sample(
-    bed_sample: peppy.Sample,
+    bed_sample: peprs.Sample,
     geo_tag: str = DEFAULT_GEO_TAG,
 ) -> BedBossRequired:
     """
     Process pep sample that contains bed file. Download bed file and compose BedBossRequired data model
         that contains all required bed file metadata (e.g. reference genome, type, organism...)
 
-    :param bed_sample: peppy sample with bed file url
+    :param bed_sample: peprs sample with bed file url
     :param geo_tag: GEO tag to use when loading projects from PEPHub ('samples' or 'series')
     :return: BedBossRequired {sample_name: str,
                               gse: str,
@@ -334,7 +334,7 @@ def get_pep(
     """
     if not phc:
         phc = PEPHubClient()
-    return phc.load_project(f"{namespace}/{name}:{tag}")
+    return peprs.Project.from_pephub(f"{namespace}/{name}:{tag}")
 
 
 def find_peps(
@@ -573,7 +573,7 @@ def _upload_gse(
     os.makedirs(outfolder, exist_ok=True)
 
     _LOGGER.info(f"Loading project from PEPHub: 'bedbase/{gse}:{geo_tag}'")
-    project = phc.load_project(f"bedbase/{gse}:{geo_tag}")
+    project = peprs.Project.from_pephub(f"bedbase/{gse}:{geo_tag}")
     _LOGGER.info(f"Loaded project with {len(project.samples)} samples")
 
     if standardize_pep:

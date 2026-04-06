@@ -5,7 +5,7 @@ import subprocess
 from typing import List, Union
 
 import pephubclient
-import peppy
+import peprs
 from bbconf import BedBaseAgent
 from bbconf.models.base_models import FileModel
 from bbconf.models.bedset_models import BedSetPlots
@@ -170,7 +170,7 @@ def run_bedbuncher(
 
 def run_bedbuncher_form_pep(
     bedbase_config: str,
-    bedset_pep: Union[str, peppy.Project],
+    bedset_pep: Union[str, peprs.Project],
     output_folder: str,
     bedset_name: str = None,
     heavy: bool = False,
@@ -195,13 +195,13 @@ def run_bedbuncher_form_pep(
 
     return bedset_name
     """
-    if isinstance(bedset_pep, peppy.Project):
+    if isinstance(bedset_pep, peprs.Project):
         pep_of_bed = bedset_pep
     elif isinstance(bedset_pep, str):
         if is_registry_path(bedset_pep):
             pep_of_bed = pephubclient.PEPHubClient().load_project(bedset_pep)
         else:
-            pep_of_bed = peppy.Project(bedset_pep)
+            pep_of_bed = peprs.Project(bedset_pep)
     else:
         raise ValueError(
             "bedset_pep should be either path to the pep file or pephub registry path"

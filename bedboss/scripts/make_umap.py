@@ -12,15 +12,16 @@ from sklearn.manifold import TSNE
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Union
+from typing import Optional, Union
 import warnings
-from functools import lru_cache
 
 import joblib
 from bbconf import BedBaseAgent
+from bbconf.db_utils import Bed, BedStats
+from sqlalchemy.orm import Session, joinedload
 import json
 
-from bedboss.const import PKG_NAME
+from bedboss.const import DB_QUERY_BATCH_SIZE, PKG_NAME, TIER1_COLUMNS, TIER2_COLUMNS
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -32,6 +33,25 @@ class umapReturn(BaseModel):
     dataframe: pd.DataFrame
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class BedDbMetadata(BaseModel):
+    """Schema for per-file metadata fetched from PostgreSQL."""
+
+    id: str
+    number_of_regions: Optional[float] = None
+    mean_region_width: Optional[float] = None
+    gc_content: Optional[float] = None
+    median_tss_dist: Optional[float] = None
+    antibody: Optional[str] = None
+    library_source: Optional[str] = None
+    original_file_name: Optional[str] = None
+    global_sample_id: Optional[str] = None
+    global_experiment_id: Optional[str] = None
+    bed_compliance: Optional[str] = None
+    data_format: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None:
@@ -63,8 +83,8 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     _LOGGER.info("Fetching data from Qdrant...")
 
     client = QdrantClient(
-        host=agent.config.config.qdrant.host,
-        port=6333,
+        url=agent.config.config.qdrant.host,
+        port=agent.config.config.qdrant.port,
         api_key=agent.config.config.qdrant.api_key,
     )
 
@@ -93,6 +113,80 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
 
     _LOGGER.info(f"Fetched {len(merged)} records from Qdrant.")
     return merged
+
+
+def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
+    """
+    Fetch bed_stats and annotation metadata from PostgreSQL for the given bed IDs.
+
+    Returns a DataFrame indexed by bed ID with stats and annotation columns.
+    """
+    _LOGGER.info(f"Fetching DB metadata for {len(bed_ids)} beds...")
+
+    rows = []
+    with Session(agent.config.db_engine.engine) as session:
+        for i in range(0, len(bed_ids), DB_QUERY_BATCH_SIZE):
+            batch = bed_ids[i : i + DB_QUERY_BATCH_SIZE]
+            for bed_obj in (
+                session.query(Bed)
+                .options(
+                    joinedload(Bed.stats).load_only(
+                        BedStats.number_of_regions,
+                        BedStats.mean_region_width,
+                        BedStats.gc_content,
+                        BedStats.median_tss_dist,
+                    ),
+                    joinedload(Bed.annotations),
+                )
+                .filter(Bed.id.in_(batch))
+                .all()
+            ):
+                meta = BedDbMetadata(
+                    id=bed_obj.id,
+                    number_of_regions=(
+                        bed_obj.stats.number_of_regions if bed_obj.stats else None
+                    ),
+                    mean_region_width=(
+                        bed_obj.stats.mean_region_width if bed_obj.stats else None
+                    ),
+                    gc_content=(bed_obj.stats.gc_content if bed_obj.stats else None),
+                    median_tss_dist=(
+                        bed_obj.stats.median_tss_dist if bed_obj.stats else None
+                    ),
+                    antibody=(
+                        bed_obj.annotations.antibody if bed_obj.annotations else None
+                    ),
+                    library_source=(
+                        bed_obj.annotations.library_source
+                        if bed_obj.annotations
+                        else None
+                    ),
+                    original_file_name=(
+                        bed_obj.annotations.original_file_name
+                        if bed_obj.annotations
+                        else None
+                    ),
+                    global_sample_id=(
+                        ";".join(bed_obj.annotations.global_sample_id)
+                        if bed_obj.annotations and bed_obj.annotations.global_sample_id
+                        else None
+                    ),
+                    global_experiment_id=(
+                        ";".join(bed_obj.annotations.global_experiment_id)
+                        if bed_obj.annotations
+                        and bed_obj.annotations.global_experiment_id
+                        else None
+                    ),
+                    bed_compliance=bed_obj.bed_compliance,
+                    data_format=bed_obj.data_format,
+                )
+                rows.append(meta.model_dump())
+
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.set_index("id")
+    _LOGGER.info(f"Fetched DB metadata for {len(df)} beds.")
+    return df
 
 
 def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
@@ -151,6 +245,66 @@ def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
         json.dump(json_data, json_file, indent=4)
 
     _LOGGER.info(f"Data saved to {output_path} successfully.")
+
+
+def save_parquet_tiers(
+    df: pd.DataFrame,
+    db_meta: pd.DataFrame,
+    output_dir: str,
+) -> None:
+    """
+    Save UMAP data as tiered Parquet files.
+
+    Produces:
+      - hg38_geometry.parquet  (x, y, id)
+      - hg38_meta_t1.parquet   (core biological annotation + region stats)
+      - hg38_meta_t2.parquet   (extended annotation)
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Ensure id is a column (not just index)
+    if "id" not in df.columns:
+        df = df.copy()
+        df["id"] = df.index.astype(str)
+
+    # Join DB metadata
+    if not db_meta.empty:
+        combined = df.join(db_meta, how="left", rsuffix="_db")
+    else:
+        combined = df
+
+    # --- Geometry (only when coordinates are present) ---
+    if "x" in combined.columns and "y" in combined.columns:
+        coord_cols = ["id", "x", "y"]
+        if "z" in combined.columns:
+            coord_cols.append("z")
+        geometry = combined[coord_cols].copy()
+        for col in ["x", "y", "z"]:
+            if col in geometry.columns:
+                geometry[col] = geometry[col].round(2).astype("float32")
+        geometry.to_parquet(
+            os.path.join(output_dir, "hg38_geometry.parquet"), index=False
+        )
+        _LOGGER.info(f"Geometry: {len(geometry)} rows")
+    else:
+        _LOGGER.info("No coordinates found, skipping geometry file.")
+
+    # --- Tier 1: Core metadata ---
+    t1 = combined[[c for c in TIER1_COLUMNS if c in combined.columns]].copy()
+    str_cols = t1.select_dtypes(include="object").columns
+    t1[str_cols] = t1[str_cols].fillna("")
+    t1.to_parquet(os.path.join(output_dir, "hg38_meta_t1.parquet"), index=False)
+    _LOGGER.info(f"Tier 1: {len(t1)} rows, {len(t1.columns)} columns")
+
+    # --- Tier 2: Extended annotation ---
+    t2 = combined[[c for c in TIER2_COLUMNS if c in combined.columns]].copy()
+    str_cols = t2.select_dtypes(include="object").columns
+    t2[str_cols] = t2[str_cols].fillna("")
+    t2.to_parquet(os.path.join(output_dir, "hg38_meta_t2.parquet"), index=False)
+    _LOGGER.info(f"Tier 2: {len(t2)} rows, {len(t2.columns)} columns")
+
+    # Tier 3 reserved for future analysis results (gtars genomic distributions,
+    # enrichment profiles, embedding quality scores). Not generated in this version.
 
 
 def create_umap(
@@ -273,6 +427,41 @@ def plot_umap(value, label, name="default") -> None:
     )
 
 
+def update_umap_metadata(
+    bbconf: str,
+    output_dir: str,
+    geometry: str = None,
+) -> None:
+    """
+    Update UMAP metadata Parquet tiers without regenerating geometry.
+
+    :param bbconf: string containing bedbase configuration file path
+    :param output_dir: Directory to write Parquet tier files
+    :param geometry: Path to existing geometry Parquet (to read bed IDs).
+        If not provided, fetches IDs from Qdrant.
+    """
+    if isinstance(bbconf, str):
+        agent = BedBaseAgent(config=bbconf)
+    elif isinstance(bbconf, BedBaseAgent):
+        agent = bbconf
+    else:
+        raise TypeError(
+            "bbconf must be either a string path or a BedBaseAgent instance."
+        )
+
+    if geometry:
+        geo_df = pd.read_parquet(geometry)
+        bed_ids = list(geo_df["id"])
+        qdrant_df = fetch_data(agent=agent)
+        qdrant_df = qdrant_df.loc[qdrant_df.index.isin(bed_ids)]
+    else:
+        qdrant_df = fetch_data(agent=agent)
+        bed_ids = list(qdrant_df.index)
+
+    db_meta = fetch_db_metadata(agent, bed_ids)
+    save_parquet_tiers(qdrant_df, db_meta, output_dir)
+
+
 def get_embeddings(
     bbconf: str,
     output_file: str,
@@ -283,6 +472,7 @@ def get_embeddings(
     top_cell_lines: Union[int, None] = 15,
     save_model: bool = True,
     method: str = "umap",
+    save_parquet: bool = False,
 ) -> None:
     """
     Get embeddings from Qdrant and create UMAP, PCA, or t-SNE, and save the results to a JSON file, and optionally plot the embeddings.
@@ -299,6 +489,8 @@ def get_embeddings(
 
     :param save_model: Whether to save the model or not [Default is True]
     :param method: Dimensionality reduction method to use. Options: "umap", "pca", or "tsne" [Default is "umap"]
+
+    :param save_parquet: Whether to save Parquet tier files alongside JSON [Default is True]
 
     :return: None
 
@@ -383,11 +575,25 @@ def get_embeddings(
         label_column=plot_label,
         method=method,
     )
+
+    # Legacy JSON output
     save_df_as_json(umap_return.dataframe, output_file)
 
+    # Parquet tiered output
+    if save_parquet:
+        parquet_dir = os.path.dirname(os.path.abspath(output_file))
+        try:
+            db_meta = fetch_db_metadata(agent, list(umap_return.dataframe.index))
+        except Exception as e:
+            _LOGGER.warning(
+                f"Failed to fetch DB metadata, Parquet tiers will lack stats/annotation: {e}"
+            )
+            db_meta = pd.DataFrame()
+        save_parquet_tiers(umap_return.dataframe, db_meta, parquet_dir)
+
     if save_model:
-        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
-        ## I am removing it here, but it should be set later to the same value (42)
+        # controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        # I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
         save_umap_model(
