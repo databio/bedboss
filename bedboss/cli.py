@@ -686,7 +686,7 @@ def download_umap(
         help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'. To use UMAP, 'umap-learn' package must be installed.",
     ),
     save_parquet: bool = typer.Option(
-        True,
+        False,
         help="Whether to save Parquet tier files alongside JSON",
     ),
 ):

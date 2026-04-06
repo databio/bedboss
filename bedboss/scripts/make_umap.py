@@ -472,7 +472,7 @@ def get_embeddings(
     top_cell_lines: Union[int, None] = 15,
     save_model: bool = True,
     method: str = "umap",
-    save_parquet: bool = True,
+    save_parquet: bool = False,
 ) -> None:
     """
     Get embeddings from Qdrant and create UMAP, PCA, or t-SNE, and save the results to a JSON file, and optionally plot the embeddings.
@@ -592,8 +592,8 @@ def get_embeddings(
         save_parquet_tiers(umap_return.dataframe, db_meta, parquet_dir)
 
     if save_model:
-        ## controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
-        ## I am removing it here, but it should be set later to the same value (42)
+        # controls the random initialization and stochastic optimization during UMAP fitting. But removing, because it causes issues during saving/loading
+        # I am removing it here, but it should be set later to the same value (42)
         if method == "umap":
             umap_return.model.random_state = None
         save_umap_model(
