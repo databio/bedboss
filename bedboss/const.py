@@ -38,3 +38,35 @@ REFGENIE_ENV_VAR = "REFGENIE"
 DEFAULT_REFGENIE_PATH = os.path.join(HOME_PATH, ".refgenie")
 
 BED_PEP_REGISTRY = "databio/allbeds:bedbase"
+
+# UMAP Parquet tier column definitions
+DB_QUERY_BATCH_SIZE = 5000
+
+TIER1_COLUMNS = [
+    "id",
+    "name",
+    "description",
+    "assay",
+    "target",
+    "cell_line",
+    "cell_type",
+    "tissue",
+    "number_of_regions",
+    "mean_region_width",
+    "gc_content",
+]
+
+TIER2_COLUMNS = [
+    "id",
+    "treatment",
+    "antibody",
+    "species_name",
+    "genome_alias",
+    "bed_compliance",
+    "data_format",
+    "median_tss_dist",
+    "library_source",
+    "global_sample_id",
+    "global_experiment_id",
+    "original_file_name",
+]
