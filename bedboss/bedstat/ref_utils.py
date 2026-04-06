@@ -42,6 +42,46 @@ def get_fasta_path(genome: str, rfg_config: str = None) -> Union[str, None]:
         return None
 
 
+def get_fab_path(genome: str, rfg_config: str = None) -> Union[str, None]:
+    """Return path to a .fab binary FASTA for the given genome.
+
+    Checks for a .fab file alongside the refgenie FASTA. If not found,
+    auto-compiles it via `gtars prep --fasta`. Returns the .fab path
+    for zero-copy mmap access in the CLI.
+
+    :param genome: genome assembly name
+    :param rfg_config: path to refgenie config file (optional)
+    :return: path to the .fab file, or None if FASTA unavailable
+    """
+    fasta_path = get_fasta_path(genome, rfg_config=rfg_config)
+    if not fasta_path:
+        return None
+
+    fab_path = fasta_path + ".fab"
+    if os.path.exists(fab_path):
+        return fab_path
+
+    # Auto-compile
+    _LOGGER.info(f"Compiling .fab for {genome}: {fasta_path} -> {fab_path}")
+    try:
+        result = subprocess.run(
+            ["gtars", "prep", "--fasta", fasta_path, "-o", fab_path],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0 and os.path.exists(fab_path):
+            _LOGGER.info(f"Created .fab: {fab_path}")
+            return fab_path
+        else:
+            _LOGGER.warning(
+                f"Failed to compile .fab: {result.stderr.strip()}"
+            )
+            return None
+    except FileNotFoundError:
+        _LOGGER.warning("gtars CLI not found — cannot compile .fab")
+        return None
+
+
 def _get_chrom_sizes_seqcol(genome: str) -> Union[str, None]:
     """Fallback: fetch chrom.sizes via seqcol API when refgenie doesn't have it.
 

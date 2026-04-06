@@ -101,7 +101,7 @@ def run_all(
     upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     backend: str = typer.Option(
         None,
-        help="Override analysis backend ('r', 'gtars', or 'gtars-py'). If not set, uses config file value.",
+        help="Override analysis backend ('r' or 'gtars'). If not set, uses config file value.",
     ),
     # Universes
     universe: bool = typer.Option(False, help="Create a universe"),
@@ -403,7 +403,7 @@ def run_stats(
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
     backend: str = typer.Option(
         "r",
-        help="Analysis backend ('r', 'gtars', or 'gtars-py'). Default: 'r'.",
+        help="Analysis backend ('r' or 'gtars'). Default: 'r'.",
     ),
     # PipelineManager
     multi: bool = typer.Option(False, help="Run multiple samples"),

@@ -6,8 +6,8 @@ frequencies, partitions, signal matrix overlap — happens inside the
 CLI binary. This backend only orchestrates the subprocess and parses
 the JSON output.
 
-For the Python-bindings counterpart (no subprocess, in-process gtars
-calls) see GtarsPyStatBackend.
+Uses .fab binary FASTA format when available for optimal GC content
+performance (zero-copy mmap). Falls back to plain FASTA otherwise.
 """
 
 import json
@@ -26,6 +26,7 @@ from bedboss.bedstat.compress_distributions import (
 )
 from bedboss.bedstat.ref_utils import (
     get_chrom_sizes_path,
+    get_fab_path,
     get_fasta_path,
     get_gda_path,
     get_osm_path_with_precompile,
@@ -117,8 +118,10 @@ class GtarsStatBackend(StatBackend):
                 "Region distribution will not be normalized."
             )
 
-        # Resolve FASTA path so the CLI can compute GC content + dinucl freq
-        fasta_path = get_fasta_path(genome, rfg_config=rfg_config)
+        # Resolve FASTA path — prefer .fab (zero-copy mmap) over plain .fa
+        fasta_path = get_fab_path(genome, rfg_config=rfg_config)
+        if not fasta_path:
+            fasta_path = get_fasta_path(genome, rfg_config=rfg_config)
 
         outfolder_stats = os.path.join(outfolder, OUTPUT_FOLDER_NAME, BEDSTAT_OUTPUT)
         os.makedirs(outfolder_stats, exist_ok=True)

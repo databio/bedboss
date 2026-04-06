@@ -786,4 +786,5 @@ def reprocess_bedset(
             )
         },
         lite=False,
+        backend=bbagent.config.config.analysis.backend,
     )
