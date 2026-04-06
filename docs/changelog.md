@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.10.0] - 2026-04-05
+## Added:
+- Creation of parquet file for umap with more metadata inside
+
+## Changed:
+- Testing version of new peppy
+- New project style
+- Modernized docstrings and typing
+
+
 # [0.9.6] - 2026-02-18
 ## Added:
 - Added scripts for downloading and analyzing ENCODE metadata
