@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Literal, Union
+from typing import Literal
 
 import pypiper
 
@@ -384,7 +384,7 @@ def find_peps(
 @calculate_time
 def upload_gse(
     gse: str,
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     outfolder: str = os.getcwd(),
     geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,
@@ -518,7 +518,7 @@ def status_parser(
 
 def _upload_gse(
     gse: str,
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     outfolder: str = os.getcwd(),
     geo_tag: str = DEFAULT_GEO_TAG,
     create_bedset: bool = True,

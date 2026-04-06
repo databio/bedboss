@@ -4,7 +4,6 @@ import signal
 import os
 import re
 import time
-from typing import Union
 
 from bedboss.const import PKG_NAME
 from logging import getLogger
@@ -65,8 +64,8 @@ class RServiceManager:
         digest: str,
         outpath: str,
         genome: str,
-        openSignalMatrix: Union[str, None],
-        gtffile: Union[str, None],
+        openSignalMatrix: str | None,
+        gtffile: str | None,
     ):
         """
         Sends a file path to the R service for processing.

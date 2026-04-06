@@ -1,6 +1,3 @@
-from typing import Union, Dict
-
-
 class GenomeModel:
     """
         Initialize genome model
@@ -13,8 +10,8 @@ class GenomeModel:
     def __init__(
         self,
         genome_alias: str,
-        chrom_sizes_file: Union[str, Dict[str, int]],
-        genome_digest: Union[str, None] = None,
+        chrom_sizes_file: str | dict[str, int],
+        genome_digest: str | None = None,
         # common_aliases: Optional[List] = None,
         # exclude_ranges_names: Optional[List] = None,
     ):

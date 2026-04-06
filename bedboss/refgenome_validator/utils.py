@@ -1,6 +1,6 @@
 import logging
 import subprocess
-from typing import List, Union, Dict, Any
+from typing import Any
 
 from bedboss.refgenome_validator.models import CompatibilityConcise
 from bedboss.refgenome_validator.const import GENOME_FILES
@@ -9,7 +9,7 @@ from gtars.models import RegionSet as GRegionSet
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_bed_chrom_info(bedfile: Union[str, GRegionSet]) -> Dict[str, int]:
+def get_bed_chrom_info(bedfile: str | GRegionSet) -> dict[str, int]:
     """
     Determine chrom lengths for bed file
 
@@ -53,7 +53,7 @@ def run_igd_command(command):
         return None
 
 
-def parse_IGD_output(output_str) -> Union[None, List[dict]]:
+def parse_IGD_output(output_str) -> list[dict] | None:
     """
     Parses IGD terminal output into a list of dicts
     Args:
@@ -88,7 +88,7 @@ def parse_IGD_output(output_str) -> Union[None, List[dict]]:
 def predict_from_compatibility_resutlts(
     compatibility_stats: dict[str, CompatibilityConcise],
 ) -> tuple[str | Any, str]:
-    tier1_genomes: List[tuple[str, CompatibilityConcise]] = [
+    tier1_genomes: list[tuple[str, CompatibilityConcise]] = [
         (genome, prediction)
         for genome, prediction in compatibility_stats.items()
         if prediction.tier_ranking == 1
@@ -96,7 +96,7 @@ def predict_from_compatibility_resutlts(
 
     if not tier1_genomes:
         # Fall back to tier 2 if there's exactly one tier 2 genome and no tier 1 genomes
-        tier2_genomes: List[tuple[str, CompatibilityConcise]] = [
+        tier2_genomes: list[tuple[str, CompatibilityConcise]] = [
             (genome, prediction)
             for genome, prediction in compatibility_stats.items()
             if prediction.tier_ranking == 2

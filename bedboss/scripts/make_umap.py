@@ -12,7 +12,6 @@ from sklearn.manifold import TSNE
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import Optional, Union
 import warnings
 
 import joblib
@@ -29,7 +28,7 @@ python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
 
 
 class umapReturn(BaseModel):
-    model: Union[UMAP, PCA, TSNE]
+    model: UMAP | PCA | TSNE
     dataframe: pd.DataFrame
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -39,22 +38,22 @@ class BedDbMetadata(BaseModel):
     """Schema for per-file metadata fetched from PostgreSQL."""
 
     id: str
-    number_of_regions: Optional[float] = None
-    mean_region_width: Optional[float] = None
-    gc_content: Optional[float] = None
-    median_tss_dist: Optional[float] = None
-    antibody: Optional[str] = None
-    library_source: Optional[str] = None
-    original_file_name: Optional[str] = None
-    global_sample_id: Optional[str] = None
-    global_experiment_id: Optional[str] = None
-    bed_compliance: Optional[str] = None
-    data_format: Optional[str] = None
+    number_of_regions: float | None = None
+    mean_region_width: float | None = None
+    gc_content: float | None = None
+    median_tss_dist: float | None = None
+    antibody: str | None = None
+    library_source: str | None = None
+    original_file_name: str | None = None
+    global_sample_id: str | None = None
+    global_experiment_id: str | None = None
+    bed_compliance: str | None = None
+    data_format: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None:
+def save_umap_model(umap_model: UMAP | PCA | TSNE, model_path: str) -> None:
     """
     Save the UMAP, PCA, or t-SNE model to a file.
 
@@ -310,7 +309,7 @@ def save_parquet_tiers(
 def create_umap(
     df: pd.DataFrame,
     n_components: int = 3,
-    plot_name: Union[str, None] = None,
+    plot_name: str | None = None,
     label_column: str = "cell_line",
     method: str = "umap",
 ) -> umapReturn:
@@ -468,8 +467,8 @@ def get_embeddings(
     n_components: int = 2,
     plot_name: str = None,
     plot_label: str = None,
-    top_assays: Union[int, None] = 15,
-    top_cell_lines: Union[int, None] = 15,
+    top_assays: int | None = 15,
+    top_cell_lines: int | None = 15,
     save_model: bool = True,
     method: str = "umap",
     save_parquet: bool = False,

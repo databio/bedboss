@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Dict, List, Optional, Union, Tuple
 
 from gtars.models import RegionSet as GRegionSet
 
@@ -34,8 +33,8 @@ class ReferenceValidator:
 
     def __init__(
         self,
-        genome_models: Optional[List[GenomeModel]] = None,
-        igd_path: Optional[str] = None,
+        genome_models: list[GenomeModel] | None = None,
+        igd_path: str | None = None,
     ):
         """
         Initialization method
@@ -54,7 +53,7 @@ class ReferenceValidator:
                 reason="A list of GenomeModels must be provided to initialize the Validator class"
             )
 
-        self.genome_models: List[GenomeModel] = genome_models
+        self.genome_models: list[GenomeModel] = genome_models
         self.igd_path = igd_path
 
     @staticmethod
@@ -177,7 +176,7 @@ class ReferenceValidator:
             chrom_sequence_fit_stats=seq_fit_stats,
         )
 
-    def get_igd_overlaps(self, bedfile: str) -> Union[dict[str, dict], dict[str, None]]:
+    def get_igd_overlaps(self, bedfile: str) -> dict[str, dict] | dict[str, None]:
         """
         Third layer compatibility check.
         Run helper functions and execute an igd search query across an Integrated Genome Database.
@@ -227,10 +226,10 @@ class ReferenceValidator:
 
     def determine_compatibility(
         self,
-        bedfile: Union[GRegionSet, str, Dict[str, int]],
-        ref_filter: Optional[List[str]] = None,
-        concise: Optional[bool] = False,
-    ) -> Union[Dict[str, CompatibilityStats], Dict[str, CompatibilityConcise]]:
+        bedfile: GRegionSet | str | dict[str, int],
+        ref_filter: list[str] | None = None,
+        concise: bool | None = False,
+    ) -> dict[str, CompatibilityStats] | dict[str, CompatibilityConcise]:
         """
         Determine compatibility of the bed file.
 
@@ -441,8 +440,8 @@ class ReferenceValidator:
         )
 
     def predict(
-        self, bedfile: Union[str, GRegionSet]
-    ) -> Tuple[Union[str, None], Union[str, None]]:
+        self, bedfile: str | GRegionSet
+    ) -> tuple[str | None, str | None]:
         """
         Predict compatibility of a bed file with reference genomes
 
@@ -453,7 +452,7 @@ class ReferenceValidator:
         """
 
         _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
-        compatibility_stats: Dict[str, CompatibilityConcise] = (
+        compatibility_stats: dict[str, CompatibilityConcise] = (
             self.determine_compatibility(bedfile, concise=True)
         )
 

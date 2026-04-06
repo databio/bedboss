@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import List, Union
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -53,7 +52,7 @@ def get_genome_fasta_file(genome: str, rfg_config: str = None) -> str:
 
 def get_genome_assembly_obj(
     genome: str, rfg_config: str = None
-) -> Union[GenomeAssembly, None]:
+) -> GenomeAssembly | None:
     """
     Get assembly object for a genome.
 
@@ -77,7 +76,7 @@ def get_genome_assembly_obj(
 
 def calculate_gc_content(
     bedfile: RegionSet, genome: str, rfg_config: str = None
-) -> Union[List[float], None]:
+) -> list[float] | None:
     """
     Calculate GC content for a bed file.
 
@@ -101,7 +100,7 @@ def calculate_gc_content(
 
 
 def create_gc_plot(
-    bed_id: str, gc_contents: List[float], outfolder: str, gc_mean: float
+    bed_id: str, gc_contents: list[float], outfolder: str, gc_mean: float
 ) -> dict:
     """
     Create a GC content plot.

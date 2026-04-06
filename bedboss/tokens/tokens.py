@@ -1,7 +1,6 @@
 # functions for tokenization of bed files
 import logging
 import os
-from typing import Union
 
 from bbconf.bbagent import BedBaseAgent
 from geniml.bbclient import BBClient
@@ -16,7 +15,7 @@ _LOGGER = logging.getLogger("bedboss")
 def tokenize_bed_file(
     universe: str,
     bed: str,
-    cache_folder: Union[str, os.PathLike] = DEFAULT_CACHE_FOLDER,
+    cache_folder: str | os.PathLike = DEFAULT_CACHE_FOLDER,
     add_to_db: bool = False,
     config: str = None,
     overwrite: bool = False,

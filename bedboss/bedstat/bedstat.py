@@ -3,7 +3,6 @@ import logging
 import os
 import statistics
 from pathlib import Path
-from typing import Union
 
 import pypiper
 from gtars.models import RegionSet
@@ -30,7 +29,7 @@ SCHEMA_PATH_BEDSTAT = os.path.join(
 )
 
 
-def get_osm_path(genome: str, out_path: str = None) -> Union[str, None]:
+def get_osm_path(genome: str, out_path: str = None) -> str | None:
     """
     By providing genome name download Open Signal Matrix
 
@@ -75,7 +74,7 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
-    rfg_config: Union[str, Path] = None,
+    rfg_config: str | Path = None,
     pm: pypiper.PipelineManager = None,
     r_service: RServiceManager = None,
 ) -> dict:

@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 import typer
 
@@ -167,7 +166,7 @@ def run_pep(
     bedset_heavy: bool = typer.Option(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
-    bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
+    bedset_id: str | None = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),

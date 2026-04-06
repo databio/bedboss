@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Union, Tuple
 
 import pypiper
 from geniml.bbclient import BBClient
@@ -29,10 +28,10 @@ _LOGGER = logging.getLogger("bedboss")
 
 
 def make_bigbed(
-    bed: Union[str, RegionSet],
+    bed: str | RegionSet,
     output_path: str,
     genome: str,
-    rfg_config: Union[str, Path] = None,
+    rfg_config: str | Path = None,
 ) -> None:
     """
     Generate bigBed file for the BED file.
@@ -75,7 +74,7 @@ def make_bed(
     rfg_config: str = None,
     chrom_sizes: str = None,
     pm: pypiper.PipelineManager = None,
-) -> Tuple[str, str, RegionSet]:
+) -> tuple[str, str, RegionSet]:
     """
     Convert the input file to BED format by construct the command based
     on input file type and execute the command.

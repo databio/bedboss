@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import subprocess
-from typing import List, Union
 
 import pephubclient
 import peprs
@@ -36,7 +35,7 @@ def create_bed_list_file(bedset: BedSet, file_path: str) -> None:
 
 
 def create_plots(
-    bedset: List[str],
+    bedset: list[str],
     output_folder: str,
 ) -> dict:
     """
@@ -89,9 +88,9 @@ def create_plots(
 
 
 def run_bedbuncher(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     record_id: str,
-    bed_set: List[str],
+    bed_set: list[str],
     output_folder: str,
     name: str = None,
     description: str = None,
@@ -170,7 +169,7 @@ def run_bedbuncher(
 
 def run_bedbuncher_form_pep(
     bedbase_config: str,
-    bedset_pep: Union[str, peprs.Project],
+    bedset_pep: str | peprs.Project,
     output_folder: str,
     bedset_name: str = None,
     heavy: bool = False,

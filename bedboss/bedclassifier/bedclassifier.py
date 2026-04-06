@@ -1,5 +1,4 @@
 import logging
-from typing import Optional, Union
 
 import pandas as pd
 
@@ -10,8 +9,8 @@ _LOGGER = logging.getLogger("bedboss")
 
 
 def get_bed_classification(
-    bed: Union[str, pd.DataFrame],
-    no_fail: Optional[bool] = True,
+    bed: str | pd.DataFrame,
+    no_fail: bool | None = True,
 ) -> BedClassificationOutput:
     """
     Get the BED file classification as a Pydantic object.
@@ -34,7 +33,7 @@ def get_bed_classification(
     #    int[blockCount] blockSizes; "Comma separated list of block sizes"
     #    int[blockCount] chromStarts; "Start positions relative to chromStart"
 
-    def _read_bed_file(filepath: str, skiprows: int = 0) -> Optional[pd.DataFrame]:
+    def _read_bed_file(filepath: str, skiprows: int = 0) -> pd.DataFrame | None:
         """
         Helper function to read BED file with error handling.
         :param str file_path: path to the bed file

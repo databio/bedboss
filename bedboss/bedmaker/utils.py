@@ -1,7 +1,6 @@
 import logging
 import os
 from pathlib import Path
-from typing import Union
 
 from refgenconf import CFG_ENV_VARS, CFG_FOLDER_KEY
 from refgenconf import RefGenConf as RGC
@@ -13,7 +12,7 @@ from bedboss.const import DEFAULT_REFGENIE_PATH, REFGENIE_ENV_VAR
 _LOGGER = logging.getLogger("bedboss")
 
 
-def get_chrom_sizes(genome: str, rfg_config: Union[str, Path]) -> str:
+def get_chrom_sizes(genome: str, rfg_config: str | Path) -> str:
     """
     Get chrom.sizes file with Refgenie.
 
@@ -50,7 +49,7 @@ def get_chrom_sizes(genome: str, rfg_config: Union[str, Path]) -> str:
     return chrom_sizes
 
 
-def get_rgc(rfg_config: Union[str, Path] = None) -> RGC:
+def get_rgc(rfg_config: str | Path = None) -> RGC:
     """
     Get refgenie config file.
 

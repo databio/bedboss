@@ -4,7 +4,7 @@ import os
 import requests
 from pydantic import BaseModel
 import json
-from typing import List, Union, Any
+from typing import Any
 from tqdm import tqdm
 import logging
 import warnings
@@ -30,14 +30,14 @@ class SeqCol(BaseModel):
 
 
 class SeqColGenome(BaseModel):
-    genome: Union[str, None] = None
+    genome: str | None = None
     digest: str
     description: str
-    collection: List[SeqCol]
+    collection: list[SeqCol]
 
 
 class Genomes(BaseModel):
-    genomes: List[SeqColGenome]
+    genomes: list[SeqColGenome]
 
 
 def run_requests(url, timeout=60) -> Any:
@@ -55,7 +55,7 @@ def run_requests(url, timeout=60) -> Any:
         return None
 
 
-def get_genome_list() -> List[dict]:
+def get_genome_list() -> list[dict]:
     """
     Fetch the list of genomes from Refgenie.
     """
@@ -67,7 +67,7 @@ def get_genome_list() -> List[dict]:
     return []
 
 
-def seq_col_from_digest(digest: str) -> List[SeqCol]:
+def seq_col_from_digest(digest: str) -> list[SeqCol]:
     """
 
     Fetch sequence collection from Refgenie using the genome digest.
@@ -154,7 +154,7 @@ def read_seq_col_from_json(input_path: str = "genome_seqcol.json") -> Genomes:
     return Genomes(**data)
 
 
-def modify_for_analysis(genomes: Genomes) -> List[GenomeModel]:
+def modify_for_analysis(genomes: Genomes) -> list[GenomeModel]:
     """
     Modify the genomes data for analysis.
 

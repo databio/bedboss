@@ -7,7 +7,6 @@ from functools import wraps
 import gzip
 from io import StringIO
 import pandas as pd
-from typing import Union
 from gtars.models import RegionSet
 
 import peprs
@@ -26,7 +25,7 @@ _LOGGER = logging.getLogger("bedboss")
 
 def standardize_genome_name(
     input_genome: str,
-    bedfile: Union[str, RegionSet] = None,
+    bedfile: str | RegionSet = None,
     reference_validator: ReferenceValidator = None,
 ) -> str:
     """

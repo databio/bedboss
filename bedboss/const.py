@@ -1,48 +1,46 @@
 import os
 
-PKG_NAME = "bedboss"
-DEFAULT_BEDBASE_API_URL = "https://api.bedbase.org"
+PKG_NAME: str = "bedboss"
+DEFAULT_BEDBASE_API_URL: str = "https://api.bedbase.org"
 # DEFAULT_BEDBASE_API_URL = "http://localhost:8000/api"
 
-HOME_PATH = os.getenv("HOME")
-if not HOME_PATH:
-    HOME_PATH = os.path.expanduser("~")
+HOME_PATH: str = os.getenv("HOME") or os.path.expanduser("~")
 
-OPEN_SIGNAL_FOLDER_NAME = "openSignalMatrix"
-OPEN_SIGNAL_URL = "http://big.databio.org/open_chromatin_matrix/"
+OPEN_SIGNAL_FOLDER_NAME: str = "openSignalMatrix"
+OPEN_SIGNAL_URL: str = "http://big.databio.org/open_chromatin_matrix/"
 
-OS_HG38 = "openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
-OS_HG19 = "openSignalMatrix_hg19_percentile99_01_quantNormalized_round4d.txt.gz"
-OS_MM10 = "openSignalMatrix_mm10_percentile99_01_quantNormalized_round4d.txt.gz"
+OS_HG38: str = "openSignalMatrix_hg38_percentile99_01_quantNormalized_round4d.txt.gz"
+OS_HG19: str = "openSignalMatrix_hg19_percentile99_01_quantNormalized_round4d.txt.gz"
+OS_MM10: str = "openSignalMatrix_mm10_percentile99_01_quantNormalized_round4d.txt.gz"
 
-BED_FOLDER_NAME = "bed_files"
-BIGBED_FOLDER_NAME = "bigbed_files"
-OUTPUT_FOLDER_NAME = "output"
-BEDSTAT_OUTPUT = "bedstat_output"
-QC_FOLDER_NAME = "bed_qc"
+BED_FOLDER_NAME: str = "bed_files"
+BIGBED_FOLDER_NAME: str = "bigbed_files"
+OUTPUT_FOLDER_NAME: str = "output"
+BEDSTAT_OUTPUT: str = "bedstat_output"
+QC_FOLDER_NAME: str = "bed_qc"
 
 # bedqc
-MAX_FILE_SIZE = 1024 * 1024 * 1024 * 2
-MAX_FILE_SIZE_QC = 1024 * 1024 * 25  # 25 MB
-MAX_REGION_NUMBER = 5000000
-MIN_REGION_WIDTH = 10
+MAX_FILE_SIZE: int = 1024 * 1024 * 1024 * 2
+MAX_FILE_SIZE_QC: int = 1024 * 1024 * 25  # 25 MB
+MAX_REGION_NUMBER: int = 5000000
+MIN_REGION_WIDTH: int = 10
 
 # bedstat
 
 # bedbuncher
-DEFAULT_BEDBASE_CACHE_PATH = "./bedabse_cache"
+DEFAULT_BEDBASE_CACHE_PATH: str = "./bedabse_cache"
 
-BEDBOSS_PEP_SCHEMA_PATH = "https://schema.databio.org/pipelines/bedboss.yaml"
-REFGENIE_ENV_VAR = "REFGENIE"
+BEDBOSS_PEP_SCHEMA_PATH: str = "https://schema.databio.org/pipelines/bedboss.yaml"
+REFGENIE_ENV_VAR: str = "REFGENIE"
 
-DEFAULT_REFGENIE_PATH = os.path.join(HOME_PATH, ".refgenie")
+DEFAULT_REFGENIE_PATH: str = os.path.join(HOME_PATH, ".refgenie")
 
-BED_PEP_REGISTRY = "databio/allbeds:bedbase"
+BED_PEP_REGISTRY: str = "databio/allbeds:bedbase"
 
 # UMAP Parquet tier column definitions
-DB_QUERY_BATCH_SIZE = 5000
+DB_QUERY_BATCH_SIZE: int = 5000
 
-TIER1_COLUMNS = [
+TIER1_COLUMNS: list[str] = [
     "id",
     "name",
     "description",
@@ -56,7 +54,7 @@ TIER1_COLUMNS = [
     "gc_content",
 ]
 
-TIER2_COLUMNS = [
+TIER2_COLUMNS: list[str] = [
     "id",
     "treatment",
     "antibody",

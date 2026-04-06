@@ -2,7 +2,6 @@ import datetime
 import logging
 import os
 import subprocess
-from typing import Union
 from urllib.parse import urlparse
 
 import bbconf
@@ -69,7 +68,7 @@ def run_all(
     input_type: str,
     outfolder: str,
     genome: str,
-    bedbase_config: Union[str, bbconf.BedBaseAgent],
+    bedbase_config: str | bbconf.BedBaseAgent,
     name: str = None,
     license_id: str = DEFAULT_LICENSE,
     rfg_config: str = None,
@@ -330,7 +329,7 @@ def run_all(
 def insert_pep(
     bedbase_config: str,
     output_folder: str,
-    pep: Union[str, peprs.Project],
+    pep: str | peprs.Project,
     bedset_id: str = None,
     bedset_name: str = None,
     rfg_config: str = None,
@@ -537,7 +536,7 @@ def pep_any_to_object(pep: str | peprs.Project) -> peprs.Project:
 
 @calculate_time
 def reprocess_all(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     limit: int = 10,
     no_fail: bool = False,
@@ -658,7 +657,7 @@ def reprocess_all(
 
 @calculate_time
 def reprocess_one(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
     pm: pypiper.PipelineManager = None,
@@ -734,7 +733,7 @@ def reprocess_one(
 
 @calculate_time
 def reprocess_bedset(
-    bedbase_config: Union[str, BedBaseAgent],
+    bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
     no_fail: bool = True,

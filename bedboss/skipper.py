@@ -1,6 +1,5 @@
 # This module will serve to skip samples that were already processed.
 import os
-from typing import Union
 
 
 class Skipper:
@@ -13,7 +12,7 @@ class Skipper:
 
         self.info = self._read_log_file(self.file_path)
 
-    def is_processed(self, sample_name: str) -> Union[str, bool]:
+    def is_processed(self, sample_name: str) -> str | bool:
         """
         Check if a sample was already processed.
 
