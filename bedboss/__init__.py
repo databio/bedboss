@@ -1,10 +1,9 @@
 """Package-level data"""
 
 import logging
-
-import coloredlogs
 from importlib.metadata import version
 
+import coloredlogs
 
 __version__ = version(__package__)
 __package_name__ = "bedboss"
