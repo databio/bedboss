@@ -2,9 +2,13 @@ import logging
 import os
 from pathlib import Path
 
-from refgenconf import CFG_ENV_VARS, CFG_FOLDER_KEY
+from refgenconf import (
+    CFG_ENV_VARS,
+    CFG_FOLDER_KEY,
+    RefgenconfError,
+    select_genome_config,
+)
 from refgenconf import RefGenConf as RGC
-from refgenconf import RefgenconfError, select_genome_config
 from yacman.exceptions import UndefinedAliasError
 
 from bedboss.const import DEFAULT_REFGENIE_PATH, REFGENIE_ENV_VAR
@@ -16,8 +20,12 @@ def get_chrom_sizes(genome: str, rfg_config: str | Path) -> str:
     """
     Get chrom.sizes file with Refgenie.
 
-    :param genome: genome name
-    :return str: path to chrom.sizes file for the genome
+    Args:
+        genome: Genome name.
+        rfg_config: Path to refgenie config file.
+
+    Returns:
+        Path to chrom.sizes file for the genome.
     """
 
     _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
@@ -53,8 +61,11 @@ def get_rgc(rfg_config: str | Path = None) -> RGC:
     """
     Get refgenie config file.
 
-    :return str: rfg_config file path
-    :return RGC: refgenie config object
+    Args:
+        rfg_config: Path to refgenie config file.
+
+    Returns:
+        Refgenie config object.
     """
     if not rfg_config:
         _LOGGER.info("Creating refgenie genome config file...")
@@ -79,8 +90,7 @@ def get_rgc(rfg_config: str | Path = None) -> RGC:
         rgc.initialize_config_file(filepath=refgenie_cfg_path)
     else:
         _LOGGER.info(
-            "Reading refgenie genome configuration file from file: "
-            f"{refgenie_cfg_path}"
+            f"Reading refgenie genome configuration file from file: {refgenie_cfg_path}"
         )
         rgc = RGC(filepath=refgenie_cfg_path)
 

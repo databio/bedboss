@@ -1,13 +1,13 @@
 # THIS SCRIPT IS WORKING SPACE TO RETRIEVE ALL SEQCLOS FROM REFGENIE
 
-import os
-import requests
-from pydantic import BaseModel
 import json
+import os
 from typing import List, Union
-from tqdm import tqdm
 
+import requests
 from bbconf import BedBaseAgent
+from pydantic import BaseModel
+from tqdm import tqdm
 
 from bedboss.refgenome_validator.genome_model import GenomeModel
 from bedboss.refgenome_validator.main import ReferenceValidator
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     #
     # modified_list
 
-    from bbconf.db_utils import Session, ReferenceGenome
+    from bbconf.db_utils import Session
 
     ####
     # for genome in modified_list:
@@ -186,9 +186,7 @@ if __name__ == "__main__":
     #         )
     #         session.add(new_genome)
     #         session.commit()
-
     ###
-
     from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
 
     update_db_genomes(bbagent)
@@ -197,9 +195,10 @@ if __name__ == "__main__":
     # genome_models=modified_list,
     # )
 
-    from gtars.models import RegionSet as GRegionSet
     import time
-    from bedboss.utils import standardize_genome_name
+
+    from gtars.models import RegionSet as GRegionSet
+
 
     start_time = time.time()
 
@@ -207,7 +206,6 @@ if __name__ == "__main__":
 
     compat = rv.determine_compatibility(bed_object, concise=True)
 
-    import pprint
 
     # pp = pprint.pprint(compat)
 

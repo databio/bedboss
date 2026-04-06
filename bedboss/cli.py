@@ -1,12 +1,12 @@
 import os
+from importlib.metadata import version as _pkg_version
 
 import typer
 
-from importlib.metadata import version as _pkg_version
-
 __version__ = _pkg_version("bedboss")
-from bedboss.bbuploader.cli import app_bbuploader
 from pephubclient.helpers import MessageHandler as printm
+
+from bedboss.bbuploader.cli import app_bbuploader
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -641,6 +641,7 @@ def update_genomes(
     ),
 ):
     from bbconf.bbagent import BedBaseAgent
+
     from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
 
     bbagent = BedBaseAgent(config)

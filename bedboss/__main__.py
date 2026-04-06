@@ -1,6 +1,5 @@
-import sys
-
 import logging
+import sys
 
 from bedboss.cli import app
 from bedboss.const import PKG_NAME

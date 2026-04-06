@@ -3,9 +3,8 @@ import os
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-from gtars.models import GenomeAssembly, RegionSet
 from gtars.genomic_distributions import calc_gc_content
+from gtars.models import GenomeAssembly, RegionSet
 from matplotlib.ticker import MaxNLocator
 from refgenconf import RefgenconfError
 from yacman.exceptions import UndefinedAliasError
@@ -21,10 +20,12 @@ def get_genome_fasta_file(genome: str, rfg_config: str = None) -> str:
     """
     Get genome fasta file with Refgenie.
 
-    :param genome: genome name
-    :param rfg_config: path to refgenie config file
+    Args:
+        genome: Genome name.
+        rfg_config: Path to refgenie config file.
 
-    :return: path to fasta file
+    Returns:
+        Path to fasta file.
     """
     rgc = get_rgc(rfg_config=rfg_config)
 
@@ -56,10 +57,12 @@ def get_genome_assembly_obj(
     """
     Get assembly object for a genome.
 
-    :param genome: genome name
-    :param rfg_config: path to refgenie config file
+    Args:
+        genome: Genome name.
+        rfg_config: Path to refgenie config file.
 
-    :return: assembly object
+    Returns:
+        Assembly object, or None if not found.
     """
     if genome in assembly_objects:
         return assembly_objects[genome]
@@ -80,11 +83,13 @@ def calculate_gc_content(
     """
     Calculate GC content for a bed file.
 
-    :param bedfile: path to bed file
-    :param genome: genome name
-    :param rfg_config: path to refgenie config file
+    Args:
+        bedfile: RegionSet object.
+        genome: Genome name.
+        rfg_config: Path to refgenie config file.
 
-    :return: list of GC contents
+    Returns:
+        List of GC contents, or None if assembly cannot be loaded.
     """
 
     assembly_obj = get_genome_assembly_obj(genome, rfg_config=rfg_config)
@@ -105,12 +110,14 @@ def create_gc_plot(
     """
     Create a GC content plot.
 
-    :param bed_id: bed ID
-    :param gc_contents: list of GC contents
-    :param outfolder: path to output file
-    :param gc_mean: mean GC content
+    Args:
+        bed_id: Bed ID.
+        gc_contents: List of GC contents.
+        outfolder: Path to output folder.
+        gc_mean: Mean GC content.
 
-    :return str: path to output file
+    Returns:
+        Dict with plot metadata (name, title, thumbnail_path, path).
     """
     plt.rcParams["font.size"] = 10
     plt.figure(figsize=(8, 8))

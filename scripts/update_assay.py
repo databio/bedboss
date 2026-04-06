@@ -11,11 +11,11 @@ Usage:
 import argparse
 import logging
 
-from sqlalchemy.orm import Session
-from sqlalchemy import select, or_
-
 from bbconf.bbagent import BedBaseAgent
 from bbconf.db_utils import Bed, BedMetadata
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
+
 from bedboss.bbuploader.metadata_extractor import find_assay
 
 logging.basicConfig(level=logging.INFO)

@@ -1,12 +1,12 @@
-import subprocess
-import socket
-import signal
 import os
 import re
+import signal
+import socket
+import subprocess
 import time
+from logging import getLogger
 
 from bedboss.const import PKG_NAME
-from logging import getLogger
 
 _LOGGER = getLogger(PKG_NAME)
 
@@ -68,17 +68,15 @@ class RServiceManager:
         gtffile: str | None,
     ):
         """
-        Sends a file path to the R service for processing.
+        Send a file path to the R service for processing.
 
-        :param file_path: Path to the file to be processed.
-        :param digest: Digest of the file.
-        :param outpath: Path to the output directory.
-        :param genome: Genome assembly.
-        :param openSignalMatrix: Path to the Open Signal Matrix file.
-        :param gtffile: Path to the GTF file.
-
-        :return: None
-        :exit: 1 if the connection is refused.
+        Args:
+            file_path: Path to the file to be processed.
+            digest: Digest of the file.
+            outpath: Path to the output directory.
+            genome: Genome assembly.
+            openSignalMatrix: Path to the Open Signal Matrix file.
+            gtffile: Path to the GTF file.
         """
         return self.run_command(
             f"{file_path}, {digest}, {outpath}, {genome}, {openSignalMatrix}, {gtffile}\n"

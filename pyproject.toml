@@ -68,6 +68,7 @@ testpaths = ["test"]
 
 [tool.ruff]
 line-length = 88
+exclude = ["test", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]

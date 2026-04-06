@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from bedboss.bbuploader.metadata_extractor import (

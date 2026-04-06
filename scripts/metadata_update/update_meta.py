@@ -1,5 +1,6 @@
-from bbconf import BedBaseAgent
 import json
+
+from bbconf import BedBaseAgent
 from tqdm import tqdm
 
 bbconf = BedBaseAgent(

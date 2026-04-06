@@ -1,19 +1,20 @@
 ## FILE with functions to download chrom sizes from refgenie and validate them against the genome model
 
-import os
-import requests
-from pydantic import BaseModel
 import json
-from typing import Any
-from tqdm import tqdm
 import logging
+import os
 import warnings
+from typing import Any
 
-from bedboss.refgenome_validator.genome_model import GenomeModel
-from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
+import requests
 from bbconf import BedBaseAgent
+from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
+from pydantic import BaseModel
+from tqdm import tqdm
+
 from bedboss.const import PKG_NAME
 from bedboss.exceptions import BedBossException
+from bedboss.refgenome_validator.genome_model import GenomeModel
 
 BASE_URL = "https://api.refgenie.org"
 GENOMES_URL = os.path.join(BASE_URL, "v4/genomes?limit=1000")
@@ -72,9 +73,11 @@ def seq_col_from_digest(digest: str) -> list[SeqCol]:
 
     Fetch sequence collection from Refgenie using the genome digest.
 
-    :param digest: The digest of the genome to fetch the sequence collection for.
+    Args:
+        digest: The digest of the genome to fetch the sequence collection for.
 
-    :return: A list of SeqCol objects containing sequence names and lengths.
+    Returns:
+        A list of SeqCol objects containing sequence names and lengths.
     """
     url = SEQ_COL_URL.format(digest=digest)
 
@@ -95,7 +98,8 @@ def get_seq_col() -> Genomes:
 
     This function retrieves the list of genomes, fetches their sequence collections,
 
-    :return: Genomes object containing SeqColGenome objects for each genome.
+    Returns:
+        Genomes object containing SeqColGenome objects for each genome.
 
     """
 
@@ -208,12 +212,11 @@ def update_db_genomes(bbagent: BedBaseAgent) -> None:
 
     _LOGGER.info("Updating database with genome information from Refgenie...")
 
-    from bbconf.db_utils import Session, ReferenceGenome, select
+    from bbconf.db_utils import ReferenceGenome, Session, select
 
     genome_list = get_chrom_sizes()
 
     with Session(bbagent.bed._sa_engine) as session:
-
         available_genomes_statement = select(ReferenceGenome.digest)
         available_genomes_return = session.execute(available_genomes_statement).all()
         available_genomes_list = [item[0] for item in available_genomes_return]

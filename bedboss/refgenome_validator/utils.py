@@ -2,19 +2,23 @@ import logging
 import subprocess
 from typing import Any
 
-from bedboss.refgenome_validator.models import CompatibilityConcise
-from bedboss.refgenome_validator.const import GENOME_FILES
 from gtars.models import RegionSet as GRegionSet
+
+from bedboss.refgenome_validator.const import GENOME_FILES
+from bedboss.refgenome_validator.models import CompatibilityConcise
 
 _LOGGER = logging.getLogger("bedboss")
 
 
 def get_bed_chrom_info(bedfile: str | GRegionSet) -> dict[str, int]:
     """
-    Determine chrom lengths for bed file
+    Determine chrom lengths for bed file.
 
-    :param bedfile: RegionSet object or path to bed file
-    returns dict: returns dictionary where keys are chrom names and values are the max end position of that chromosome.
+    Args:
+        bedfile: RegionSet object or path to bed file.
+
+    Returns:
+        Dictionary where keys are chrom names and values are the max end position of that chromosome.
     """
     # if isinstance(bedfile, RegionSet):
     #     df = bedfile.to_pandas()
@@ -41,9 +45,7 @@ def get_bed_chrom_info(bedfile: str | GRegionSet) -> dict[str, int]:
 
 
 def run_igd_command(command):
-    """
-    Run IGD via a subprocess, this is a temp implementation until Rust IGD python bindings are finished.
-    """
+    """Run IGD via a subprocess."""
 
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode == 0:

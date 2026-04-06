@@ -3,7 +3,7 @@ import os
 
 from gtars.models import RegionSet as GRegionSet
 
-from bedboss.exceptions import ValidatorException, BedBossException
+from bedboss.exceptions import BedBossException, ValidatorException
 
 # from bedboss.refgenome_validator.const import GENOME_FILES
 from bedboss.refgenome_validator.genome_model import GenomeModel
@@ -15,13 +15,13 @@ from bedboss.refgenome_validator.models import (
     RatingModel,
     SequenceFitStats,
 )
+from bedboss.refgenome_validator.refgenie_chrom_sizes import get_chrom_sizes
 from bedboss.refgenome_validator.utils import (
     get_bed_chrom_info,
     parse_IGD_output,
-    run_igd_command,
     predict_from_compatibility_resutlts,
+    run_igd_command,
 )
-from bedboss.refgenome_validator.refgenie_chrom_sizes import get_chrom_sizes
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -37,11 +37,12 @@ class ReferenceValidator:
         igd_path: str | None = None,
     ):
         """
-        Initialization method
+        Initialize the ReferenceValidator.
 
-        :param genome_models: this is a list of GenomeModels that will be checked against a bed file. Default: None
-        :param igd_path: path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment,
-            if not provided these metrics are not computed. Default: None
+        Args:
+            genome_models: List of GenomeModels that will be checked against a bed file. Default: None.
+            igd_path: Path to a local IGD file containing ALL excluded ranges intervals for IGD overlap assessment.
+                If not provided these metrics are not computed. Default: None.
         """
 
         if not genome_models:
@@ -62,12 +63,15 @@ class ReferenceValidator:
     ) -> CompatibilityStats:
         """
         Calculate overlap and sequence fit.
+
         Stats are associated with comparison of chrom names, chrom lengths, and sequence fits.
 
-        :param bed_chrom_sizes: dict of a bedfile's chrom size
-        :param genome_chrom_sizes: dict of a GenomeModel's chrom sizes
+        Args:
+            bed_chrom_sizes: Dict of a bedfile's chrom size.
+            genome_chrom_sizes: Dict of a GenomeModel's chrom sizes.
 
-        :return: dictionary with information on Query vs Model, e.g. chrom names QueryvsModel
+        Returns:
+            CompatibilityStats with information on Query vs Model.
         """
 
         # Layer 1: Check names and Determine XS (Extra Sequences) via Calculation of Recall/Sensitivity
@@ -179,26 +183,22 @@ class ReferenceValidator:
     def get_igd_overlaps(self, bedfile: str) -> dict[str, dict] | dict[str, None]:
         """
         Third layer compatibility check.
+
         Run helper functions and execute an igd search query across an Integrated Genome Database.
 
-        :param bedfile: path to the bedfile
-        :return: dict of dicts containing keys (file names) and values (number of overlaps). Or if no overlaps are found,
-        it returns an empty dict.
+        Args:
+            bedfile: Path to the bedfile.
 
-        # TODO: should be a pydantic model
-
-        Currently for this function to work, the user must install the C version of IGD and have created a local igd file
-        for the Excluded Ranges Bedset:
-        https://github.com/databio/IGD
-        https://bedbase.org/bedset/excluderanges
-
+        Returns:
+            Dict of dicts containing keys (file names) and values (number of overlaps),
+            or an empty dict if no overlaps are found.
         """
         if not self.igd_path:
             return {"igd_stats": None}
 
         try:
             IGD_LOCATION = os.environ["IGD_LOCATION"]
-        except:
+        except KeyError:
             # Local installation of C version of IGD
             IGD_LOCATION = "/home/drc/GITHUB/igd/IGD/bin/igd"
 
@@ -233,10 +233,13 @@ class ReferenceValidator:
         """
         Determine compatibility of the bed file.
 
-        :param bedfile: path to bedfile
-        :param ref_filter: list of ref genome aliases to filter on.
-        :param concise: if True, only return a concise list of compatibility stats. Default: False
-        :return: a dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True)
+        Args:
+            bedfile: Path to bedfile, RegionSet, or chrom size dict.
+            ref_filter: List of ref genome aliases to filter on.
+            concise: If True, only return a concise list of compatibility stats. Default: False.
+
+        Returns:
+            Dict with CompatibilityStats, or CompatibilityConcise model (depends if concise is set to True).
         """
 
         if isinstance(bedfile, GRegionSet):
@@ -246,7 +249,7 @@ class ReferenceValidator:
             bedfile = GRegionSet(bedfile)
         else:
             _LOGGER.info(
-                f"Calculating reference genome stats for provided bed chrom dict..."
+                "Calculating reference genome stats for provided bed chrom dict..."
             )
 
         if ref_filter:
@@ -273,8 +276,10 @@ class ReferenceValidator:
 
         for genome_model in self.genome_models:
             # First and Second Layer of Compatibility
-            model_compat_stats[genome_model.genome_digest]: CompatibilityStats = (
-                self.calculate_chrom_stats(bed_chrom_info, genome_model.chrom_sizes)
+            model_compat_stats[
+                genome_model.genome_digest
+            ]: CompatibilityStats = self.calculate_chrom_stats(
+                bed_chrom_info, genome_model.chrom_sizes
             )
 
             # Third layer - IGD, only if layer 1 and layer 2 have passed
@@ -286,13 +291,15 @@ class ReferenceValidator:
                     genome_model.genome_digest
                 ].chrom_length_stats.beyond_range
             ):
-                model_compat_stats[genome_model.genome_digest].igd_stats = (
-                    self.get_igd_overlaps(bedfile)
-                )
+                model_compat_stats[
+                    genome_model.genome_digest
+                ].igd_stats = self.get_igd_overlaps(bedfile)
 
             # Calculate compatibility rating
-            model_compat_stats[genome_model.genome_digest].compatibility = (
-                self.calculate_rating(model_compat_stats[genome_model.genome_digest])
+            model_compat_stats[
+                genome_model.genome_digest
+            ].compatibility = self.calculate_rating(
+                model_compat_stats[genome_model.genome_digest]
             )
         if concise:
             concise_dict = {}
@@ -305,19 +312,19 @@ class ReferenceValidator:
 
     def calculate_rating(self, compat_stats: CompatibilityStats) -> RatingModel:
         """
-        Determine the compatibility tier
+        Determine the compatibility tier.
 
         Tiers:
-            - Tier1: Excellent compatibility, 0 pts
-            - Tier2: Good compatibility, may need some processing, 1-3 pts
-            - Tier3: Bed file needs processing to work (shifted hg38 to hg19?), 4-6 pts
-            - Tier4: Poor compatibility, 7-9 pts
+            - Tier1: Excellent compatibility, 0 pts.
+            - Tier2: Good compatibility, may need some processing, 1-3 pts.
+            - Tier3: Bed file needs processing to work (shifted hg38 to hg19?), 4-6 pts.
+            - Tier4: Poor compatibility, 7-9 pts.
 
-        :param compat_stats: CompatibilityStats with unprocess compatibility statistics
-        :return: RatingModel - {
-                    assigned_points: int
-                    tier_ranking: int
-                }
+        Args:
+            compat_stats: CompatibilityStats with unprocessed compatibility statistics.
+
+        Returns:
+            RatingModel with assigned_points and tier_ranking.
         """
 
         points_rating = 0
@@ -426,10 +433,13 @@ class ReferenceValidator:
     @staticmethod
     def _create_concise_output(output: CompatibilityStats) -> CompatibilityConcise:
         """
-        Convert extended CompatibilityStats to concise output
+        Convert extended CompatibilityStats to concise output.
 
-        :param output: full compatibility stats
-        :return:  concise compatibility stats
+        Args:
+            output: Full compatibility stats.
+
+        Returns:
+            Concise compatibility stats.
         """
         return CompatibilityConcise(
             xs=output.chrom_name_stats.xs,
@@ -439,16 +449,16 @@ class ReferenceValidator:
             tier_ranking=output.compatibility.tier_ranking,
         )
 
-    def predict(
-        self, bedfile: str | GRegionSet
-    ) -> tuple[str | None, str | None]:
+    def predict(self, bedfile: str | GRegionSet) -> tuple[str | None, str | None]:
         """
-        Predict compatibility of a bed file with reference genomes
+        Predict compatibility of a bed file with reference genomes.
 
-        :param bedfile: path to bedfile
+        Args:
+            bedfile: Path to bedfile or RegionSet object.
 
-        :return: tuple of (genome_id, digest) for the best compatible reference genome,
-            or None if no tier 1 compatibility is found or digest doesn't exist
+        Returns:
+            Tuple of (genome_id, digest) for the best compatible reference genome,
+            or (None, None) if no tier 1 compatibility is found or digest doesn't exist.
         """
 
         _LOGGER.info(f"Predicting compatibility of {bedfile} with reference genomes...")
