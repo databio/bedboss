@@ -165,21 +165,40 @@ def compress_tss_histogram(
     }
 
 
-def compress_region_distribution(raw: dict) -> Optional[dict]:
+def compress_region_distribution(
+    raw: dict,
+    chrom_sizes: Optional[dict] = None,
+    n_bins: int = 250,
+) -> Optional[dict]:
     """Compress per-chromosome region distribution to dense count arrays.
 
     Input: gtars format {"chr1": [{"start": ..., "end": ..., "rid": ...}, ...], ...}
     Output: {"chr1": [count_at_rid_0, count_at_rid_1, ...], ...}
 
-    The array index is the rid (bin index) used by the UI's faceted chart.
+    When chrom_sizes is provided, each chromosome's array length is
+    proportional to its size (matching the WASM regionDistribution behavior).
+    The longest chromosome gets n_bins bins; shorter ones get fewer.
+
+    :param raw: gtars region_distribution grouped by chromosome
+    :param chrom_sizes: {chr: length} for proportional bin counts
+    :param n_bins: max bins for the longest chromosome (default 250)
     """
     if not raw:
         return None
 
+    # Compute proportional bin count per chromosome
+    bins_per_chr = {}
+    if chrom_sizes:
+        max_len = max(chrom_sizes.values())
+        if max_len > 0:
+            for chrom, length in chrom_sizes.items():
+                bins_per_chr[chrom] = max(1, round(length / max_len * n_bins))
+
     result = {}
     for chrom, regions in raw.items():
         if not regions:
-            result[chrom] = []
+            n = bins_per_chr.get(chrom, 0)
+            result[chrom] = [0] * n
             continue
         rids = np.array(
             [r.get("rid", 0) if isinstance(r, dict) else 0 for r in regions],
@@ -189,20 +208,27 @@ def compress_region_distribution(raw: dict) -> Optional[dict]:
             [r.get("n", 1) if isinstance(r, dict) else 1 for r in regions],
             dtype=np.int32,
         )
-        bins = np.zeros(rids.max() + 1, dtype=np.int64)
-        np.add.at(bins, rids, counts_arr)
+        # Array length: proportional to chrom size, or fallback to max_rid + 1
+        n = bins_per_chr.get(chrom, int(rids.max()) + 1)
+        bins = np.zeros(n, dtype=np.int64)
+        valid = rids < n
+        np.add.at(bins, rids[valid], counts_arr[valid])
         result[chrom] = bins.tolist()
 
     return result
 
 
-def compress_distributions(gtars_output: dict) -> dict:
+def compress_distributions(
+    gtars_output: dict, chrom_sizes: Optional[dict] = None
+) -> dict:
     """Compress all distributions in a gtars genomicdist output.
 
     Modifies gtars_output["distributions"] in place, replacing raw arrays
     with compressed formats.
 
-    Returns the modified gtars_output.
+    :param gtars_output: raw gtars genomicdist JSON output
+    :param chrom_sizes: {chr: length} for proportional region distribution bins
+    :return: the modified gtars_output
     """
     dists = gtars_output.get("distributions", {})
 
@@ -236,7 +262,9 @@ def compress_distributions(gtars_output: dict) -> dict:
                 grouped.setdefault(chrom, []).append(entry)
             rd = grouped
         if isinstance(rd, dict):
-            dists["region_distribution"] = compress_region_distribution(rd)
+            dists["region_distribution"] = compress_region_distribution(
+                rd, chrom_sizes=chrom_sizes
+            )
 
     # chromosome_stats: unchanged (already compact)
 

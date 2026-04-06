@@ -244,8 +244,18 @@ class GtarsStatBackend(StatBackend):
         else:
             data["gc_content"] = None
 
+        # Read chrom_sizes into a dict for proportional region distribution bins
+        chrom_sizes_dict = None
+        if chrom_sizes and os.path.exists(chrom_sizes):
+            chrom_sizes_dict = {}
+            with open(chrom_sizes) as f:
+                for line in f:
+                    parts = line.strip().split("\t")
+                    if len(parts) >= 2:
+                        chrom_sizes_dict[parts[0]] = int(parts[1])
+
         # Compress distributions for DB storage
-        compress_distributions(gtars_output)
+        compress_distributions(gtars_output, chrom_sizes=chrom_sizes_dict)
 
         # Store entire augmented gtars JSON as distributions blob
         data["distributions"] = gtars_output
