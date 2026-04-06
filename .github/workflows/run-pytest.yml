@@ -26,8 +26,8 @@ jobs:
     - name: Install uv
       run: pip install uv
 
-    - name: Install package with test dependencies
-      run: uv pip install ".[test]" --system
+    - name: Install package
+      run: uv pip install .[test] --system
 
     - name: run bedboss help
       run: bedboss --help
