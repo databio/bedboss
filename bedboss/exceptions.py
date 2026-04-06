@@ -5,8 +5,8 @@ class BedBossException(Exception):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: some context why error occurred while
-        using BedBoss
+        Args:
+            reason: Some context why error occurred while using BedBoss.
         """
         super().__init__(reason)
 
@@ -18,8 +18,8 @@ class OpenSignalMatrixException(BedBossException):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: some context why error occurred while
-        using Open Signal Matrix
+        Args:
+            reason: Some context why error occurred while using Open Signal Matrix.
         """
         super().__init__(reason)
 
@@ -31,8 +31,9 @@ class QualityException(BedBossException):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: reason why quality control wasn't successful
-        :param int file_size: file size in bytes (if available)
+        Args:
+            reason: Reason why quality control wasn't successful.
+            file_size: File size in bytes (if available).
         """
         self.reason = reason
         self.file_size = file_size
@@ -46,7 +47,8 @@ class RequirementsException(BedBossException):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: additional info about requirements exception
+        Args:
+            reason: Additional info about requirements exception.
         """
         super().__init__(reason)
 
@@ -58,19 +60,20 @@ class BedTypeException(BedBossException):
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: some context why error occurred while
-        using Open Signal Matrix
+        Args:
+            reason: Some context why the bed type could not be determined.
         """
         super().__init__(reason)
 
 
 class ValidatorException(BedBossException):
-    """Exception when there is an exception during refgenome validation"""
+    """Exception when there is an exception during refgenome validation."""
 
     def __init__(self, reason: str = "") -> None:
         """
         Optionally provide explanation for exceptional condition.
 
-        :param str reason: some context why error occurred
+        Args:
+            reason: Some context why error occurred.
         """
         super().__init__(reason)

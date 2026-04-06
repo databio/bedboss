@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 
 from bedboss.exceptions import BedTypeException
-from bedboss.models import BedClassificationOutput, DATA_FORMAT
+from bedboss.models import DATA_FORMAT, BedClassificationOutput
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -15,9 +15,12 @@ def get_bed_classification(
     """
     Get the BED file classification as a Pydantic object.
 
-    :param bed: path to the bed file OR a dataframe
-    :param no_fail: should the function (and pipeline) continue if this function fails to parse BED file
-    :return BedClassificationOutput object
+    Args:
+        bed: Path to the bed file, or a dataframe.
+        no_fail: Should the function (and pipeline) continue if this function fails to parse BED file.
+
+    Returns:
+        BedClassificationOutput object.
     """
     #    column format for bed12
     #    string chrom;       "Reference sequence chromosome or scaffold"
@@ -36,9 +39,13 @@ def get_bed_classification(
     def _read_bed_file(filepath: str, skiprows: int = 0) -> pd.DataFrame | None:
         """
         Helper function to read BED file with error handling.
-        :param str file_path: path to the bed file
-        :param int skip_rows: how many rows to skip during reading
-        :return pd.DataFrame
+
+        Args:
+            filepath: Path to the bed file.
+            skiprows: How many rows to skip during reading.
+
+        Returns:
+            DataFrame, or None on parse error.
         """
         try:
             df = pd.read_csv(
@@ -111,11 +118,12 @@ def get_bed_classification(
         """
         Helper function to perform column checks.
 
-        :param col_index: index of the column
-        :param checks: list of check functions
+        Args:
+            col_index: Index of the column.
+            checks: List of check functions.
 
-        :return: True if all checks pass, False otherwise
-
+        Returns:
+            True if all checks pass, False otherwise.
         """
         for check in checks:
             if not check(df[col_index]):
@@ -156,7 +164,6 @@ def get_bed_classification(
         elif (
             col_index == 4 and df[col_index].dtype == "int" and df[col_index].all() >= 0
         ):
-
             compliant_columns += 1
             relaxed = True
 

@@ -1,8 +1,8 @@
 from enum import Enum
 from pathlib import Path
 
-from pydantic import BaseModel, Field, ConfigDict
 from gtars.models import RegionSet
+from pydantic import BaseModel, ConfigDict, Field
 
 from bedboss.models import DATA_FORMAT
 

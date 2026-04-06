@@ -1,17 +1,13 @@
 # Just pull selected digests from bedbase
 
-import os.path
-import requests
 import os
+import os.path
 
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-from bedboss.bedclassifier.bedclassifier import get_bed_classification
-import pipestat
-
+import requests
 from geniml.io import RegionSet
+
+from bedboss.bedclassifier.bedclassifier import get_bed_classification
 
 USE_GENIML = False
 

@@ -1,1 +1,1 @@
-from .bedclassifier import get_bed_classification
+from .bedclassifier import get_bed_classification as get_bed_classification

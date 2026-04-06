@@ -1,6 +1,6 @@
-import typer
-
 from importlib.metadata import version as _pkg_version
+
+import typer
 
 __version__ = _pkg_version("bedboss")
 

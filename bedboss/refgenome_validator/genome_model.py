@@ -36,9 +36,10 @@ class GenomeModel:
 
     def get_chrom_sizes(self) -> dict:
         """
-        Obtains chrom sizes via refgenie (using a refgenconf.refgenconf.RefGenConf object)
+        Obtain chrom sizes from the chrom sizes file.
 
-        :return dict: dictionary containing chroms(keys) and lengths(values)
+        Returns:
+            Dictionary containing chroms (keys) and lengths (values).
         """
 
         if isinstance(self.chrom_sizes_file, str):

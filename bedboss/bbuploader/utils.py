@@ -10,11 +10,15 @@ _LOGGER = logging.getLogger(PKG_NAME)
 def build_gse_identifier(gse: str, geo_tag: str) -> str:
     """
     Build GSE identifier for database storage that includes the tag.
+
     For backward compatibility, 'samples' tag uses plain GSE name.
 
-    :param gse: GEO series number (e.g., GSE123456)
-    :param geo_tag: GEO tag ('samples' or 'series')
-    :return: identifier for database (e.g., 'GSE123456' or 'GSE123456:series')
+    Args:
+        gse: GEO series number (e.g., GSE123456).
+        geo_tag: GEO tag ('samples' or 'series').
+
+    Returns:
+        Identifier for database (e.g., 'GSE123456' or 'GSE123456:series').
     """
     if geo_tag == DEFAULT_GEO_TAG:
         return gse
@@ -23,12 +27,12 @@ def build_gse_identifier(gse: str, geo_tag: str) -> str:
 
 def download_file(file_url: str, local_file_path: str, force: bool = False) -> None:
     """
-    Download file using ftp url
+    Download file using ftp url.
 
-    :param file_url: downloading url
-    :param local_file_path: path to the file or file name
-    :param force: Rewrite if file exists
-    :return: None
+    Args:
+        file_url: Downloading url.
+        local_file_path: Path to the file or file name.
+        force: Rewrite if file exists.
     """
     if force or not os.path.isfile(local_file_path):
         _LOGGER.info(f"Downloading file: '{file_url}' to: '{local_file_path}'")
@@ -39,18 +43,17 @@ def download_file(file_url: str, local_file_path: str, force: bool = False) -> N
 
 def create_gsm_sub_name(name: str) -> str:
     """
-    Create gse subfolder name. e.g.
-        gse123456 -> gsm123nnn
-        gse123 -> gsennn
-        gse1234-> gse1nnn
-        gse1 -> gsennn
+    Create gse subfolder name.
 
-    ! This function was copied from geopephub utils
+    Examples: gse123456 -> gsm123nnn, gse123 -> gsennn, gse1234-> gse1nnn, gse1 -> gsennn.
+    This function was copied from geopephub utils.
 
-    :param name: gse name
-    :return: gse subfolder name
+    Args:
+        name: GSE name.
+
+    Returns:
+        GSE subfolder name.
     """
-
     len_name = len(name)
 
     if len_name <= 6:
@@ -63,12 +66,15 @@ def create_gsm_sub_name(name: str) -> str:
 def middle_underscored(s: str) -> str:
     """
     Return substring between the first and last underscore.
+
     If there are fewer than 3 underscores, return the original string unchanged.
 
-    :param s: input string
-    :return: substring between first and last underscore or original string
-    """
+    Args:
+        s: Input string.
 
+    Returns:
+        Substring between first and last underscore, or original string.
+    """
     if s.count("_") < 3:
         return s
     parts = s.split("_")

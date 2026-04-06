@@ -28,9 +28,9 @@ def runn():
 
 
 import time
-from geniml.io import RegionSet
-from gtars.models import RegionSet as GRegionSet
+
 from geniml.bbclient import BBClient
+from gtars.models import RegionSet as GRegionSet
 
 
 def open_Gtars():
@@ -90,7 +90,7 @@ def bigbed_rs_():
             "./wrong_bb",
             "/home/bnt4me/virginia/repos/bedboss/bedboss/refgenome_validator/chrom_sizes/ensembl_hg38.chrom.sizes",
         )
-    except BaseException as e:
+    except BaseException:
         f
 
 

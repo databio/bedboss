@@ -1,5 +1,6 @@
 # Run classify on a selection of local files
 import os
+
 from bedboss.bedclassifier.bedclassifier import get_bed_classification
 
 # DATA_PATH = "/home/drc/test/gappedPeaks/"

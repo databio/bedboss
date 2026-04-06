@@ -2,13 +2,14 @@
 Basic analysis and visualization of output.csv (ENCODE BED file metadata).
 """
 
-import pandas as pd
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
 
 matplotlib.use("Agg")
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 OUTPUT_DIR = Path("analysis_output_csv")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -303,7 +304,7 @@ repeated_names = name_counts[name_counts > 1]
 print(f"sample_names appearing >1 time: {len(repeated_names):,}")
 if len(repeated_names) > 0:
     print(f"  Max occurrences: {repeated_names.iloc[0]} ('{repeated_names.index[0]}')")
-    print(f"  Top 10 repeated sample_names:")
+    print("  Top 10 repeated sample_names:")
     print(repeated_names.head(10).to_string())
 print()
 
