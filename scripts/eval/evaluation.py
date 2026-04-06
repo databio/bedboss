@@ -1,10 +1,10 @@
-from typing import Dict, List, Tuple, Literal
+import json
+from typing import Dict, List, Literal, Tuple
 
 import numpy as np
-import json
 from bbconf import bbagent
-from tqdm import tqdm
 from bbconf.models.bed_models import QdrantSearchResult
+from tqdm import tqdm
 
 bbagent = bbagent.BedBaseAgent(
     "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml"

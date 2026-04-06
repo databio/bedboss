@@ -1,6 +1,5 @@
 import pathlib
 from enum import Enum
-from typing import Union
 
 import pypiper
 from bbconf.models.bed_models import (
@@ -82,11 +81,11 @@ class BedStatCLIModel(BaseModel):
     CLI model for bedstat
     """
 
-    bedfile: Union[str, pathlib.Path]
+    bedfile: str | pathlib.Path
     genome: str
-    outfolder: Union[str, pathlib.Path]
+    outfolder: str | pathlib.Path
     bed_digest: str = None
-    bigbed: Union[str, pathlib.Path] = None
+    bigbed: str | pathlib.Path = None
     ensdb: str = None
     open_signal_matrix: str = None
     just_db_commit: bool = False
@@ -100,8 +99,8 @@ class BedQCCLIModel(BaseModel):
     CLI model for bedqc
     """
 
-    bedfile: Union[str, pathlib.Path]
-    outfolder: Union[str, pathlib.Path]
+    bedfile: str | pathlib.Path
+    outfolder: str | pathlib.Path
     max_file_size: int = MAX_FILE_SIZE
     max_region_number: int = MAX_REGION_NUMBER
     min_region_width: int = MIN_REGION_WIDTH
@@ -115,13 +114,13 @@ class BedMakerCLIModel(BaseModel):
     CLI model for bedmaker
     """
 
-    input_file: Union[str, pathlib.Path]
+    input_file: str | pathlib.Path
     input_type: str
-    output_path: Union[str, pathlib.Path]
-    # output_bigbed: Union[str, pathlib.Path]
+    output_path: str | pathlib.Path
+    # output_bigbed: str | pathlib.Path
     # sample_name: str
     genome: str
-    rfg_config: Union[str, pathlib.Path] = None
+    rfg_config: str | pathlib.Path = None
     chrom_sizes: str = None
     narrowpeak: bool = False
     # standardize: bool = False
@@ -152,8 +151,8 @@ class BedSetAnnotations(BaseModel):
     Annotations for a bedset
     """
 
-    author: Union[str, None] = None
-    source: Union[str, None] = None
+    author: str | None = None
+    source: str | None = None
 
     model_config = ConfigDict(extra="ignore")
 

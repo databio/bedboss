@@ -1,10 +1,9 @@
-import os
 import pickle
 
 from geniml.search.backends.dbbackend import QdrantBackend
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import PointStruct
 
 TEXT_QDRANT_COLLECTION_NAME = "bed_text"
 

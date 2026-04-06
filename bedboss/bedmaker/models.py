@@ -1,9 +1,8 @@
 from enum import Enum
 from pathlib import Path
-from typing import Union
 
-from pydantic import BaseModel, Field, ConfigDict
 from gtars.models import RegionSet
+from pydantic import BaseModel, ConfigDict, Field
 
 from bedboss.models import DATA_FORMAT
 
@@ -17,9 +16,9 @@ class InputTypes(Enum):
 
 
 class BedMakerOutput(BaseModel):
-    bed_object: Union[str, RegionSet]
-    bed_file: Union[str, Path]
-    bigbed_file: Union[str, Path, None] = None
+    bed_object: str | RegionSet
+    bed_file: str | Path
+    bigbed_file: str | Path | None = None
     bed_digest: str = None
     bed_compliance: str = Field(
         default="bed3+0", pattern="^bed(?:[3-9]|1[0-5])(?:\+|$)[0-9]?+$"
