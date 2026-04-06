@@ -4,7 +4,7 @@ import logging
 import os
 import time
 import urllib.request
-from functools import wraps
+from functools import lru_cache, wraps
 from io import StringIO
 
 import pandas as pd
@@ -40,10 +40,9 @@ def standardize_genome_name(
         Standardized genome name.
     """
 
-    if not reference_validator:
-        reference_validator = ReferenceValidator()
-
     if bedfile:
+        if not reference_validator:
+            reference_validator = ReferenceValidator()
         predicted_genome = reference_validator.predict(bedfile)[0]
         if predicted_genome:
             return predicted_genome
@@ -85,6 +84,7 @@ def download_file(url: str, path: str, no_fail: bool = False) -> None:
         _LOGGER.error("File download failed. Continuing anyway...")
 
 
+@lru_cache(maxsize=32)
 def get_genome_digest(genome: str) -> str:
     return requests.get(
         f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"

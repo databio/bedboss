@@ -411,6 +411,8 @@ def insert_pep(
     else:
         r_service = None
 
+    reference_genome_validator = ReferenceValidator()
+
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
         if is_processed:
@@ -463,6 +465,7 @@ def insert_pep(
                 lite=lite,
                 pm=pm,
                 r_service=r_service,
+                reference_genome_validator=reference_genome_validator,
             )
 
             processed_ids.append(bed_id)
