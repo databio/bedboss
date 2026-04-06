@@ -73,9 +73,7 @@ def get_fab_path(genome: str, rfg_config: str = None) -> Union[str, None]:
             _LOGGER.info(f"Created .fab: {fab_path}")
             return fab_path
         else:
-            _LOGGER.warning(
-                f"Failed to compile .fab: {result.stderr.strip()}"
-            )
+            _LOGGER.warning(f"Failed to compile .fab: {result.stderr.strip()}")
             return None
     except FileNotFoundError:
         _LOGGER.warning("gtars CLI not found — cannot compile .fab")

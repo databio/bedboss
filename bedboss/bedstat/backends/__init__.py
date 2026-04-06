@@ -28,9 +28,7 @@ def create_backend(name: str, **kwargs) -> StatBackend:
     elif name == BACKEND_GTARS:
         return GtarsStatBackend(**kwargs)
     else:
-        raise ValueError(
-            f"Unknown analysis backend: {name!r}. Use 'r' or 'gtars'."
-        )
+        raise ValueError(f"Unknown analysis backend: {name!r}. Use 'r' or 'gtars'.")
 
 
 def build_backend(name: str) -> StatBackend:
