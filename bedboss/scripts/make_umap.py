@@ -1,25 +1,22 @@
-from qdrant_client import QdrantClient
+import json
+import logging
 import os
 import sys
-import pandas as pd
-import logging
-import numpy as np
-from pydantic import BaseModel, ConfigDict
-
-from umap import UMAP
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Optional, Union
 import warnings
 
 import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from bbconf import BedBaseAgent
 from bbconf.db_utils import Bed, BedStats
+from pydantic import BaseModel, ConfigDict
+from qdrant_client import QdrantClient
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sqlalchemy.orm import Session, joinedload
-import json
+from umap import UMAP
 
 from bedboss.const import DB_QUERY_BATCH_SIZE, PKG_NAME, TIER1_COLUMNS, TIER2_COLUMNS
 
@@ -29,7 +26,7 @@ python_version = f"{sys.version_info.major}_{sys.version_info.minor}"
 
 
 class umapReturn(BaseModel):
-    model: Union[UMAP, PCA, TSNE]
+    model: UMAP | PCA | TSNE
     dataframe: pd.DataFrame
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -39,29 +36,28 @@ class BedDbMetadata(BaseModel):
     """Schema for per-file metadata fetched from PostgreSQL."""
 
     id: str
-    number_of_regions: Optional[float] = None
-    mean_region_width: Optional[float] = None
-    gc_content: Optional[float] = None
-    median_tss_dist: Optional[float] = None
-    antibody: Optional[str] = None
-    library_source: Optional[str] = None
-    original_file_name: Optional[str] = None
-    global_sample_id: Optional[str] = None
-    global_experiment_id: Optional[str] = None
-    bed_compliance: Optional[str] = None
-    data_format: Optional[str] = None
+    number_of_regions: float | None = None
+    mean_region_width: float | None = None
+    gc_content: float | None = None
+    median_tss_dist: float | None = None
+    antibody: str | None = None
+    library_source: str | None = None
+    original_file_name: str | None = None
+    global_sample_id: str | None = None
+    global_experiment_id: str | None = None
+    bed_compliance: str | None = None
+    data_format: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-def save_umap_model(umap_model: Union[UMAP, PCA, TSNE], model_path: str) -> None:
+def save_umap_model(umap_model: UMAP | PCA | TSNE, model_path: str) -> None:
     """
     Save the UMAP, PCA, or t-SNE model to a file.
 
-    :param umap_model: Fitted UMAP, PCA, or t-SNE model
-    :param model_path: Path to save the model
-    :return: None
-
+    Args:
+        umap_model: Fitted UMAP, PCA, or t-SNE model.
+        model_path: Path to save the model.
     """
     with open(model_path, "wb") as file:
         joblib.dump(umap_model, file)
@@ -75,9 +71,11 @@ def fetch_data(agent: BedBaseAgent) -> pd.DataFrame:
     """
     Fetch data from Qdrant collection and return it as a DataFrame.
 
-    :param agent: BedBaseAgent instance containing Qdrant access details
+    Args:
+        agent: BedBaseAgent instance containing Qdrant access details.
 
-    :return: DataFrame with the following columns:
+    Returns:
+        DataFrame indexed by bed ID with vector and payload columns.
     """
 
     _LOGGER.info("Fetching data from Qdrant...")
@@ -192,18 +190,12 @@ def fetch_db_metadata(agent: BedBaseAgent, bed_ids: list[str]) -> pd.DataFrame:
 def save_df_as_json(df: pd.DataFrame, output_path: str) -> None:
     """
     Save a DataFrame as a JSON file in the specified format.
-    It includes the following columns:
-    - x, y, z (coordinates)
-    - id (string identifier)
-    - name (string)
-    - description (string)
-    - assay (string)
-    - cell_line (string)
 
-    :param df: DataFrame to save
-    :param output_path: Path to save the JSON file
-    :return: None
+    Includes columns: x, y, z (coordinates), id, name, description, assay, cell_line.
 
+    Args:
+        df: DataFrame to save.
+        output_path: Path to save the JSON file.
     """
     # Select the required columns
     columns_to_include = [
@@ -310,20 +302,22 @@ def save_parquet_tiers(
 def create_umap(
     df: pd.DataFrame,
     n_components: int = 3,
-    plot_name: Union[str, None] = None,
+    plot_name: str | None = None,
     label_column: str = "cell_line",
     method: str = "umap",
 ) -> umapReturn:
     """
     Create UMAP, PCA, or t-SNE embeddings from the DataFrame.
 
-    :param df: DataFrame containing the vectors and labels
-    :param n_components: Number of dimensions for UMAP/PCA/t-SNE (default is 3)
-    :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param label_column: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". Default is "cell_line"
-    :param method: Dimensionality reduction method to use. Options: "umap" (default), "pca", or "tsne"
+    Args:
+        df: DataFrame containing the vectors and labels.
+        n_components: Number of dimensions for UMAP/PCA/t-SNE. Default: 3.
+        plot_name: Name for the output plot file. If None, no plot will be saved.
+        label_column: Column name to use for labeling plot points (e.g. "cell_line" or "assay").
+        method: Dimensionality reduction method. Options: "umap", "pca", or "tsne".
 
-    :return: Tuple of DataFrame with added coordinates and fitted model
+    Returns:
+        umapReturn with the fitted model and DataFrame with added coordinate columns.
     """
 
     if n_components not in [2, 3]:
@@ -394,10 +388,10 @@ def plot_umap(value, label, name="default") -> None:
     """
     Plot UMAP embeddings and save the figure.
 
-    :param value: UMAP embeddings (only 2D)
-    :param label: Labels for the points in the UMAP plot
-    :param name: Name for the output plot file
-    :return: None
+    Args:
+        value: UMAP embeddings (only 2D).
+        label: Labels for the points in the UMAP plot.
+        name: Name for the output plot file.
     """
 
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -435,10 +429,11 @@ def update_umap_metadata(
     """
     Update UMAP metadata Parquet tiers without regenerating geometry.
 
-    :param bbconf: string containing bedbase configuration file path
-    :param output_dir: Directory to write Parquet tier files
-    :param geometry: Path to existing geometry Parquet (to read bed IDs).
-        If not provided, fetches IDs from Qdrant.
+    Args:
+        bbconf: Path to bedbase configuration file.
+        output_dir: Directory to write Parquet tier files.
+        geometry: Path to existing geometry Parquet to read bed IDs from.
+            If not provided, fetches IDs from Qdrant.
     """
     if isinstance(bbconf, str):
         agent = BedBaseAgent(config=bbconf)
@@ -468,32 +463,26 @@ def get_embeddings(
     n_components: int = 2,
     plot_name: str = None,
     plot_label: str = None,
-    top_assays: Union[int, None] = 15,
-    top_cell_lines: Union[int, None] = 15,
+    top_assays: int | None = 15,
+    top_cell_lines: int | None = 15,
     save_model: bool = True,
     method: str = "umap",
     save_parquet: bool = False,
 ) -> None:
     """
-    Get embeddings from Qdrant and create UMAP, PCA, or t-SNE, and save the results to a JSON file, and optionally plot the embeddings.
+    Get embeddings from Qdrant, create UMAP/PCA/t-SNE, and save results to a JSON file.
 
-    :param bbconf: string containing to bedbase configuration file path
-    :param output_file: Path to save the output JSON file
-    :param n_components: Number of dimensions for UMAP/PCA/t-SNE [default is 2]
-
-    :param plot_name: Name for the output plot file. if None, no plot will be saved
-    :param plot_label: Column name to use for labeling the points in the plot e.g. "cell_line" or "assay". [Default is "cell_line"]
-
-    :param top_assays: Number of top assays to consider. If None, all assays are considered. [Default is 15]
-    :param top_cell_lines: Number of top cell lines to consider. If None, all. [Default is 15]
-
-    :param save_model: Whether to save the model or not [Default is True]
-    :param method: Dimensionality reduction method to use. Options: "umap", "pca", or "tsne" [Default is "umap"]
-
-    :param save_parquet: Whether to save Parquet tier files alongside JSON [Default is True]
-
-    :return: None
-
+    Args:
+        bbconf: Path to bedbase configuration file.
+        output_file: Path to save the output JSON file.
+        n_components: Number of dimensions for UMAP/PCA/t-SNE. Default: 2.
+        plot_name: Name for the output plot file. If None, no plot will be saved.
+        plot_label: Column name to use for labeling plot points (e.g. "cell_line" or "assay").
+        top_assays: Number of top assays to consider. If None, all assays are used. Default: 15.
+        top_cell_lines: Number of top cell lines to consider. If None, all. Default: 15.
+        save_model: Whether to save the fitted model. Default: True.
+        method: Dimensionality reduction method. Options: "umap", "pca", or "tsne". Default: "umap".
+        save_parquet: Whether to save Parquet tier files alongside JSON. Default: False.
     """
 
     if isinstance(bbconf, str):

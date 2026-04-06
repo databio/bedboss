@@ -1,13 +1,13 @@
-from tqdm import tqdm
 from typing import List
+
 from bbconf import BedBaseAgent
-
-from bedboss.refgenome_validator.main import ReferenceValidator
-
-from sqlalchemy import select, and_
-from sqlalchemy.orm import Session
 from bbconf.db_utils import Bed
 from geniml.bbclient import BBClient
+from sqlalchemy import and_, select
+from sqlalchemy.orm import Session
+from tqdm import tqdm
+
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 LIMIT = 100000
 

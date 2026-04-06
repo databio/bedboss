@@ -1,49 +1,48 @@
 import glob
+import gzip
 import logging
 import os
 import time
 import urllib.request
-from functools import wraps
-import gzip
+from functools import lru_cache, wraps
 from io import StringIO
-import pandas as pd
-from typing import Union
-from gtars.models import RegionSet
 
+import pandas as pd
 import peprs
 import requests
 from bedms import AttrStandardizer
+from gtars.models import RegionSet
 from pephubclient.files_manager import FilesManager
 from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
-from bedboss.refgenome_validator.main import ReferenceValidator
+from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH
 from bedboss.exceptions import QualityException
-from bedboss.const import MIN_REGION_WIDTH, MAX_FILE_SIZE_QC
+from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
 
 
 def standardize_genome_name(
     input_genome: str,
-    bedfile: Union[str, RegionSet] = None,
+    bedfile: str | RegionSet = None,
     reference_validator: ReferenceValidator = None,
 ) -> str:
     """
-    Standardizing user provided genome
+    Standardize user provided genome.
 
-    :param input_genome: standardize user provided genome, so bedboss know what genome
-    we should use
-    :param bedfile: path to bed file
-    :return: genome name string
-    :param reference_validator: ReferenceValidator object, if None, a new one will be created
-    :return: standardized genome name
+    Args:
+        input_genome: User provided genome to standardize.
+        bedfile: Path to bed file.
+        reference_validator: ReferenceValidator object, if None a new one will be created.
+
+    Returns:
+        Standardized genome name.
     """
 
-    if not reference_validator:
-        reference_validator = ReferenceValidator()
-
     if bedfile:
+        if not reference_validator:
+            reference_validator = ReferenceValidator()
         predicted_genome = reference_validator.predict(bedfile)[0]
         if predicted_genome:
             return predicted_genome
@@ -66,12 +65,12 @@ def standardize_genome_name(
 
 def download_file(url: str, path: str, no_fail: bool = False) -> None:
     """
-    Download file from the url to specific location
+    Download file from the url to specific location.
 
-    :param url: URL of the file
-    :param path: Local path with filename
-    :param no_fail: If True, do not raise exception if download fails
-    :return: NoReturn
+    Args:
+        url: URL of the file.
+        path: Local path with filename.
+        no_fail: If True, do not raise exception if download fails.
     """
     _LOGGER.info(f"Downloading remote file: {url}")
     _LOGGER.info(f"Local path: {os.path.abspath(path)}")
@@ -85,6 +84,7 @@ def download_file(url: str, path: str, no_fail: bool = False) -> None:
         _LOGGER.error("File download failed. Continuing anyway...")
 
 
+@lru_cache(maxsize=32)
 def get_genome_digest(genome: str) -> str:
     return requests.get(
         f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
@@ -92,9 +92,7 @@ def get_genome_digest(genome: str) -> str:
 
 
 def example_bedbase_config():
-    """
-    Return example configuration for BedBase
-    """
+    """Return example configuration for BedBase."""
     return {
         "database": {
             "host": "localhost",
@@ -146,9 +144,10 @@ def example_bedbase_config():
 
 def save_example_bedbase_config(path: str) -> None:
     """
-    Save example configuration for BedBase
+    Save example configuration for BedBase.
 
-    :param path: path to the file
+    Args:
+        path: Path to the file.
     """
     file_path = os.path.abspath(os.path.join(path, "bedbase_config.yaml"))
     FilesManager.save_yaml(example_bedbase_config(), file_path)
@@ -159,12 +158,15 @@ def standardize_pep(
     pep: peprs.Project, standard_columns: list = None, model: str = "BEDBASE"
 ) -> peprs.Project:
     """
-    Standardize PEP file by using bedMS standardization model
-    :param pep: peprs project
-    :param standard_columns: list of columns to standardize
+    Standardize PEP file by using bedMS standardization model.
 
-    :return: peprs project
+    Args:
+        pep: Peprs project.
+        standard_columns: List of columns to standardize.
+        model: Model name to use for standardization.
 
+    Returns:
+        Peprs project.
     """
 
     if standard_columns is None:
@@ -201,9 +203,10 @@ def standardize_pep(
 
 def cleanup_pm_temp(pm: PipelineManager) -> None:
     """
-    Cleanup temporary files from the PipelineManager
+    Cleanup temporary files from the PipelineManager.
 
-    :param pm: PipelineManager
+    Args:
+        pm: PipelineManager.
     """
     if len(pm.cleanup_list_conditional) > 0:
         for cleandir in pm.cleanup_list_conditional:
@@ -245,13 +248,17 @@ def calculate_time(func):
 
 def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
     """
-    Run initial QC on the bed file
+    Run initial QC on the bed file.
 
-    :param url: URL of the file
-    :param min_region_width: Minimum region width threshold to pass the quality check. Default is 20
+    Args:
+        url: URL of the file.
+        min_region_width: Minimum region width threshold to pass the quality check.
 
-    :return: int. File size in bytes (0 if unable to determine)
-    :raises: QualityException (includes file_size attribute)
+    Returns:
+        File size in bytes (0 if unable to determine).
+
+    Raises:
+        QualityException: If the file fails quality checks (includes file_size attribute).
     """
     _LOGGER.info(f"Running initial QC on the bed file: {url}")
 

@@ -16,7 +16,6 @@ def search_test():
         qdrant_api_key="",
     )
 
-    import cProfile
 
     # import pstats
     #

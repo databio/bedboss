@@ -1,6 +1,7 @@
+import pickle
+
 from bbconf import BedBaseAgent
 from qdrant_client.models import PointStruct
-import pickle
 
 
 def upload_text_of_bivec():

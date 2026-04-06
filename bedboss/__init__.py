@@ -1,11 +1,11 @@
 """Package-level data"""
 
 import logging
+from importlib.metadata import version
 
 import coloredlogs
 
-from bedboss._version import __version__
-
+__version__ = version(__package__)
 __package_name__ = "bedboss"
 
 __author__ = [

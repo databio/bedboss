@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Union, Tuple
 
 import pypiper
 from geniml.bbclient import BBClient
@@ -20,28 +19,28 @@ from bedboss.bedmaker.const import (
     BIGWIG_TEMPLATE,
     WIG_TEMPLATE,
 )
-from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.bedmaker.models import BedMakerOutput, InputTypes
 from bedboss.bedmaker.utils import get_chrom_sizes
-from bedboss.exceptions import BedBossException, RequirementsException, QualityException
+from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
+from bedboss.exceptions import BedBossException, QualityException, RequirementsException
 
 _LOGGER = logging.getLogger("bedboss")
 
 
 def make_bigbed(
-    bed: Union[str, RegionSet],
+    bed: str | RegionSet,
     output_path: str,
     genome: str,
-    rfg_config: Union[str, Path] = None,
+    rfg_config: str | Path = None,
 ) -> None:
     """
     Generate bigBed file for the BED file.
 
-    :param bed: path to the BED file, or RegionSet object from Rust
-    :param genome: reference genome (e.g. hg38, mm10, etc.)
-    :param output_path: full path to the output bigBed file
-
-    :return: None
+    Args:
+        bed: Path to the BED file, or RegionSet object from Rust.
+        output_path: Full path to the output bigBed file.
+        genome: Reference genome (e.g. hg38, mm10, etc.).
+        rfg_config: Path to the refgenie config file.
     """
 
     try:
@@ -75,24 +74,22 @@ def make_bed(
     rfg_config: str = None,
     chrom_sizes: str = None,
     pm: pypiper.PipelineManager = None,
-) -> Tuple[str, str, RegionSet]:
+) -> tuple[str, str, RegionSet]:
     """
-    Convert the input file to BED format by construct the command based
-    on input file type and execute the command.
+    Convert the input file to BED format by constructing the command based on input file type and executing it.
 
-    :param input_file: path to the input file
-    :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be
-                        converted into BED format
-    :param output_path: path to the output folder, logs will be saved (BED files will be cached)
-    :param genome: reference genome
-    :param narrowpeak: whether the regions are narrow (transcription factor
-                        implies narrow, histone mark implies broad peaks)
-    :param rfg_config: file path to the genome config file
-    :param chrom_sizes: a full path to the chrom.sizes required for the
-                        wig files conversion
-    :param pm: pypiper object
+    Args:
+        input_file: Path to the input file.
+        input_type: A [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format.
+        output_path: Path to the output folder, logs will be saved (BED files will be cached).
+        genome: Reference genome.
+        narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
+        rfg_config: File path to the genome config file.
+        chrom_sizes: A full path to the chrom.sizes required for the wig files conversion.
+        pm: Pypiper object.
 
-    :return: path to the BED file
+    Returns:
+        Tuple of (bed_file_path, bed_id, bed_object).
     """
     _LOGGER.info(f"Processing {input_file} file in bedmaker...")
 
@@ -261,35 +258,23 @@ def make_all(
     """
     Maker of bed and bigbed files.
 
-    Pipeline to convert supported file formats into
-    BED format and bigBed format. Currently supported formats*:
-        - bedGraph
-        - bigBed
-        - bigWig
-        - wig
-        - bed
-    :param input_file: path to the input file
-    :param input_type: a [bigwig|bedgraph|bed|bigbed|wig] file that will be
-                       converted into BED format
-    :param output_path: path to the output folder, where bigbed and logs will be saved
-    :param genome: reference genome
-    :param rfg_config: file path to the genome config file
-    :param chrom_sizes: a full path to the chrom.sizes required for the
-                        bedtobigbed conversion
-    :param narrowpeak: whether the regions are narrow (transcription factor
-                       implies narrow, histone mark implies broad peaks)
-    :param check_qc: run quality control during bedmaking
-    :param lite: run the pipeline in lite mode (without producing bigBed files)
-    :param pm: pypiper object
+    Pipeline to convert supported file formats (bedGraph, bigBed, bigWig, wig, bed)
+    into BED format and bigBed format.
 
-    :return: dict with generated bed metadata - BedMakerOutput object:
-        {
-            "bed_compliance": bed_compliance. e.g. bed3+0
-            "data_format": data_format. e.g. narrowpeak, broadpeak
-            "bed_file": path to the bed file
-            "bigbed_file": path to the bigbed file
-            "bed_digest": bed_digest
-        }
+    Args:
+        input_file: Path to the input file.
+        input_type: A [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format.
+        output_path: Path to the output folder, where bigbed and logs will be saved.
+        genome: Reference genome.
+        rfg_config: File path to the genome config file.
+        chrom_sizes: A full path to the chrom.sizes required for the bedtobigbed conversion.
+        narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
+        check_qc: Run quality control during bedmaking.
+        lite: Run the pipeline in lite mode (without producing bigBed files).
+        pm: Pypiper object.
+
+    Returns:
+        BedMakerOutput object with bed_compliance, data_format, bed_file, bigbed_file, and bed_digest.
     """
     if not pm:
         pm = pypiper.PipelineManager(

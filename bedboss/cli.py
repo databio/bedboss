@@ -1,11 +1,12 @@
 import os
-from typing import Union
+from importlib.metadata import version as _pkg_version
 
 import typer
 
-from bedboss import __version__
-from bedboss.bbuploader.cli import app_bbuploader
+__version__ = _pkg_version("bedboss")
 from pephubclient.helpers import MessageHandler as printm
+
+from bedboss.bbuploader.cli import app_bbuploader
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -165,7 +166,7 @@ def run_pep(
     bedset_heavy: bool = typer.Option(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
-    bedset_id: Union[str, None] = typer.Option(None, help="Bedset ID"),
+    bedset_id: str | None = typer.Option(None, help="Bedset ID"),
     rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
@@ -640,6 +641,7 @@ def update_genomes(
     ),
 ):
     from bbconf.bbagent import BedBaseAgent
+
     from bedboss.refgenome_validator.refgenie_chrom_sizes import update_db_genomes
 
     bbagent = BedBaseAgent(config)
