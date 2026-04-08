@@ -1,0 +1,715 @@
+"""
+HPC orchestration for `bedboss run-pep`.
+
+Splits a large PEP into N chunks and submits each as its own SLURM job.
+Idempotent: re-running picks up where it left off via per-chunk sentinel files
+and `squeue` checks.
+
+See `hpc_command_plan.md` for the full design.
+"""
+
+from __future__ import annotations
+
+import logging
+import shutil
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+import yaml
+from pephubclient import PEPHubClient
+from pephubclient.helpers import is_registry_path
+from pydantic import BaseModel, Field
+
+_LOGGER = logging.getLogger(__name__)
+
+MANIFEST_NAME = "manifest.json"
+SOURCE_PEP_DIR = "source_pep"
+CHUNKS_DIR = "chunks"
+STATE_DIR = "state"
+
+DEFAULT_TEMPLATE = """\
+#!/bin/bash
+
+#SBATCH --account={account}
+#SBATCH --ntasks={ntasks}
+#SBATCH --cpus-per-task={cpus_per_task}
+#SBATCH --mem={mem}
+#SBATCH --partition={partition}
+#SBATCH --time={time}
+#SBATCH --job-name=bedboss-{chunk_id}
+#SBATCH -o {logs_dir}/{chunk_id}.out
+#SBATCH -e {logs_dir}/{chunk_id}.err
+
+echo "Hello $USER, this is node $(hostname). Running {chunk_id}."
+
+bedboss run-pep \\
+    --pep {chunk_pep_path} \\
+    --outfolder {outfolder} \\
+    --bedbase-config {bedbase_config} \\
+    {forwarded_flags}
+status=$?
+
+if [ $status -eq 0 ]; then
+    touch {state_dir}/{chunk_id}.done
+else
+    touch {state_dir}/{chunk_id}.failed
+fi
+exit $status
+"""
+
+
+# ---------------------------------------------------------------------------
+# models
+# ---------------------------------------------------------------------------
+
+
+class BoolFlagSpec(BaseModel):
+    """CLI representation of a boolean run-pep option.
+
+    Attributes:
+        on: Flag emitted when the value is True (e.g. ``--upload-s3``).
+        off: Flag emitted when False, or None if there is no negative form.
+    """
+
+    on: str
+    off: Optional[str] = None
+
+
+# Maps RunPepArgs field name -> its on/off CLI form. Anything not listed here
+# is rendered as ``--key value`` regardless of type.
+BOOL_FLAGS: dict[str, BoolFlagSpec] = {
+    "create_bedset": BoolFlagSpec(on="--create-bedset", off="--no-create-bedset"),
+    "bedset_heavy": BoolFlagSpec(on="--bedset-heavy"),
+    "check_qc": BoolFlagSpec(on="--check-qc", off="--no-check-qc"),
+    "just_db_commit": BoolFlagSpec(on="--just-db-commit"),
+    "force_overwrite": BoolFlagSpec(on="--force-overwrite"),
+    "update": BoolFlagSpec(on="--update"),
+    "upload_qdrant": BoolFlagSpec(on="--upload-qdrant", off="--no-upload-qdrant"),
+    "upload_s3": BoolFlagSpec(on="--upload-s3", off="--no-upload-s3"),
+    "upload_pephub": BoolFlagSpec(on="--upload-pephub", off="--no-upload-pephub"),
+    "no_fail": BoolFlagSpec(on="--no-fail"),
+    "standardize_pep": BoolFlagSpec(on="--standardize-pep"),
+    "lite": BoolFlagSpec(on="--lite"),
+    "rerun": BoolFlagSpec(on="--rerun"),
+    "multi": BoolFlagSpec(on="--multi"),
+    "recover": BoolFlagSpec(on="--recover", off="--no-recover"),
+    "dirty": BoolFlagSpec(on="--dirty"),
+}
+
+
+class SlurmConfig(BaseModel):
+    """SLURM resource settings used to render every chunk's sbatch script."""
+
+    account: str
+    partition: str
+    time: str
+    mem: str
+    cpus_per_task: int
+    ntasks: int
+    template: Optional[str] = Field(
+        default=None,
+        description="Path to a custom sbatch template, or None for the bundled default.",
+    )
+
+
+class ChunkMeta(BaseModel):
+    """Per-chunk metadata persisted in the manifest."""
+
+    id: str
+    sample_range: tuple[int, int]
+    n_samples: int
+    pep_path: str
+    sbatch_path: str
+    logs_dir: str
+    job_id: Optional[str] = None
+    submitted_at: Optional[str] = None
+
+
+class Manifest(BaseModel):
+    """Top-level manifest persisted as ``manifest.json`` in the workdir."""
+
+    created_at: str
+    source_pep: str
+    source_config: str
+    n_chunks: int
+    run_pep_args: "RunPepArgs"
+    slurm: SlurmConfig
+    chunks: list[ChunkMeta]
+
+
+class RunPepArgs(BaseModel):
+    """All ``bedboss run-pep`` options forwarded into each chunk job.
+
+    Captured at first invocation and persisted in the manifest so that resume
+    runs use the exact same arguments and never drift.
+    """
+
+    outfolder: str
+    bedbase_config: str
+    create_bedset: bool = True
+    bedset_heavy: bool = False
+    rfg_config: Optional[str] = None
+    check_qc: bool = True
+    ensdb: Optional[str] = None
+    just_db_commit: bool = False
+    force_overwrite: bool = False
+    update: bool = False
+    upload_qdrant: bool = True
+    upload_s3: bool = True
+    upload_pephub: bool = True
+    no_fail: bool = False
+    license_id: Optional[str] = None
+    standardize_pep: bool = False
+    lite: bool = False
+    rerun: bool = False
+    multi: bool = False
+    recover: bool = True
+    dirty: bool = False
+
+
+# ---------------------------------------------------------------------------
+# manifest helpers
+# ---------------------------------------------------------------------------
+
+
+def _manifest_path(workdir: Path) -> Path:
+    """Return the path to the manifest file inside a workdir."""
+    return workdir / MANIFEST_NAME
+
+
+def _load_manifest(workdir: Path) -> Manifest | None:
+    """Load the manifest from a workdir.
+
+    Args:
+        workdir: Path to the run-pep-hpc working directory.
+
+    Returns:
+        Parsed Manifest, or None if no manifest exists yet (first run).
+    """
+    p = _manifest_path(workdir)
+    if not p.exists():
+        return None
+    return Manifest.model_validate_json(p.read_text())
+
+
+def _save_manifest(workdir: Path, manifest: Manifest) -> None:
+    """Persist the manifest to disk as pretty-printed JSON.
+
+    Args:
+        workdir: Path to the run-pep-hpc working directory.
+        manifest: Manifest to write.
+    """
+    _manifest_path(workdir).write_text(manifest.model_dump_json(indent=2))
+
+
+# ---------------------------------------------------------------------------
+# source PEP resolution
+# ---------------------------------------------------------------------------
+
+
+def _resolve_source_pep(pep: str, workdir: Path) -> Path:
+    """Materialize the source PEP locally inside the workdir.
+
+    PEPhub registry paths are pulled with `PEPHubClient.pull`. Local paths
+    (file or directory) are copied so the source is self-contained and
+    re-runs do not depend on the original location.
+
+    Args:
+        pep: PEPhub registry path (e.g. ``namespace/name:tag``) or local path.
+        workdir: Run-pep-hpc working directory.
+
+    Returns:
+        Path to the project config yaml of the materialized source PEP.
+
+    Raises:
+        FileNotFoundError: If a local path does not exist.
+        RuntimeError: If no project config yaml can be located after pulling.
+    """
+    dest = workdir / SOURCE_PEP_DIR
+    dest.mkdir(parents=True, exist_ok=True)
+
+    if is_registry_path(pep):
+        # PEPHubClient.pull writes into <output>/<namespace>/<name>/
+        existing_yaml = list(dest.rglob("*.yaml"))
+        if not existing_yaml:
+            _LOGGER.info(f"Pulling PEP {pep} from PEPhub into {dest}")
+            PEPHubClient().pull(pep, output=str(dest), force=True)
+        existing_yaml = list(dest.rglob("*_config.yaml")) or list(dest.rglob("*.yaml"))
+        if not existing_yaml:
+            raise RuntimeError(f"No project config yaml found after pulling {pep}")
+        return existing_yaml[0]
+
+    src = Path(pep).expanduser().resolve()
+    if not src.exists():
+        raise FileNotFoundError(pep)
+
+    if src.is_dir():
+        src_dir = src
+        cfgs = list(src_dir.glob("*_config.yaml")) or list(src_dir.glob("*.yaml"))
+        if not cfgs:
+            raise RuntimeError(f"No project config yaml found in {src_dir}")
+        src_cfg = cfgs[0]
+    else:
+        src_cfg = src
+        src_dir = src.parent
+
+    target_dir = dest / src_dir.name
+    if not target_dir.exists():
+        shutil.copytree(src_dir, target_dir)
+    return target_dir / src_cfg.name
+
+
+# ---------------------------------------------------------------------------
+# splitting
+# ---------------------------------------------------------------------------
+
+
+def _read_sample_table_path(config_path: Path) -> Path:
+    """Resolve the sample table path declared in a PEP project config.
+
+    Args:
+        config_path: Path to the project_config.yaml.
+
+    Returns:
+        Absolute path to the sample table CSV referenced by the config.
+
+    Raises:
+        RuntimeError: If the config has no ``sample_table`` entry or declares
+            multiple sample tables (not yet supported).
+        FileNotFoundError: If the resolved sample table file does not exist.
+    """
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    st = cfg.get("sample_table")
+    if st is None:
+        raise RuntimeError(f"PEP config {config_path} has no `sample_table` entry")
+    if isinstance(st, list):
+        if len(st) != 1:
+            raise RuntimeError("Multiple sample_tables not supported")
+        st = st[0]
+    p = (config_path.parent / st).resolve()
+    if not p.exists():
+        raise FileNotFoundError(f"Sample table not found: {p}")
+    return p
+
+
+def _check_no_subsamples(config_path: Path) -> None:
+    """Reject PEPs that declare a subsample table.
+
+    Subsample tables are not yet supported by run-pep-hpc because they would
+    need to be sliced in lock-step with the parent sample table.
+
+    Args:
+        config_path: Path to the project_config.yaml.
+
+    Raises:
+        RuntimeError: If the config declares a ``subsample_table``.
+    """
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    if cfg.get("subsample_table"):
+        raise RuntimeError(
+            "Subsample tables are not yet supported in run-pep-hpc. "
+            "Remove `subsample_table` from the PEP config or open an issue."
+        )
+
+
+def _split_pep(workdir: Path, source_cfg: Path, n_chunks: int) -> list[ChunkMeta]:
+    """Slice the source PEP sample table into N chunk PEPs on disk.
+
+    For each chunk, creates ``chunks/chunk_XXXX/{pep,slurm,logs}/`` and writes
+    a copy of the source project config plus the sliced sample table. Chunk
+    sizes differ by at most one sample.
+
+    Args:
+        workdir: Run-pep-hpc working directory.
+        source_cfg: Path to the source project_config.yaml.
+        n_chunks: Requested number of chunks. Capped at the total sample count.
+
+    Returns:
+        List of chunk metadata dicts ready to be stored in the manifest.
+
+    Raises:
+        RuntimeError: If the source PEP has zero samples.
+        ValueError: If ``n_chunks`` is less than 1.
+    """
+    _check_no_subsamples(source_cfg)
+    sample_table = _read_sample_table_path(source_cfg)
+    df = pd.read_csv(sample_table)
+    n = len(df)
+    if n == 0:
+        raise RuntimeError("Source PEP has 0 samples")
+    if n_chunks < 1:
+        raise ValueError("--n-chunks must be >= 1")
+    n_chunks = min(n_chunks, n)
+
+    with open(source_cfg) as f:
+        base_config = yaml.safe_load(f) or {}
+    base_name = base_config.get("name") or source_cfg.stem
+    config_name = source_cfg.name
+    sample_table_name = "sample_table.csv"
+
+    # even split, sizes differ by at most 1
+    base, extra = divmod(n, n_chunks)
+    chunks: list[ChunkMeta] = []
+    start = 0
+
+    for i in range(n_chunks):
+        size = base + (1 if i < extra else 0)
+        end = start + size
+        chunk_id = f"chunk_{i:04d}"
+        chunk_root = workdir / CHUNKS_DIR / chunk_id
+        pep_dir = chunk_root / "pep"
+        slurm_dir = chunk_root / "slurm"
+        logs_dir = chunk_root / "logs"
+        for d in (pep_dir, slurm_dir, logs_dir):
+            d.mkdir(parents=True, exist_ok=True)
+
+        chunk_config = dict(base_config)
+        chunk_config["name"] = f"{base_name}_{chunk_id}"
+        chunk_config["sample_table"] = sample_table_name
+        with open(pep_dir / config_name, "w") as f:
+            yaml.safe_dump(chunk_config, f, sort_keys=False)
+        df.iloc[start:end].to_csv(pep_dir / sample_table_name, index=False)
+
+        chunks.append(
+            ChunkMeta(
+                id=chunk_id,
+                sample_range=(start, end),
+                n_samples=size,
+                pep_path=str(pep_dir / config_name),
+                sbatch_path=str(slurm_dir / f"{chunk_id}.sbatch"),
+                logs_dir=str(logs_dir),
+            )
+        )
+        start = end
+
+    return chunks
+
+
+# ---------------------------------------------------------------------------
+# sbatch rendering
+# ---------------------------------------------------------------------------
+
+
+def _forwarded_flags(run_pep_args: RunPepArgs) -> str:
+    """Render run-pep CLI flags for the generated sbatch script.
+
+    ``--outfolder`` and ``--bedbase-config`` are emitted explicitly by the
+    template and skipped here. Boolean options are mapped via ``BOOL_FLAGS``
+    to their ``--flag`` / ``--no-flag`` forms; everything else is rendered as
+    ``--key value``.
+
+    Args:
+        run_pep_args: Run-pep options captured at first invocation.
+
+    Returns:
+        A backslash-and-newline-joined string ready to be interpolated into
+        the sbatch template.
+    """
+    skip = {"outfolder", "bedbase_config"}
+    parts: list[str] = []
+    for key, val in run_pep_args.model_dump().items():
+        if key in skip or val is None:
+            continue
+        spec = BOOL_FLAGS.get(key)
+        if spec is not None:
+            if val:
+                parts.append(spec.on)
+            elif spec.off is not None:
+                parts.append(spec.off)
+            continue
+        cli_key = "--" + key.replace("_", "-")
+        parts.append(f"{cli_key} {val}")
+    return " \\\n    ".join(parts)
+
+
+def _render_sbatch(
+    chunk: ChunkMeta,
+    slurm_cfg: SlurmConfig,
+    run_pep_args: RunPepArgs,
+    state_dir: Path,
+    template: str,
+) -> str:
+    """Render an sbatch script for a single chunk.
+
+    Args:
+        chunk: Chunk metadata dict from the manifest.
+        slurm_cfg: SLURM resource settings (account, partition, time, etc.).
+        run_pep_args: run-pep options to forward.
+        state_dir: Directory where the chunk will write its done/failed sentinel.
+        template: Raw sbatch template string with format placeholders.
+
+    Returns:
+        The fully-rendered sbatch script as a string.
+    """
+    return template.format(
+        account=slurm_cfg.account,
+        ntasks=slurm_cfg.ntasks,
+        cpus_per_task=slurm_cfg.cpus_per_task,
+        mem=slurm_cfg.mem,
+        partition=slurm_cfg.partition,
+        time=slurm_cfg.time,
+        chunk_id=chunk.id,
+        logs_dir=chunk.logs_dir,
+        state_dir=str(state_dir),
+        chunk_pep_path=chunk.pep_path,
+        outfolder=run_pep_args.outfolder,
+        bedbase_config=run_pep_args.bedbase_config,
+        forwarded_flags=_forwarded_flags(run_pep_args),
+    )
+
+
+def _write_sbatch_files(
+    chunks: list[ChunkMeta],
+    slurm_cfg: SlurmConfig,
+    run_pep_args: RunPepArgs,
+    state_dir: Path,
+    template_path: str | None,
+) -> None:
+    """Render and write the sbatch script for every chunk.
+
+    Args:
+        chunks: All chunk metadata dicts from the manifest.
+        slurm_cfg: SLURM resource settings.
+        run_pep_args: run-pep options to forward into each script.
+        state_dir: Sentinel directory shared across all chunks.
+        template_path: Optional path to a user-supplied template file. If None,
+            the bundled ``DEFAULT_TEMPLATE`` is used.
+    """
+    if template_path:
+        template = Path(template_path).read_text()
+    else:
+        template = DEFAULT_TEMPLATE
+    for chunk in chunks:
+        content = _render_sbatch(chunk, slurm_cfg, run_pep_args, state_dir, template)
+        Path(chunk.sbatch_path).write_text(content)
+
+
+# ---------------------------------------------------------------------------
+# slurm interaction
+# ---------------------------------------------------------------------------
+
+
+def _squeue_alive(job_id: str | None) -> bool:
+    """Check whether a SLURM job is still queued or running.
+
+    Args:
+        job_id: SLURM job id returned by a previous ``sbatch``, or None.
+
+    Returns:
+        True if ``squeue -j <job_id>`` reports the job as live. False if the
+        job is missing, finished, or if ``squeue`` is not on PATH.
+    """
+    if not job_id:
+        return False
+    try:
+        out = subprocess.run(
+            ["squeue", "-j", str(job_id), "-h"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        _LOGGER.warning("squeue not found on PATH; cannot check live job state")
+        return False
+    return bool(out.stdout.strip())
+
+
+def _sbatch_submit(sbatch_path: str) -> str:
+    """Submit an sbatch script and return the assigned SLURM job id.
+
+    Args:
+        sbatch_path: Path to the sbatch script to submit.
+
+    Returns:
+        The SLURM job id parsed from sbatch's "Submitted batch job N" output.
+
+    Raises:
+        subprocess.CalledProcessError: If sbatch exits non-zero.
+    """
+    out = subprocess.run(
+        ["sbatch", sbatch_path],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    # "Submitted batch job 1234567"
+    line = out.stdout.strip().splitlines()[-1]
+    return line.split()[-1]
+
+
+def _chunk_status(chunk: ChunkMeta, state_dir: Path) -> str:
+    """Derive the current status of a chunk from sentinels and squeue.
+
+    Status is derived (never stored) so it cannot go stale across runs.
+    Precedence: ``done`` > ``running`` > ``failed`` > ``pending``.
+
+    Args:
+        chunk: Chunk metadata.
+        state_dir: Directory containing ``.done`` / ``.failed`` sentinels.
+
+    Returns:
+        One of ``"done"``, ``"running"``, ``"failed"``, ``"pending"``.
+    """
+    cid = chunk.id
+    if (state_dir / f"{cid}.done").exists():
+        return "done"
+    if _squeue_alive(chunk.job_id):
+        return "running"
+    if (state_dir / f"{cid}.failed").exists():
+        return "failed"
+    return "pending"
+
+
+def _submit_pending(manifest: Manifest, workdir: Path) -> None:
+    """Submit every chunk that is not already done or live in the queue.
+
+    Done chunks are skipped. Live (queued/running) chunks are left alone.
+    Failed and never-submitted chunks are (re-)submitted; any stale
+    ``.failed`` sentinel is removed first so the next run starts clean.
+    The manifest is rewritten with the new job ids.
+
+    Args:
+        manifest: Manifest dict (mutated in place with new job ids).
+        workdir: Run-pep-hpc working directory.
+    """
+    state_dir = workdir / STATE_DIR
+    state_dir.mkdir(parents=True, exist_ok=True)
+    submitted = 0
+    skipped_done = 0
+    skipped_running = 0
+    for chunk in manifest.chunks:
+        status = _chunk_status(chunk, state_dir)
+        if status == "done":
+            skipped_done += 1
+            continue
+        if status == "running":
+            skipped_running += 1
+            continue
+        # pending or failed: clear stale failed sentinel and resubmit
+        failed_sentinel = state_dir / f"{chunk.id}.failed"
+        if failed_sentinel.exists():
+            failed_sentinel.unlink()
+        job_id = _sbatch_submit(chunk.sbatch_path)
+        chunk.job_id = job_id
+        chunk.submitted_at = datetime.now(timezone.utc).isoformat()
+        submitted += 1
+        _LOGGER.info(f"Submitted {chunk.id} as job {job_id}")
+    _save_manifest(workdir, manifest)
+    print(
+        f"Submission summary: submitted={submitted}, "
+        f"already_done={skipped_done}, still_running={skipped_running}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# entry points
+# ---------------------------------------------------------------------------
+
+
+def run_pep_hpc(
+    pep: str,
+    workdir: str,
+    n_chunks: int,
+    run_pep_args: RunPepArgs,
+    slurm_cfg: SlurmConfig,
+    slurm_template: str | None = None,
+    dry_run: bool = False,
+) -> None:
+    """Split a PEP into N chunks and submit each as a SLURM job.
+
+    On first invocation: pulls/copies the source PEP, slices its sample table
+    into N chunk PEPs, renders one sbatch script per chunk, writes the
+    manifest, and submits all chunks.
+
+    On re-invocation against an existing workdir: skips splitting entirely
+    and only (re)submits chunks that are not done and not currently live in
+    the SLURM queue. Failed chunks are resubmitted; run-pep's own per-sample
+    tracking files in ``outfolder`` cause already-processed samples to be
+    skipped on retry.
+
+    Args:
+        pep: Source PEP — PEPhub registry path or local path.
+        workdir: Working directory for chunks, sbatch files, manifest, state.
+            Reused across resume invocations.
+        n_chunks: Number of chunks to split the sample table into.
+        run_pep_args: Dict of run-pep options to forward into each chunk job.
+            Must include ``outfolder`` and ``bedbase_config``.
+        slurm_cfg: SLURM resource settings (account, partition, time, mem,
+            cpus_per_task, ntasks).
+        slurm_template: Optional path to a custom sbatch template. If None,
+            ``DEFAULT_TEMPLATE`` is used.
+        dry_run: If True, write all chunks and sbatch scripts but do not call
+            sbatch.
+    """
+    wd = Path(workdir).expanduser().resolve()
+    wd.mkdir(parents=True, exist_ok=True)
+    (wd / STATE_DIR).mkdir(exist_ok=True)
+
+    manifest = _load_manifest(wd)
+    if manifest is None:
+        _LOGGER.info(f"No manifest in {wd} — splitting PEP")
+        source_cfg = _resolve_source_pep(pep, wd)
+        chunks = _split_pep(wd, source_cfg, n_chunks)
+        slurm_cfg = slurm_cfg.model_copy(update={"template": slurm_template})
+        manifest = Manifest(
+            created_at=datetime.now(timezone.utc).isoformat(),
+            source_pep=pep,
+            source_config=str(source_cfg),
+            n_chunks=len(chunks),
+            run_pep_args=run_pep_args,
+            slurm=slurm_cfg,
+            chunks=chunks,
+        )
+        _write_sbatch_files(
+            chunks, slurm_cfg, run_pep_args, wd / STATE_DIR, slurm_template
+        )
+        _save_manifest(wd, manifest)
+        print(
+            f"Created {len(chunks)} chunks in {wd} "
+            f"(sizes: {[c.n_samples for c in chunks]})"
+        )
+    else:
+        _LOGGER.info(f"Resuming from existing manifest at {wd}")
+
+    if dry_run:
+        print("Dry run: skipping sbatch submission")
+        return
+
+    _submit_pending(manifest, wd)
+
+
+def run_pep_hpc_status(workdir: str) -> None:
+    """Print a per-chunk status table and totals for a run-pep-hpc workdir.
+
+    Args:
+        workdir: Working directory previously created by ``run_pep_hpc``.
+
+    Raises:
+        RuntimeError: If no manifest is found in the workdir.
+    """
+    wd = Path(workdir).expanduser().resolve()
+    manifest = _load_manifest(wd)
+    if manifest is None:
+        raise RuntimeError(f"No manifest found at {wd}")
+    state_dir = wd / STATE_DIR
+    counts = {"done": 0, "failed": 0, "running": 0, "pending": 0}
+    rows = []
+    for chunk in manifest.chunks:
+        status = _chunk_status(chunk, state_dir)
+        counts[status] += 1
+        rows.append((chunk.id, chunk.n_samples, status, chunk.job_id or "-"))
+    print(f"{'chunk_id':<14} {'samples':>8} {'status':<10} {'job_id':>12}")
+    print("-" * 48)
+    for cid, n, st, jid in rows:
+        print(f"{cid:<14} {n:>8} {st:<10} {jid:>12}")
+    print("-" * 48)
+    total = sum(counts.values())
+    print(
+        f"Totals: done={counts['done']} failed={counts['failed']} "
+        f"running={counts['running']} pending={counts['pending']} (of {total})"
+    )
