@@ -234,6 +234,117 @@ def run_pep(
 
 
 @app.command(
+    name="run-pep-hpc",
+    help="Split a large PEP into N chunks and submit each as a SLURM job. Idempotent: re-run to resume failed/pending chunks.",
+)
+def run_pep_hpc(
+    pep: str = typer.Option(..., help="PEP file. Local path or PEPhub registry path."),
+    workdir: str = typer.Option(
+        ..., help="Working directory for chunks, sbatch files, manifest, and state."
+    ),
+    n_chunks: int = typer.Option(..., help="Number of chunks to split the PEP into."),
+    # forwarded run-pep options
+    outfolder: str = typer.Option(
+        ..., help="Path to the output folder (shared across chunks)."
+    ),
+    bedbase_config: str = typer.Option(
+        ...,
+        help="Path to the bedbase config file",
+        exists=True,
+        file_okay=True,
+        readable=True,
+    ),
+    create_bedset: bool = typer.Option(True, help="Create a new bedset"),
+    bedset_heavy: bool = typer.Option(False, help="Run heavy bedbuncher"),
+    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
+    check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
+    ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
+    just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
+    force_overwrite: bool = typer.Option(
+        False, help="Force overwrite the output files"
+    ),
+    update: bool = typer.Option(False, help="Update existing records"),
+    upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
+    upload_s3: bool = typer.Option(True, help="Upload to S3"),
+    upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
+    no_fail: bool = typer.Option(False, help="Do not fail on error"),
+    license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
+    standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
+    lite: bool = typer.Option(False, help="Run the pipeline in lite mode."),
+    rerun: bool = typer.Option(False, help="Rerun already processed samples"),
+    multi: bool = typer.Option(False, help="Run multiple samples"),
+    recover: bool = typer.Option(True, help="Recover from previous run"),
+    dirty: bool = typer.Option(False, help="Run without removing existing files"),
+    # SLURM options
+    slurm_template: str = typer.Option(
+        None,
+        help="Path to a custom sbatch template. See bedboss/bedboss_hpc.py for placeholders.",
+    ),
+    slurm_account: str = typer.Option("shefflab", help="SLURM --account"),
+    slurm_partition: str = typer.Option("standard", help="SLURM --partition"),
+    slurm_time: str = typer.Option("72:00:00", help="SLURM --time"),
+    slurm_mem: str = typer.Option("60000", help="SLURM --mem (MB)"),
+    slurm_cpus: int = typer.Option(4, help="SLURM --cpus-per-task"),
+    slurm_ntasks: int = typer.Option(2, help="SLURM --ntasks"),
+    dry_run: bool = typer.Option(
+        False, help="Split and write sbatch files but do not submit."
+    ),
+):
+    from bedboss.bedboss_hpc import RunPepArgs, SlurmConfig
+    from bedboss.bedboss_hpc import run_pep_hpc as _run_pep_hpc
+
+    run_pep_args = RunPepArgs(
+        outfolder=outfolder,
+        bedbase_config=bedbase_config,
+        create_bedset=create_bedset,
+        bedset_heavy=bedset_heavy,
+        rfg_config=rfg_config,
+        check_qc=check_qc,
+        ensdb=ensdb,
+        just_db_commit=just_db_commit,
+        force_overwrite=force_overwrite,
+        update=update,
+        upload_qdrant=upload_qdrant,
+        upload_s3=upload_s3,
+        upload_pephub=upload_pephub,
+        no_fail=no_fail,
+        license_id=license_id,
+        standardize_pep=standardize_pep,
+        lite=lite,
+        rerun=rerun,
+        multi=multi,
+        recover=recover,
+        dirty=dirty,
+    )
+    slurm_cfg = SlurmConfig(
+        account=slurm_account,
+        partition=slurm_partition,
+        time=slurm_time,
+        mem=slurm_mem,
+        cpus_per_task=slurm_cpus,
+        ntasks=slurm_ntasks,
+    )
+    _run_pep_hpc(
+        pep=pep,
+        workdir=workdir,
+        n_chunks=n_chunks,
+        run_pep_args=run_pep_args,
+        slurm_cfg=slurm_cfg,
+        slurm_template=slurm_template,
+        dry_run=dry_run,
+    )
+
+
+@app.command(name="run-pep-hpc-status", help="Show status of a run-pep-hpc workdir.")
+def run_pep_hpc_status(
+    workdir: str = typer.Option(..., help="Working directory created by run-pep-hpc."),
+):
+    from bedboss.bedboss_hpc import run_pep_hpc_status as _status
+
+    _status(workdir)
+
+
+@app.command(
     help="Run unprocessed files or reprocess them. Currently, only hg38, hg19, and mm10 genomes are supported."
 )
 def reprocess_all(
