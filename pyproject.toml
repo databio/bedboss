@@ -1,6 +1,6 @@
 [project]
 name = "bedboss"
-version = "0.10.2"
+version = "0.10.1"
 description = "Pipelines for genomic region file to produce bed files, and its statistics"
 readme = "README.md"
 license = "BSD-2-Clause"

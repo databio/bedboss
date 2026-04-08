@@ -464,7 +464,7 @@ def _render_sbatch(
         logs_dir=chunk.logs_dir,
         state_dir=str(state_dir),
         chunk_pep_path=chunk.pep_path,
-        outfolder=run_pep_args.outfolder,
+        outfolder=str(Path(run_pep_args.outfolder) / chunk.id),
         bedbase_config=run_pep_args.bedbase_config,
         forwarded_flags=_forwarded_flags(run_pep_args),
     )
