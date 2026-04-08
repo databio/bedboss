@@ -258,7 +258,17 @@ def _resolve_source_pep(pep: str, workdir: Path) -> Path:
 
     target_dir = dest / src_dir.name
     if not target_dir.exists():
-        shutil.copytree(src_dir, target_dir)
+        # Avoid infinite recursion when --workdir lives inside src_dir.
+        workdir_resolved = workdir.resolve()
+
+        def _ignore(dirpath: str, names: list[str]) -> list[str]:
+            ignored = []
+            for name in names:
+                if (Path(dirpath) / name).resolve() == workdir_resolved:
+                    ignored.append(name)
+            return ignored
+
+        shutil.copytree(src_dir, target_dir, ignore=_ignore)
     return target_dir / src_cfg.name
 
 
