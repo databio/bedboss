@@ -690,6 +690,48 @@ def run_pep_hpc(
     _submit_pending(manifest, wd)
 
 
+def _count_log_lines(path: Path) -> int:
+    """Return the number of non-empty lines in a Skipper log file.
+
+    Args:
+        path: Path to the log file. Missing files return 0.
+
+    Returns:
+        Number of non-empty lines, or 0 if the file does not exist.
+    """
+    if not path.exists():
+        return 0
+    with open(path) as f:
+        return sum(1 for line in f if line.strip())
+
+
+def _chunk_sample_counts(chunk: ChunkMeta, base_outfolder: str) -> tuple[int, int]:
+    """Read run-pep's Skipper logs for a chunk and return processed/failed counts.
+
+    The chunk PEP config's ``name`` field is used to locate
+    ``<outfolder>/<chunk_id>/<name>.log`` and ``<name>_fail.log``.
+
+    Args:
+        chunk: Chunk metadata.
+        base_outfolder: The shared base outfolder from ``run_pep_args``.
+
+    Returns:
+        ``(processed, failed)``. Both default to 0 if logs are missing.
+    """
+    try:
+        with open(chunk.pep_path) as f:
+            cfg = yaml.safe_load(f) or {}
+        pep_name = cfg.get("name")
+    except OSError:
+        return 0, 0
+    if not pep_name:
+        return 0, 0
+    chunk_outfolder = Path(base_outfolder) / chunk.id
+    processed = _count_log_lines(chunk_outfolder / f"{pep_name}.log")
+    failed = _count_log_lines(chunk_outfolder / f"{pep_name}_fail.log")
+    return processed, failed
+
+
 def run_pep_hpc_status(workdir: str) -> None:
     """Print a per-chunk status table and totals for a run-pep-hpc workdir.
 
@@ -704,19 +746,35 @@ def run_pep_hpc_status(workdir: str) -> None:
     if manifest is None:
         raise RuntimeError(f"No manifest found at {wd}")
     state_dir = wd / STATE_DIR
+    base_outfolder = manifest.run_pep_args.outfolder
     counts = {"done": 0, "failed": 0, "running": 0, "pending": 0}
+    total_processed = 0
+    total_failed = 0
     rows = []
     for chunk in manifest.chunks:
         status = _chunk_status(chunk, state_dir)
         counts[status] += 1
-        rows.append((chunk.id, chunk.n_samples, status, chunk.job_id or "-"))
-    print(f"{'chunk_id':<14} {'samples':>8} {'status':<10} {'job_id':>12}")
-    print("-" * 48)
-    for cid, n, st, jid in rows:
-        print(f"{cid:<14} {n:>8} {st:<10} {jid:>12}")
-    print("-" * 48)
+        processed, failed = _chunk_sample_counts(chunk, base_outfolder)
+        total_processed += processed
+        total_failed += failed
+        rows.append(
+            (chunk.id, chunk.n_samples, status, chunk.job_id or "-", processed, failed)
+        )
+    header = (
+        f"{'chunk_id':<14} {'samples':>8} {'status':<10} {'job_id':>12} "
+        f"{'processed':>10} {'failed':>8}"
+    )
+    print(header)
+    print("-" * len(header))
+    for cid, n, st, jid, proc, fail in rows:
+        print(f"{cid:<14} {n:>8} {st:<10} {jid:>12} {proc:>10} {fail:>8}")
+    print("-" * len(header))
     total = sum(counts.values())
     print(
         f"Totals: done={counts['done']} failed={counts['failed']} "
         f"running={counts['running']} pending={counts['pending']} (of {total})"
+    )
+    print(
+        f"Samples: processed={total_processed} failed={total_failed} "
+        f"(of {sum(c.n_samples for c in manifest.chunks)})"
     )
