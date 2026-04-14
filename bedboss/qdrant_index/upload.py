@@ -20,6 +20,13 @@ from sqlalchemy.orm import Session
 _LOGGER = logging.getLogger(__name__)
 
 
+def _str(val) -> str:
+    """Coerce a value to str, treating pandas NaN/None as empty string."""
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return ""
+    return str(val)
+
+
 def _load_parquet_files(workdir: Path) -> pd.DataFrame:
     """Glob and concatenate all vectors.parquet files from chunk output dirs."""
     parquet_files = sorted(workdir.glob("chunks/*/output/vectors.parquet"))
@@ -75,17 +82,17 @@ def upload_region_vectors(
 
             metadata = VectorMetadata(
                 id=bed_id,
-                name=row.get("name") or "",
-                description=row.get("description") or "",
-                genome_alias=row.get("genome_alias") or "",
+                name=_str(row.get("name")),
+                description=_str(row.get("description")),
+                genome_alias=_str(row.get("genome_alias")),
                 genome_digest=row.get("genome_digest"),
-                cell_line=row.get("cell_line") or "",
-                cell_type=row.get("cell_type") or "",
-                tissue=row.get("tissue") or "",
-                target=row.get("target") or "",
-                treatment=row.get("treatment") or "",
-                assay=row.get("assay") or "",
-                species_name=row.get("species_name") or "",
+                cell_line=_str(row.get("cell_line")),
+                cell_type=_str(row.get("cell_type")),
+                tissue=_str(row.get("tissue")),
+                target=_str(row.get("target")),
+                treatment=_str(row.get("treatment")),
+                assay=_str(row.get("assay")),
+                species_name=_str(row.get("species_name")),
             )
 
             points_batch.append(
@@ -166,17 +173,17 @@ def upload_hybrid_vectors(
 
             metadata = VectorMetadata(
                 id=bed_id,
-                name=row.get("name") or "",
-                description=row.get("description") or "",
-                genome_alias=row.get("genome_alias") or "",
+                name=_str(row.get("name")),
+                description=_str(row.get("description")),
+                genome_alias=_str(row.get("genome_alias")),
                 genome_digest=row.get("genome_digest"),
-                cell_line=row.get("cell_line") or "",
-                cell_type=row.get("cell_type") or "",
-                tissue=row.get("tissue") or "",
-                target=row.get("target") or "",
-                treatment=row.get("treatment") or "",
-                assay=row.get("assay") or "",
-                species_name=row.get("species_name") or "",
+                cell_line=_str(row.get("cell_line")),
+                cell_type=_str(row.get("cell_type")),
+                tissue=_str(row.get("tissue")),
+                target=_str(row.get("target")),
+                treatment=_str(row.get("treatment")),
+                assay=_str(row.get("assay")),
+                species_name=_str(row.get("species_name")),
             )
 
             points_batch.append(
