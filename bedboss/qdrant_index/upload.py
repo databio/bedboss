@@ -64,7 +64,7 @@ def upload_region_vectors(
     points_batch: list[PointStruct] = []
     ids_batch: list[str] = []
 
-    with Session(agent.config.db_engine) as session:
+    with Session(agent.config.db_engine.engine) as session:
         for _, row in df.iterrows():
             bed_id = row["sample_name"]
             vector = row["vector"]
@@ -140,7 +140,7 @@ def upload_hybrid_vectors(
     points_batch: list[PointStruct] = []
     ids_batch: list[str] = []
 
-    with Session(agent.config.db_engine) as session:
+    with Session(agent.config.db_engine.engine) as session:
         for _, row in df.iterrows():
             bed_id = row["sample_name"]
             dense_vec = row["dense_vector"]
