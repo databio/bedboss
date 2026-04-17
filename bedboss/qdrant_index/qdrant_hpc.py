@@ -175,9 +175,7 @@ def _fetch_region_metadata(
         conditions.append(Bed.file_indexed.is_(False))
 
     statement = (
-        select(Bed)
-        .join(BedMetadata, Bed.id == BedMetadata.id)
-        .where(and_(*conditions))
+        select(Bed).join(BedMetadata, Bed.id == BedMetadata.id).where(and_(*conditions))
     )
     if limit:
         statement = statement.limit(limit)
@@ -388,9 +386,7 @@ def _get_alive_job_ids(chunks: list[ChunkMeta]) -> set[str]:
     return {line.strip() for line in out.stdout.strip().splitlines() if line.strip()}
 
 
-def _chunk_status(
-    chunk: ChunkMeta, state_dir: Path, alive_jobs: set[str]
-) -> str:
+def _chunk_status(chunk: ChunkMeta, state_dir: Path, alive_jobs: set[str]) -> str:
     cid = chunk.id
     if (state_dir / f"{cid}.done").exists():
         return "done"
@@ -599,9 +595,7 @@ def reindex_hpc_status(workdir: str, verbose: bool = False) -> None:
         n_vectors = _parquet_row_count(Path(chunk.output_parquet))
         total_vectors += n_vectors
 
-        rows.append(
-            (chunk.id, chunk.n_samples, status, chunk.job_id or "-", n_vectors)
-        )
+        rows.append((chunk.id, chunk.n_samples, status, chunk.job_id or "-", n_vectors))
 
     print(f"Search type: {manifest.search_type}")
     print(f"Model: {manifest.model_path}")
@@ -628,10 +622,7 @@ def reindex_hpc_status(workdir: str, verbose: bool = False) -> None:
         f"Chunks: done={counts['done']} failed={counts['failed']} "
         f"running={counts['running']} pending={counts['pending']} (of {total})"
     )
-    print(
-        f"Samples: {manifest.total_samples} total, "
-        f"{total_vectors} vectors produced"
-    )
+    print(f"Samples: {manifest.total_samples} total, {total_vectors} vectors produced")
 
     if failed_chunks:
         show_n = min(20, len(failed_chunks))

@@ -106,7 +106,12 @@ def upload_region_vectors(
 
             if len(points_batch) >= batch:
                 _upsert_and_mark(
-                    session, qd_client, collection, points_batch, ids_batch, "file_indexed"
+                    session,
+                    qd_client,
+                    collection,
+                    points_batch,
+                    ids_batch,
+                    "file_indexed",
                 )
                 uploaded += len(points_batch)
                 _LOGGER.info(f"Uploaded {uploaded} points")
@@ -120,7 +125,9 @@ def upload_region_vectors(
             )
             uploaded += len(points_batch)
 
-    _LOGGER.info(f"Region upload complete: {uploaded} points uploaded to '{collection}'")
+    _LOGGER.info(
+        f"Region upload complete: {uploaded} points uploaded to '{collection}'"
+    )
     print(f"Upload complete: {uploaded} points to collection '{collection}'")
 
 
@@ -210,7 +217,9 @@ def upload_hybrid_vectors(
             )
             uploaded += len(points_batch)
 
-    _LOGGER.info(f"Hybrid upload complete: {uploaded} points uploaded to '{collection}'")
+    _LOGGER.info(
+        f"Hybrid upload complete: {uploaded} points uploaded to '{collection}'"
+    )
     print(f"Upload complete: {uploaded} points to collection '{collection}'")
 
 
