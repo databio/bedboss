@@ -1,7 +1,5 @@
 import logging
 
-from bbconf.bbagent import BedBaseAgent
-
 _LOGGER = logging.getLogger("bedboss")
 
 
@@ -14,6 +12,8 @@ def add_to_qdrant(config: str, batch: int = 100, purge: bool = False) -> None:
         batch: Number of items to upload in one batch.
         purge: Whether to purge the existing index before reindexing.
     """
+    from bbconf.bbagent import BedBaseAgent
+
     agent = BedBaseAgent(config=config)
     agent.bed.reindex_qdrant(batch=batch, purge=purge)
 
@@ -29,6 +29,8 @@ def reindex_semantic_search(
         purge: Whether to purge the existing index before reindexing.
         batch: Number of items that will be uploaded to qdrant in one batch.
     """
+    from bbconf.bbagent import BedBaseAgent
+
     agent = BedBaseAgent(config=config)
     agent.bed.reindex_hybrid_search(batch=batch, purge=purge)
     _LOGGER.info("Semantic search reindexing completed.")
