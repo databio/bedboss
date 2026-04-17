@@ -799,9 +799,9 @@ def download_umap(
         "umap",
         help="Dimensionality reduction method to use. Options: 'umap', 'pca', or 'tsne'. To use UMAP, 'umap-learn' package must be installed.",
     ),
-    save_parquet: bool = typer.Option(
-        False,
-        help="Whether to save Parquet tier files alongside JSON",
+    output_format: str = typer.Option(
+        "parquet",
+        help="Output format: 'json', 'parquet', or 'both'",
     ),
 ):
     from bedboss.scripts.make_umap import get_embeddings
@@ -815,11 +815,11 @@ def download_umap(
         top_assays=top_assays,
         top_cell_lines=top_cell_lines,
         method=method,
-        save_parquet=save_parquet,
+        output_format=output_format,
     )
 
 
-@app.command(help="Update UMAP metadata Parquet tiers without regenerating geometry")
+@app.command(help="Update UMAP parquet metadata without regenerating geometry")
 def update_umap_metadata(
     config: str = typer.Option(
         ...,
@@ -828,9 +828,9 @@ def update_umap_metadata(
         file_okay=True,
         readable=True,
     ),
-    output_dir: str = typer.Option(
+    output_path: str = typer.Option(
         ...,
-        help="Directory to write Parquet tier files",
+        help="Path to write parquet file (without extension)",
     ),
     geometry: str = typer.Option(
         None,
@@ -839,7 +839,7 @@ def update_umap_metadata(
 ):
     from bedboss.scripts.make_umap import update_umap_metadata as _update
 
-    _update(bbconf=config, output_dir=output_dir, geometry=geometry)
+    _update(bbconf=config, output_path=output_path, geometry=geometry)
 
 
 @app.command(help="Check installed R packages")

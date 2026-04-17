@@ -21,6 +21,7 @@ GENOMES_URL = os.path.join(BASE_URL, "v4/genomes?limit=1000")
 SEQ_COL_URL = os.path.join(
     BASE_URL, "seqcol/collection/{digest}?collated=true&attribute=name_length_pairs"
 )
+SEQ_COL_URL_JSON_URL = "https://huggingface.co/databio/bedbase-umap/resolve/main/genome_seqcol.json"
 
 _LOGGER = logging.getLogger(PKG_NAME)
 
@@ -157,6 +158,18 @@ def read_seq_col_from_json(input_path: str = "genome_seqcol.json") -> Genomes:
         data = json.load(f)
     return Genomes(**data)
 
+def read_seq_col_from_url(input_path: str = "genome_seqcol.json") -> Genomes:
+    """
+    Read sequence collections from a JSON URL.
+
+    :param input_path: URL to the JSON file.
+    :return: Genomes object containing the sequence collections.
+    """
+    data = run_requests(input_path)
+    if not data:
+        raise BedBossException(f"Failed to fetch sequence collections from URL: {input_path}")
+    return Genomes(**data)
+
 
 def modify_for_analysis(genomes: Genomes) -> list[GenomeModel]:
     """
@@ -197,9 +210,12 @@ def get_chrom_sizes() -> list[GenomeModel]:
     try:
         ret = read_seq_col_from_json(input_path=cached_file_path)
     except FileNotFoundError:
-        _LOGGER.info("No genome_seqcol.json found, downloading from refgenie...")
-        ret = get_seq_col()
-
+        try:
+            _LOGGER.info("No genome_seqcol.json found, downloading from refgenie...")
+            ret = get_seq_col()
+        except Exception as e:
+            _LOGGER.info(f"Failed to fetch genome data from Refgenie: {e}")
+            ret = read_seq_col_from_url(input_path=SEQ_COL_URL_JSON_URL)
         save_seq_col_to_json(ret, output_path=cached_file_path)
     return modify_for_analysis(ret)
 
