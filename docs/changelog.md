@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.11.0] - 2026-04-17
+## Added:
+- HPC module for running bedboss on HPC
+- CLI tool for bulk uploading files to Qdrant
+
+## Fixed:
+- Bed classifier
+- DB connection
+
+
 # [0.10.0] - 2026-04-05
 ## Added:
 - Creation of parquet file for umap with more metadata inside
