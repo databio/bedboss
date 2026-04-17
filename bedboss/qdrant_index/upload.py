@@ -245,7 +245,13 @@ def _upsert_and_mark(
         collection_name=collection,
         points=points,
     )
-    assert operation_info.status in ("completed", "acknowledged")
+    status = operation_info.status
+    if status not in ("completed", "acknowledged"):
+        raise RuntimeError(
+            f"Qdrant upsert failed for collection '{collection}': "
+            f"unexpected status {status!r} for {len(points)} point(s). "
+            f"operation_info={operation_info!r}"
+        )
 
     session.query(Bed).filter(Bed.id.in_(bed_ids)).update(
         {getattr(Bed, flag_column): True},
