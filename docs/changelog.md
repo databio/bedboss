@@ -2,6 +2,11 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.11.1] - 2026-04-22
+## Changed:
+- Migrated to new yacman version 1.0.0
+
+
 # [0.11.0] - 2026-04-17
 ## Added:
 - HPC module for running bedboss on HPC
