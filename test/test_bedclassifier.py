@@ -32,6 +32,9 @@ BED_7_02 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7_02.bed"
 BED_7_03 = f"{SIMPLE_EXAMPLES_DIR}/test_bed_7_03.bed"
 BED_GAPPED_PEAK = f"{SIMPLE_EXAMPLES_DIR}/example.gappedPeak.gz"
 BED_GAPPED_PEAK_RS = f"{SIMPLE_EXAMPLES_DIR}/example_2.gappedPeak.gz"
+# 5-column bed whose 4th (float) column has a single NaN value; regression test
+# for the sparse-NaN column drop that previously misclassified this as bed4+0.
+BED_4_PLUS_1_SPARSE_NAN = f"{SIMPLE_EXAMPLES_DIR}/test_bed_4plus1_sparse_nan.bed.gz"
 
 
 class TestBedClassifier:
@@ -223,6 +226,15 @@ class TestBedClassifier:
                     data_format=DATA_FORMAT.ENCODE_GAPPEDPEAK_RS,
                     compliant_columns=12,
                     non_compliant_columns=3,
+                ),
+            ),
+            (
+                BED_4_PLUS_1_SPARSE_NAN,
+                BedClassificationOutput(
+                    bed_compliance="bed4+1",
+                    data_format=DATA_FORMAT.BED_LIKE,
+                    compliant_columns=4,
+                    non_compliant_columns=1,
                 ),
             ),
         ],

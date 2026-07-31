@@ -108,7 +108,7 @@ def get_bed_classification(
         else:
             raise BedTypeException(reason="Input is not a string or dataframe.")
 
-    df = df.dropna(axis=1)
+    df = df.dropna(axis=1, how="all")
     df.columns = range(len(df.columns))
     num_cols = len(df.columns)
     compliant_columns = 0
