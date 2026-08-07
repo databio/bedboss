@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "logmuse>=0.2.7",
+    "logmuse>=0.3.1",
     "coloredlogs>=15.0.1",
     "eido>=0.2.5",
     "peppy>=0.40.7",

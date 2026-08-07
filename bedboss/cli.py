@@ -1,6 +1,7 @@
 import os
 from importlib.metadata import version as _pkg_version
 
+import logmuse
 import typer
 
 __version__ = _pkg_version("bedboss")
@@ -900,8 +901,22 @@ def common(
     version: bool = typer.Option(
         None, "--version", "-v", callback=version_callback, help="App version"
     ),
+    verbosity: int = typer.Option(
+        None, "--verbosity", help="Set logging level: 1 (CRITICAL) to 5 (DEBUG)"
+    ),
+    logdev: bool = typer.Option(False, "--logdev", help="Use developer logging format"),
+    silent: bool = typer.Option(False, "--silent", help="Silence logging"),
 ):
-    pass
+    # This callback runs before any command, so it is where logging gets
+    # configured. Don't move this into `__init__.py`.
+    #
+    # Configure the root logger so that bedboss and its dependencies (pipestat,
+    # geniml, bbconf, pephubclient, refgenconf, bbuploader) all log through one
+    # handler. Each line is tagged with its logger name, so there is no need to
+    # attach a per-package handler to identify the source.
+    logmuse.init_logger(
+        "", make_root=True, verbosity=verbosity, devmode=logdev, silent=silent
+    )
 
 
 app.add_typer(app_bbuploader, name="geo")
