@@ -138,7 +138,6 @@ def example_bedbase_config():
             "aws_secret_access_key": None,
             "bucket": "bedbase",
         },
-        "phc": {"namespace": "bedbase", "name": "bedbase", "tag": "latest"},
     }
 
 
