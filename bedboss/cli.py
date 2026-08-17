@@ -417,7 +417,7 @@ def reprocess_bedset(
     )
 
 
-@app.command(help=f"Create a bed files form a [{', '.join(options_list)}] file")
+@app.command(help=f"Create a bed files from a [{', '.join(options_list)}] file")
 def make_bed(
     input_file: str = typer.Option(
         ...,
