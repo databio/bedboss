@@ -1,6 +1,7 @@
 import os
 from importlib.metadata import version as _pkg_version
 
+import logmuse
 import typer
 
 __version__ = _pkg_version("bedboss")
@@ -8,6 +9,7 @@ from pephubclient.helpers import MessageHandler as printm
 
 from bedboss.bbuploader.cli import app_bbuploader
 from bedboss.qdrant_index.qdrant_cli import qdrant_app
+from bedboss.scripts.snapshot import snapshot_app
 
 # commented and made new const here, because it speeds up help function,
 # from bbconf.const import DEFAULT_LICENSE
@@ -100,7 +102,6 @@ def run_all(
     ),
     upload_qdrant: bool = typer.Option(False, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     # Universes
     universe: bool = typer.Option(False, help="Create a universe"),
     universe_method: str = typer.Option(
@@ -144,7 +145,6 @@ def run_all(
         update=update,
         upload_qdrant=upload_qdrant,
         upload_s3=upload_s3,
-        upload_pephub=upload_pephub,
         universe=universe,
         universe_method=universe_method,
         universe_bedset=universe_bedset,
@@ -181,7 +181,6 @@ def run_pep(
     ),
     upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(True, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
@@ -222,7 +221,6 @@ def run_pep(
         update=update,
         license_id=license_id,
         upload_s3=upload_s3,
-        upload_pephub=upload_pephub,
         upload_qdrant=upload_qdrant,
         no_fail=no_fail,
         standardize_pep=standardize_pep,
@@ -267,7 +265,6 @@ def run_pep_hpc(
     update: bool = typer.Option(False, help="Update existing records"),
     upload_qdrant: bool = typer.Option(True, help="Upload to Qdrant"),
     upload_s3: bool = typer.Option(True, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(True, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
     license_id: str = typer.Option(DEFAULT_LICENSE, help="License ID"),
     standardize_pep: bool = typer.Option(False, help="Standardize the PEP using bedMS"),
@@ -307,7 +304,6 @@ def run_pep_hpc(
         update=update,
         upload_qdrant=upload_qdrant,
         upload_s3=upload_s3,
-        upload_pephub=upload_pephub,
         no_fail=no_fail,
         license_id=license_id,
         standardize_pep=standardize_pep,
@@ -421,7 +417,7 @@ def reprocess_bedset(
     )
 
 
-@app.command(help=f"Create a bed files form a [{', '.join(options_list)}] file")
+@app.command(help=f"Create a bed files from a [{', '.join(options_list)}] file")
 def make_bed(
     input_file: str = typer.Option(
         ...,
@@ -584,7 +580,6 @@ def make_bedset(
         False, help="Force overwrite the output files"
     ),
     upload_s3: bool = typer.Option(False, help="Upload to S3"),
-    upload_pephub: bool = typer.Option(False, help="Upload to PEPHub"),
     no_fail: bool = typer.Option(False, help="Do not fail on error"),
 ):
     from bedboss.bedbuncher.bedbuncher import run_bedbuncher_form_pep
@@ -595,7 +590,6 @@ def make_bedset(
         output_folder=outfolder,
         bedset_name=bedset_name,
         heavy=heavy,
-        upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         no_fail=no_fail,
         force_overwrite=force_overwrite,
@@ -900,9 +894,24 @@ def common(
     version: bool = typer.Option(
         None, "--version", "-v", callback=version_callback, help="App version"
     ),
+    verbosity: int = typer.Option(
+        None, "--verbosity", help="Set logging level: 1 (CRITICAL) to 5 (DEBUG)"
+    ),
+    logdev: bool = typer.Option(False, "--logdev", help="Use developer logging format"),
+    silent: bool = typer.Option(False, "--silent", help="Silence logging"),
 ):
-    pass
+    # This callback runs before any command, so it is where logging gets
+    # configured. Don't move this into `__init__.py`.
+    #
+    # Configure the root logger so that bedboss and its dependencies (pipestat,
+    # geniml, bbconf, pephubclient, refgenconf, bbuploader) all log through one
+    # handler. Each line is tagged with its logger name, so there is no need to
+    # attach a per-package handler to identify the source.
+    logmuse.init_logger(
+        "", make_root=True, verbosity=verbosity, devmode=logdev, silent=silent
+    )
 
 
 app.add_typer(app_bbuploader, name="geo")
 app.add_typer(qdrant_app, name="qdrant")
+app.add_typer(snapshot_app, name="snapshot")
