@@ -90,7 +90,6 @@ BOOL_FLAGS: dict[str, BoolFlagSpec] = {
     "update": BoolFlagSpec(on="--update"),
     "upload_qdrant": BoolFlagSpec(on="--upload-qdrant", off="--no-upload-qdrant"),
     "upload_s3": BoolFlagSpec(on="--upload-s3", off="--no-upload-s3"),
-    "upload_pephub": BoolFlagSpec(on="--upload-pephub", off="--no-upload-pephub"),
     "no_fail": BoolFlagSpec(on="--no-fail"),
     "standardize_pep": BoolFlagSpec(on="--standardize-pep"),
     "lite": BoolFlagSpec(on="--lite"),
@@ -160,7 +159,6 @@ class RunPepArgs(BaseModel):
     update: bool = False
     upload_qdrant: bool = True
     upload_s3: bool = True
-    upload_pephub: bool = True
     no_fail: bool = False
     license_id: Optional[str] = None
     standardize_pep: bool = False

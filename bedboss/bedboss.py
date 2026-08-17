@@ -79,7 +79,6 @@ def run_all(
     update: bool = False,
     upload_qdrant: bool = False,
     upload_s3: bool = False,
-    upload_pephub: bool = False,
     lite: bool = False,
     # Universes
     universe: bool = False,
@@ -90,7 +89,7 @@ def run_all(
     reference_genome_validator: ReferenceValidator = None,
 ) -> str:
     """
-    Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, pephub, and bedbase.
+    Run bedboss: bedmaker -> bedqc -> bedclassifier -> bedstat -> upload to s3, qdrant, and bedbase.
 
     Args:
         input_file: Input file path.
@@ -113,7 +112,6 @@ def run_all(
         update: Whether to update the record in the database. If True, overwrites 'force_overwrite'. Default: False.
         upload_qdrant: Whether to upload to qdrant. Default: False.
         upload_s3: Whether to upload to s3.
-        upload_pephub: Whether to push bedfiles and metadata to pephub. Default: False.
         lite: Whether to run lite version of the pipeline. Default: False.
         universe: Whether to add the sample as the universe. Default: False.
         universe_method: Method used to create the universe.
@@ -280,7 +278,6 @@ def run_all(
             ref_validation=ref_valid_stats,
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
-            upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=True,
@@ -298,7 +295,6 @@ def run_all(
             ref_validation=ref_valid_stats,
             license_id=license_id,
             upload_qdrant=upload_qdrant and not lite,
-            upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             local_path=outfolder,
             overwrite=force_overwrite,
@@ -337,7 +333,6 @@ def insert_pep(
     force_overwrite: bool = False,
     update: bool = False,
     upload_s3: bool = False,
-    upload_pephub: bool = False,
     upload_qdrant: bool = False,
     no_fail: bool = False,
     standardize_pep: bool = False,
@@ -366,7 +361,6 @@ def insert_pep(
         force_overwrite: Whether to overwrite the existing record.
         update: Whether to update the record in the database. Overwrites force_overwrite. Default: False.
         upload_s3: Whether to upload to s3.
-        upload_pephub: Whether to push bedfiles and metadata to pephub. Default: False.
         upload_qdrant: Whether to execute qdrant indexing.
         no_fail: Whether to raise an error if bedset was not added to the database.
         standardize_pep: Whether to standardize the pep file before processing by using bedms. Default: False.
@@ -458,7 +452,6 @@ def insert_pep(
                 update=update,
                 upload_qdrant=upload_qdrant,
                 upload_s3=upload_s3,
-                upload_pephub=upload_pephub,
                 universe=pep_sample.get("universe"),
                 universe_method=pep_sample.get("universe_method"),
                 universe_bedset=pep_sample.get("universe_bedset"),
@@ -486,7 +479,6 @@ def insert_pep(
             output_folder=output_folder,
             description=pep.description,
             heavy=bedset_heavy,
-            upload_pephub=upload_pephub,
             upload_s3=upload_s3,
             no_fail=no_fail,
             force_overwrite=force_overwrite,
@@ -608,7 +600,6 @@ def reprocess_all(
                 update=True,
                 upload_qdrant=True,
                 upload_s3=True,
-                upload_pephub=True,
                 lite=False,
                 universe=False,
                 universe_method=None,
@@ -714,7 +705,6 @@ def reprocess_one(
         update=True,
         upload_qdrant=True,
         upload_s3=True,
-        upload_pephub=True,
         lite=False,
         universe=False,
         universe_method=None,
@@ -764,7 +754,6 @@ def reprocess_bedset(
         output_folder=output_folder,
         description=bedset_annot.description,
         heavy=heavy,
-        upload_pephub=False,
         upload_s3=heavy,
         no_fail=no_fail,
         force_overwrite=True,
