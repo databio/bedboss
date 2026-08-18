@@ -753,7 +753,6 @@ def _upload_gse(
                 bedbase_config=bedbase_config,
                 narrowpeak=required_metadata.narrowpeak,
                 other_metadata=required_metadata.pep.model_dump(),
-                upload_pephub=True,
                 upload_s3=True,
                 upload_qdrant=True,
                 force_overwrite=overwrite,
@@ -831,7 +830,6 @@ def _upload_gse(
             name=gse,
             description=project.description,
             heavy=False,  # TODO: set to False because can't handle bedset > 10 files
-            upload_pephub=True,
             upload_s3=True,
             no_fail=True,
             force_overwrite=overwrite_bedset,

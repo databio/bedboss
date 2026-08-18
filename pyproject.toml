@@ -1,6 +1,6 @@
 [project]
 name = "bedboss"
-version = "0.11.1"
+version = "0.12.0"
 description = "Pipelines for genomic region file to produce bed files, and its statistics"
 readme = "README.md"
 license = "BSD-2-Clause"
@@ -24,7 +24,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "logmuse>=0.2.7",
+    "logmuse>=0.3.1",
     "coloredlogs>=15.0.1",
     "eido>=0.2.5",
     "peppy>=0.40.7",
@@ -32,9 +32,10 @@ dependencies = [
     "yacman>=1.0.0",
     "requests>=2.28.2",
     "piper>=0.14.3",
-    "bbconf>=0.14.12",
+    "bbconf>=0.15.0",
     "refgenconf>=0.13.1",
     "pandas>=2.0.0",
+    "pyarrow>=15.0.0",
     "ubiquerg>=0.6.2",
     "bedms>=0.1.0",
     "pephubclient>=0.5.0",

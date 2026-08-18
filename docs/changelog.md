@@ -2,6 +2,14 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.12.0] - 2026-08-18
+## Changes:
+- All references to `upload_pephub` have been removed from function signatures, docstrings, and internal logic across the codebase, including in `bedboss.py`, `bedbuncher.py`, `bbuploader/main.py`, `bedboss_hpc.py`, and the CLI (`cli.py`). This means users can no longer upload to PEPHub using any part of the pipeline. 
+- Removed unused logging setup from `bedboss/bbuploader/__init__.py` and added `logmuse` import to `cli.py` for consistent logging across the CLI. 
+- Fixed a bug in `_read_bed_file` in `bedclassifier.py` to only drop columns that are entirely NA, instead of any column with any NA.
+- Added import for `snapshot_app` in `cli.py` from `bedboss.scripts.snapshot`.
+- Added Analysis files functionality.
+
 # [0.11.1] - 2026-04-22
 ## Changed:
 - Migrated to new yacman version 1.0.0

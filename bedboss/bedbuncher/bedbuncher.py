@@ -99,7 +99,6 @@ def run_bedbuncher(
     description: str = None,
     annotation: dict = None,
     heavy: bool = False,
-    upload_pephub: bool = False,
     upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
@@ -118,7 +117,6 @@ def run_bedbuncher(
         annotation: Bedset annotation (author, source, summary, etc.).
         heavy: Whether to use heavy processing (add all columns to the database).
             If False, R-script won't be executed, only basic statistics will be calculated.
-        upload_pephub: Whether to create a view in pephub.
         upload_s3: Whether to upload files to s3.
         no_fail: Whether to raise an error if bedset was not added to the database.
         force_overwrite: Whether to overwrite the record in the database.
@@ -158,7 +156,6 @@ def run_bedbuncher(
         bedid_list=bed_set,
         statistics=True,
         description=description,
-        upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         plots=plots.model_dump(exclude_none=True, exclude_unset=True) if plots else {},
         local_path=output_folder,
@@ -175,7 +172,6 @@ def run_bedbuncher_form_pep(
     output_folder: str,
     bedset_name: str = None,
     heavy: bool = False,
-    upload_pephub: bool = False,
     upload_s3: bool = False,
     no_fail: bool = False,
     force_overwrite: bool = False,
@@ -190,7 +186,6 @@ def run_bedbuncher_form_pep(
         bedset_name: Name of the bedset.
         heavy: Whether to use heavy processing (add all columns to the database).
             If False, R-script won't be executed, only basic statistics will be calculated.
-        upload_pephub: Whether to create a view in pephub.
         upload_s3: Whether to upload files to s3.
         no_fail: Whether to raise an error if bedset was not added to the database.
         force_overwrite: Whether to overwrite the record in the database.
@@ -223,7 +218,6 @@ def run_bedbuncher_form_pep(
         name=bedset_name or pep_of_bed.name,
         description=pep_of_bed.description,
         heavy=heavy,
-        upload_pephub=upload_pephub,
         upload_s3=upload_s3,
         no_fail=no_fail,
         force_overwrite=force_overwrite,
@@ -244,7 +238,6 @@ def run_bedbuncher_form_pep(
 #         description="This is a description",
 #         upload_s3=True,
 #         no_fail=True,
-#         upload_pephub=True,
 #         heavy=True,
 #     )
 
@@ -252,5 +245,4 @@ def run_bedbuncher_form_pep(
 #     "/home/bnt4me/virginia/repos/bbuploader/config_db_local.yaml",
 #     bedset_name="pephub_test",
 #     bedset_pep="khoroshevskyi/bedbunch:default",
-#     upload_pephub=True,
 # )
