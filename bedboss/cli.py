@@ -9,6 +9,7 @@ from pephubclient.helpers import MessageHandler as printm
 
 from bedboss.bbuploader.cli import app_bbuploader
 from bedboss.qdrant_index.qdrant_cli import qdrant_app
+from bedboss.scripts.analysis_files import files_app
 from bedboss.scripts.snapshot import snapshot_app
 
 # commented and made new const here, because it speeds up help function,
@@ -915,3 +916,4 @@ def common(
 app.add_typer(app_bbuploader, name="geo")
 app.add_typer(qdrant_app, name="qdrant")
 app.add_typer(snapshot_app, name="snapshot")
+app.add_typer(files_app, name="files")
