@@ -368,9 +368,7 @@ class ReferenceValidator:
             if sequence_fit < 0.90:
                 points_rating += 1
             if sequence_fit < 0.60:
-                points_rating += 1
-            if sequence_fit < 0.60:
-                points_rating += 1
+                points_rating += 2
 
         else:
             # if no chrom names were found during assessment
