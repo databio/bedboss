@@ -434,9 +434,8 @@ def insert_pep(
     # Build the stats backend once for the whole batch. The backend holds
     # per-backend resources (persistent R service, gtars reference caches,
     # etc.) that should be reused across files.
-    stat_backend = (
-        build_backend(bbagent.config.config.analysis.backend) if not lite else None
-    )
+    backend_name = bbagent.config.config.analysis.backend
+    stat_backend = build_backend(backend_name) if not lite else None
 
     for i, pep_sample in enumerate(pep.samples):
         is_processed = skipper.is_processed(pep_sample.sample_name)
@@ -520,6 +519,7 @@ def insert_pep(
             force_overwrite=force_overwrite,
             annotation=bedset_annotation,
             lite=lite,
+            backend=backend_name,
         )
     else:
         _LOGGER.info(
@@ -786,4 +786,5 @@ def reprocess_bedset(
             )
         },
         lite=False,
+        backend=bbagent.config.config.analysis.backend,
     )

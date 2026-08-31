@@ -105,6 +105,15 @@ def bedstat(
                 f"Open Signal Matrix was not found for {genome}. Skipping..."
             )
 
+    # Resolve bed_digest at the orchestration layer. Backends assume the
+    # digest is always provided — this keeps backend implementations free
+    # of file-parsing concerns (especially GtarsStatBackend, which is
+    # a pure CLI-subprocess backend with no Python-binding dependencies).
+    if bed_digest is None:
+        from gtars.models import RegionSet
+
+        bed_digest = RegionSet(bedfile).identifier
+
     return backend.compute(
         bedfile=bedfile,
         genome=genome,
