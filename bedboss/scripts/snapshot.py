@@ -462,6 +462,7 @@ def run_snapshot(
     """
     from bbconf.bbagent import BedBaseAgent
     from bbconf.models.base_models import BedSnapshotArtifact
+    from sqlalchemy import text
 
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -479,6 +480,11 @@ def run_snapshot(
     with agent.config.db_engine.engine.connect().execution_options(
         isolation_level="REPEATABLE READ"
     ) as conn:
+        # The app role carries a server-side statement_timeout (45s); the full
+        # table scans here legitimately run longer, so opt this dedicated
+        # connection out. It is closed at the end of the block, so the setting
+        # does not leak.
+        conn.execute(text("SET statement_timeout = 0"))
         records = build_exports(conn, out_dir, date_str, batch_size, fail_threshold)
 
     ended = datetime.datetime.now(datetime.timezone.utc).isoformat()
