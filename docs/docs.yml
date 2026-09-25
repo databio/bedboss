@@ -1,0 +1,28 @@
+site_name: BEDboss
+nav:
+  - BEDboss: README.md
+  - Tutorials:
+    - Python modules:
+      - BEDboss run-pep: tutorials/python/tutorial_run_pep.md
+      - BEDboss-all pipeline: tutorials/python/tutorial_all.md
+      - BEDmaker: tutorials/python/bedmaker_tutorial.md
+      - BEDstat: tutorials/python/bedstat_tutorial.md
+      - BEDbuncher: tutorials/python/bedbuncher_tutorial.md
+      - BEDindex: tutorials/python/bedindex_tutorial.md
+      - BEDclassifier: tutorials/python/bedclassifier_tutorial.md
+      - Ref_genome validator: tutorials/python/ref_genome_tutorial.md
+    - Command line interface: usage.md
+    - BEDMS tutorial: tutorials/bedms_tutorial.md
+  - How to guides:
+    - Plot GEO BED files number: how-to/bedfiles-geo-count.md
+    - Upload GEO data: how-to/upload-geo-data.md
+    - Upload BED from PEP: how-to/how-to-run-pep.md
+    - Reindex vector store: how-to/how-to-reindex-db.md
+    - Generate UMAP: how-to/how-to-create-umap.md
+    - Create BEDbase database: how-to/how-to-create-database.md
+    - Run BEDboss in Docker: how-to/how-to-run-in-docker.md
+    - Create config file: /bedbase/how-to-configure/
+    - Install dependencies: how-to/how-to-install-requirements.md
+  - Reference:
+    - How to cite: /citations/
+    - Changelog: changelog.md
