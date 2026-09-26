@@ -24,5 +24,4 @@ nav:
     - Create config file: /bedbase/how-to-configure/
     - Install dependencies: how-to/how-to-install-requirements.md
   - Reference:
-    - How to cite: /citations/
     - Changelog: changelog.md
