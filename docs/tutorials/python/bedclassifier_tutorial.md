@@ -43,13 +43,14 @@ class DATA_FORMAT(str, Enum):
 ```python
 from bedboss.bedclassifier import get_bed_classification
 
-clasif = get_bed_classification("ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8208nnn/GSM8208095/suppl/GSM8208095_Day4_WT-1_aligned_reads_peaks.narrowPeak.gz")
+clasif = get_bed_classification(
+    "ftp://ftp.ncbi.nlm.nih.gov/geo/samples/GSM8208nnn/GSM8208095/suppl/GSM8208095_Day4_WT-1_aligned_reads_peaks.narrowPeak.gz"
+)
 
 print(clasif)
 
-# >> bed_compliance='bed6+4' 
+# >> bed_compliance='bed6+4'
 # >> data_format=<DATA_FORMAT.ENCODE_NARROWPEAK_RS: 'encode_narrowpeak_rs'>
 # >> compliant_columns=6
 # >> non_compliant_columns=4
-
 ```

@@ -54,9 +54,9 @@ bedboss.run_all(
     outfolder="path/to/output/dir",
     genome="hg38",
     bedbase_config="bedconf.yaml",
-    other_metadata=None, # optional
-    upload_pephub=True, # optional
-    upload_qdrant=True, # optional
-    upload_s3=True, # optional
+    other_metadata=None,  # optional
+    upload_pephub=True,  # optional
+    upload_qdrant=True,  # optional
+    upload_s3=True,  # optional
 )
 ```

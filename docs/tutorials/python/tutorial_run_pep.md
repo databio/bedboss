@@ -56,10 +56,10 @@ bedboss.insert_pep(
     bedbase_config="bedconf.yaml",
     pep="path/to/pep.yaml",
     output_folder="path/to/output/dir",
-    upload_pephub=True, # optional
-    upload_qdrant=True, # optional
-    upload_s3=True, # optional
-    create_bedset=True, # optional
-    no_fail=True, # optional
+    upload_pephub=True,  # optional
+    upload_qdrant=True,  # optional
+    upload_s3=True,  # optional
+    create_bedset=True,  # optional
+    no_fail=True,  # optional
 )
 ```

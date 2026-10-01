@@ -33,7 +33,8 @@ model = AttrStandardizer(
 )
 results = model.standardize(pep="geo/gse228634:default")
 
-print(results) #Dictionary of suggested predictions with their confidence: {'attr_1':{'prediction_1': 0.70, 'prediction_2':0.30}}
+# Dictionary of suggested predictions with their confidence: {'attr_1':{'prediction_1': 0.70, 'prediction_2':0.30}}
+print(results)
 ```
 In the above example, we have provided the `repo_id` which is the path to the repository that holds the models on HuggingFace. The `model_name` selection can vary based on your choice of schema. You can view the schemas on PEPhub for [encode](https://pephub.databio.org/schemas/databio/bedms_encode), [fairtracks](https://pephub.databio.org/schemas/databio/bedms_fairtracks), and [bedbase](https://pephub.databio.org/schemas/databio/bedms_bedbase).
 For standardization, you need to provide the path to your PEP which in the above example is `pep="geo/gse228634:default"`.
@@ -94,7 +95,6 @@ To develop training sets, follow the step by step protocol mentioned below:
     from bedms.train import TrainStandardizer
 
     trainer = TrainStandardizer("training_config.yaml")
-
     ```
     To load the datasets and encode them:
 
@@ -111,13 +111,13 @@ To develop training sets, follow the step by step protocol mentioned below:
     To test the custom model:
 
     ```python
-    test_results_dict = trainer.test() #Dictionary with Precision, Recall, and F1 values
+    test_results_dict = trainer.test()  # Dictionary with Precision, Recall, and F1 values
     ```
 
     To generate visualizations such as Learning Curves, Confusion Matrices, and ROC Curve:
 
     ```python
-    acc_fig, loss_fig, conf_fig, roc_fig = trainer.plot_visualizations() 
+    acc_fig, loss_fig, conf_fig, roc_fig = trainer.plot_visualizations()
     ```
     Where `acc_fig` is Accuracy Curve figure object, `loss_fig` is Loss Curve figure object, `conf_fig` is the Confusion Matrix figure object, and `roc_fig` is the ROC Curve figure object. 
 
@@ -166,10 +166,9 @@ For standardizing on custom schema model, instantiate `AttrStandardizer` and pro
 ```python
 from bedms import AttrStandardizer
 
-model = AttrStandardizer(
-    repo_id="new_repo", model_name="new_schema"
-)
+model = AttrStandardizer(repo_id="new_repo", model_name="new_schema")
 results = model.standardize(pep="geo/gse228634:default")
 
-print(results) #Dictionary of suggested predictions with their confidence: {'attr_1':{'prediction_1': 0.70, 'prediction_2':0.30}}
+# Dictionary of suggested predictions with their confidence: {'attr_1':{'prediction_1': 0.70, 'prediction_2':0.30}}
+print(results)
 ```

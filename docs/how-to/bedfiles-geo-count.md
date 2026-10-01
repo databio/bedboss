@@ -58,17 +58,14 @@ data["year_str"] = data["year"].astype(str)
 
 fig, ax = plt.subplots()
 plt.xticks(rotation=45)
-ax.bar(data["year_str"], 
-       data["summary"], 
-       label=data["year_str"], 
-       color="green")
+ax.bar(data["year_str"], data["summary"], label=data["year_str"], color="green")
 
-ax.set_xlabel('Year')
-ax.set_ylabel('Number of files')
-ax.set_title('Cumulative number of BED files')
+ax.set_xlabel("Year")
+ax.set_ylabel("Number of files")
+ax.set_title("Cumulative number of BED files")
 
 
-fig.savefig('./bed_geo_2025_06_summary.svg')
+fig.savefig("./bed_geo_2025_06_summary.svg")
 ```
 
 ### The output plot: 

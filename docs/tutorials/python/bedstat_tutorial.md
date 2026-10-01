@@ -47,7 +47,7 @@ bedstat(
     bedfile="path/to/bedfile.bed",
     outfolder="path/to/output/dir",
     genome="hg19",
-    )
+)
 ```
 
 After running BEDstats, you will find the following files in the output directory + all statistics will be saved in output file.
