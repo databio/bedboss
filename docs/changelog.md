@@ -2,6 +2,11 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.12.1] - 2026-10-16
+## Fixed:
+- `bedboss snapshot new` crashed on the bedsets export under SQLAlchemy 2.1, which reports JSON columns as `object` instead of `dict`. JSON columns are now detected by type.
+- `bedboss snapshot new` turns off `statement_timeout` on its export connection, so long table scans are not cancelled by the app role's limit.
+
 # [0.12.0] - 2026-08-18
 ## Changes:
 - All references to `upload_pephub` have been removed from function signatures, docstrings, and internal logic across the codebase, including in `bedboss.py`, `bedbuncher.py`, `bbuploader/main.py`, `bedboss_hpc.py`, and the CLI (`cli.py`). This means users can no longer upload to PEPHub using any part of the pipeline. 
