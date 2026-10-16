@@ -164,9 +164,7 @@ class ColumnPlan:
         self.names = [c.name for c in columns]
         self._pa_types = [_pa_type(c) for c in columns]
         # Indices of JSON columns, whose values are serialized to a string.
-        self.json_idx = {
-            i for i, c in enumerate(columns) if _python_type(c) is dict
-        }
+        self.json_idx = {i for i, c in enumerate(columns) if _is_json(c)}
         self.schema = pa.schema(list(zip(self.names, self._pa_types)))
 
     def select(self):
@@ -183,6 +181,18 @@ class ColumnPlan:
         return self.columns[0].table
 
 
+def _is_json(column) -> bool:
+    """True for JSON/JSONB columns.
+
+    Checked by type class, not ``python_type``: SQLAlchemy 2.1 reports
+    ``object`` instead of ``dict`` for JSON, which silently skipped
+    serialization and crashed pyarrow on the first dict value.
+    """
+    from sqlalchemy.types import JSON
+
+    return isinstance(column.type, JSON)
+
+
 def _python_type(column):
     try:
         return column.type.python_type
@@ -194,6 +204,9 @@ def _pa_type(column):
     """Map a SQLAlchemy column's Python type onto a pyarrow type."""
     import pyarrow as pa
 
+    if _is_json(column):
+        # JSON/JSONB -> serialized string.
+        return pa.string()
     pytype = _python_type(column)
     if pytype is bool:
         return pa.bool_()
@@ -205,9 +218,6 @@ def _pa_type(column):
         return pa.timestamp("us", tz="UTC")
     if pytype is list:
         return pa.list_(pa.string())
-    if pytype is dict:
-        # JSON/JSONB -> serialized string.
-        return pa.string()
     return pa.string()
 
 
