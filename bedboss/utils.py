@@ -263,12 +263,12 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
 
     file_size = 0
 
+    # Read over https, not ftp: NCBI serves the same paths on both, and an ftp
+    # read of the first 10 KB takes ~30 s versus ~1 s over https.
+    check_url = url.replace("ftp://", "https://") if url.startswith("ftp://") else url
+
     # Check file size before downloading content
     try:
-        # Convert ftp:// to https:// for the HEAD request (e.g., NCBI FTP supports HTTPS)
-        check_url = (
-            url.replace("ftp://", "https://") if url.startswith("ftp://") else url
-        )
         response = requests.head(check_url, allow_redirects=True)
         content_length = response.headers.get("Content-Length")
         if content_length:
@@ -284,7 +284,7 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
         _LOGGER.warning(f"Unable to check file size: {err}. Continuing with QC...")
 
     try:
-        with urllib.request.urlopen(url) as response:
+        with urllib.request.urlopen(check_url) as response:
             with gzip.GzipFile(fileobj=response) as f:
                 content = f.read(10240).decode()  # Read first 10KB after decompression
 
