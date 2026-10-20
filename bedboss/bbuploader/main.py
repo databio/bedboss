@@ -7,11 +7,13 @@ import peprs
 import pypiper
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
+from botocore.exceptions import BotoCoreError, ClientError
 from geniml.exceptions import GenimlBaseError
 from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
 from sqlalchemy import and_, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from bedboss.bbuploader.constants import (
@@ -54,6 +56,10 @@ _LOGGER.setLevel(logging.DEBUG)
 
 
 reference_validator = ReferenceValidator()
+
+# A database or S3 error means the pipeline is broken, not that one input file
+# is bad. Stop the run on these instead of logging and moving on, so the job fails.
+INFRA_ERRORS = (SQLAlchemyError, BotoCoreError, ClientError)
 
 
 @calculate_time
@@ -216,6 +222,8 @@ def upload_all(
                 gse_status.status = STATUS.FAIL
                 gse_status.error = str(err)
                 session.commit()
+                if isinstance(err, INFRA_ERRORS):
+                    raise
                 continue
 
             status_parser(gse_status, upload_result)
@@ -482,6 +490,8 @@ def upload_gse(
             gse_status.status = STATUS.FAIL
             gse_status.error = str(e)
             session.commit()
+            if isinstance(e, INFRA_ERRORS):
+                raise
             exit()
 
         status_parser(gse_status, upload_result)
