@@ -33,6 +33,16 @@ or install the latest version from the GitHub repository:
 pip install git+https://github.com/databio/bedboss.git
 ```
 
+Some commands need optional extras:
+
+- `--standardize-pep` (bedMS standardization) needs `pip install "bedboss[standardize]"` (pulls in torch).
+- Commands that embed BED files or text (`bedboss reindex`, `bedboss reindex-text`, and the Qdrant
+  upload commands in `bedboss/qdrant_index/`) need in-process models (`pip install "bbconf[local]"`)
+  or a bedbase config whose `embedding:` block points at embedding servers (see the bbconf README).
+  Bulk reindexing should use in-process models.
+- The HPC vectorize step (`bedboss/qdrant_index/vectorize.py`) always runs models in-process, and the
+  UMAP script (`bedboss/scripts/make_umap.py`) fits a UMAP model, so they need `pip install "bbconf[local,umap]"`.
+
 ## Development
 For development, you should install all the dependencies, create a virtual environment, and work on the local database.
 The workflow is described in the [development documentation](https://docs.bedbase.org/bedboss/development).

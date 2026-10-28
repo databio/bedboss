@@ -10,14 +10,13 @@ from io import StringIO
 import pandas as pd
 import peprs
 import requests
-from bedms import AttrStandardizer
 from gtars.models import RegionSet
 from pephubclient.files_manager import FilesManager
 from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
 from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH
-from bedboss.exceptions import QualityException
+from bedboss.exceptions import BedBossException, QualityException
 from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
@@ -110,10 +109,14 @@ def example_bedbase_config():
             "collection": "test_collection",
         },
         "server": {"host": "0.0.0.0", "port": 8000},
-        "path": {
-            "region2vec": "databio/r2v-encode-hg38",
-            "vec2vec": "databio/v2v-geo-hg38",
-            "text2vec": "sentence-transformers/all-MiniLM-L6-v2",
+        "embedding": {
+            "text": {
+                "mode": "local",
+                "dense_model": "sentence-transformers/all-MiniLM-L6-v2",
+                "sparse_model": "prithivida/Splade_PP_en_v2",
+            },
+            "region": {"mode": "local", "model": "databio/r2v-encode-hg38"},
+            "projection": {"mode": "off"},
         },
         "access_methods": {
             "http": {
@@ -167,6 +170,13 @@ def standardize_pep(
     Returns:
         Peprs project.
     """
+
+    try:
+        from bedms import AttrStandardizer
+    except ImportError as e:
+        raise BedBossException(
+            "PEP standardization needs `bedboss[standardize]`"
+        ) from e
 
     if standard_columns is None:
         standard_columns = ["library_source", "assay", "genome", "species_name"]

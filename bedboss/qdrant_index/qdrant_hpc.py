@@ -168,7 +168,7 @@ def _fetch_region_metadata(
     from bbconf.db_utils import Bed, BedMetadata
 
     agent = BedBaseAgent(config=config)
-    model_path = agent.config.config.path.region2vec
+    model_path = agent.config.config.embedding.region.model
 
     conditions = [Bed.genome_digest.in_(DEFAULT_QDRANT_GENOME_DIGESTS)]
     if only_unindexed:
@@ -203,8 +203,8 @@ def _fetch_hybrid_metadata(
     from bbconf.db_utils import Bed, BedMetadata
 
     agent = BedBaseAgent(config=config)
-    model_path = agent.config.config.path.text2vec
-    sparse_model_path = agent.config.config.path.sparse_model
+    model_path = agent.config.config.embedding.text.dense_model
+    sparse_model_path = agent.config.config.embedding.text.sparse_model
 
     conditions = []
     if only_unindexed:

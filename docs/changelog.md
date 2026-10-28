@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.13.0] - unreleased
+## Changed:
+- `bedms` is now an optional extra: `pip install "bedboss[standardize]"`. It is imported only when a PEP is standardized, so a base install has no torch from bedMS.
+- `matplotlib` and `seaborn` (used by bedstat) are now listed as dependencies; they used to arrive through `bbconf` -> `geniml[ml]`.
+- Requires `bbconf>=0.17.0`. Bedbase configs use the new `embedding:` block instead of `path:` (`save_example_bedbase_config` writes it). In-process models need `bbconf[local]` (and `bbconf[umap]` for the UMAP script).
+
 # [0.12.2] - 2026-10-20
 ## Fixed:
 - `bedboss geo upload-all` and `upload-gse` now stop with an error on a database or S3 error instead of logging it and moving on. Before, a broken database schema made every insert fail while the job still exited 0.
