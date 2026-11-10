@@ -25,6 +25,8 @@ MAX_FILE_SIZE_QC: int = 1024 * 1024 * 25  # 25 MB
 MAX_REGION_NUMBER: int = 5000000
 MIN_REGION_WIDTH: int = 10
 
+UNDEFINED_REFERENCE_GENOME: str = "undefined"
+
 # bedstat
 
 # bedbuncher

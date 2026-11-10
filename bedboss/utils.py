@@ -16,7 +16,7 @@ from pephubclient.files_manager import FilesManager
 from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
-from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH
+from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH, UNDEFINED_REFERENCE_GENOME
 from bedboss.exceptions import QualityException
 from bedboss.refgenome_validator.main import ReferenceValidator
 
@@ -60,7 +60,9 @@ def standardize_genome_name(
     elif input_genome == "mm9" or input_genome == "grcm37":
         return "mm9"
     else:
-        return input_genome
+        if len(input_genome) > 10:
+            return input_genome
+        return UNDEFINED_REFERENCE_GENOME
 
 
 def download_file(url: str, path: str, no_fail: bool = False) -> None:
