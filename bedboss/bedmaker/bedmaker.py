@@ -75,9 +75,9 @@ def make_bed(
     output_path: str,
     genome: str,
     narrowpeak: bool = False,
-    chrom_sizes: str = None,
+    chrom_sizes: str | None = None,
     genome_models: list[GenomeModel] | None = None,
-    pm: pypiper.PipelineManager = None,
+    pm: pypiper.PipelineManager | None = None,
 ) -> tuple[str, str, RegionSet]:
     """
     Convert the input file to BED format by constructing the command based on input file type and executing it.
@@ -257,10 +257,9 @@ def make_all(
     input_type: str,
     output_path: str,
     genome: str,
-    chrom_sizes: str = None,
+    chrom_sizes: str | None = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
-    lite: bool = False,
     genome_models: list[GenomeModel] | None = None,
     pm: pypiper.PipelineManager = None,
 ) -> BedMakerOutput:
@@ -278,7 +277,6 @@ def make_all(
         chrom_sizes: A full path to the chrom.sizes required for the bedtobigbed conversion.
         narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
         check_qc: Run quality control during bedmaking.
-        lite: Run the pipeline in lite mode (without producing bigBed files).
         genome_models: Optional list of already-loaded GenomeModels (e.g. a live
             ReferenceValidator's) reused for bigBed/WIG chrom-sizes lookups.
         pm: Pypiper object.
@@ -332,25 +330,23 @@ def make_all(
 
         _LOGGER.info(f"File ({output_bed}) has passed Quality Control!")
 
-    if lite:
-        _LOGGER.info("Skipping bigBed generation due to lite mode.")
-        output_bigbed = None
-    else:
-        try:
-            bigbed_folder_path = os.path.join(
-                output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
-            )
-            os.makedirs(bigbed_folder_path, exist_ok=True)
-            output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
+    try:
+        bigbed_folder_path = os.path.join(
+            output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
+        )
+        os.makedirs(bigbed_folder_path, exist_ok=True)
+        output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
 
-            make_bigbed(
-                bed=bed_obj,
-                output_path=output_bigbed,
-                genome=genome,
-                genome_models=genome_models,
-            )
-        except BedBossException:
-            output_bigbed = None
+        make_bigbed(
+            bed=bed_obj,
+            output_path=output_bigbed,
+            genome=genome,
+            genome_models=genome_models,
+        )
+
+    except BedBossException:
+        output_bigbed = None
+
     if pm_clean:
         pm.stop_pipeline()
 

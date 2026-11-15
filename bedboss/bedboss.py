@@ -175,7 +175,6 @@ def run_all(
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
-        lite=lite,
         genome_models=reference_genome_validator.genome_models,
         pm=pm,
     )
