@@ -526,6 +526,7 @@ def reprocess_all(
     bedbase_config: str | BedBaseAgent,
     output_folder: str,
     limit: int = 10,
+    lite: bool = False,
     no_fail: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
@@ -538,6 +539,7 @@ def reprocess_all(
         bedbase_config: Bedbase configuration file path.
         output_folder: Output folder of the pipeline.
         limit: Limit of the number of beds to process.
+        lite: If true, run the pipeline in lite mode.
         no_fail: Whether to raise an error if bedset was not added to the database.
         pm: Pypiper object.
     """
@@ -595,7 +597,7 @@ def reprocess_all(
                 update=True,
                 upload_qdrant=True,
                 upload_s3=True,
-                lite=False,
+                lite=lite,
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
@@ -644,6 +646,7 @@ def reprocess_one(
     bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
+    lite: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
@@ -699,7 +702,7 @@ def reprocess_one(
         update=True,
         upload_qdrant=True,
         upload_s3=True,
-        lite=False,
+        lite=lite,
         universe=False,
         universe_method=None,
         universe_bedset=None,

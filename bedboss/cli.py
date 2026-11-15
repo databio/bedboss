@@ -349,6 +349,7 @@ def reprocess_all(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     limit: int = typer.Option(100, help="Limit the number of files to reprocess"),
+    lite: bool = typer.Option(False, help="Run the pipeline in lite mode."),
     no_fail: bool = typer.Option(True, help="Do not fail on error"),
 ):
     from bedboss.bedboss import reprocess_all as reprocess_all_function
@@ -357,9 +358,9 @@ def reprocess_all(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         limit=limit,
+        lite=lite,
         no_fail=no_fail,
     )
-
 
 @app.command(help="Run unprocessed file, or reprocess it [Only 1 file]")
 def reprocess_one(
@@ -372,6 +373,7 @@ def reprocess_one(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     identifier: str = typer.Option(..., help="Identifier of the bed file"),
+    lite: bool = typer.Option(False, help="Run the pipeline in lite mode."),
     # PipelineManager
     multi: bool = typer.Option(True, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -383,6 +385,7 @@ def reprocess_one(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         identifier=identifier,
+        lite=lite,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 

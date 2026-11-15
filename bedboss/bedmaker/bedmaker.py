@@ -330,6 +330,7 @@ def make_all(
 
         _LOGGER.info(f"File ({output_bed}) has passed Quality Control!")
 
+    # MAKE BIGBED CODE:
     try:
         bigbed_folder_path = os.path.join(
             output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
