@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import statistics
-from pathlib import Path
 
 import pypiper
 from gtars.models import RegionSet
@@ -77,7 +76,6 @@ def bedstat(
     ensdb: str = None,
     open_signal_matrix: str = None,
     just_db_commit: bool = False,
-    rfg_config: str | Path = None,
     pm: pypiper.PipelineManager = None,
     r_service: RServiceManager = None,
 ) -> dict:
@@ -92,7 +90,6 @@ def bedstat(
         ensdb: A full path to the ensdb gtf file required for genomes not in GDdata.
         open_signal_matrix: A full path to the openSignalMatrix required for the tissue specificity plots.
         just_db_commit: If True, the pipeline will only commit to the database.
-        rfg_config: Path to the refgenie config file.
         pm: Pypiper object.
         r_service: RServiceManager object.
 
@@ -202,9 +199,7 @@ def bedstat(
     # postgres column identifiers
     data = {k.lower(): v[0] if isinstance(v, list) else v for k, v in data.items()}
     try:
-        gc_contents = calculate_gc_content(
-            bedfile=bed_object, genome=genome, rfg_config=rfg_config
-        )
+        gc_contents = calculate_gc_content(bedfile=bed_object, genome=genome)
     except BaseException:
         gc_contents = None
 

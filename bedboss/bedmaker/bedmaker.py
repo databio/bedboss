@@ -2,12 +2,10 @@ import gzip
 import logging
 import os
 import shutil
-from pathlib import Path
 
 import pypiper
 from geniml.bbclient import BBClient
 from gtars.models import RegionSet
-from refgenconf.exceptions import MissingGenomeError
 from ubiquerg import is_command_callable
 
 from bedboss.bedclassifier.bedclassifier import get_bed_classification
@@ -20,9 +18,11 @@ from bedboss.bedmaker.const import (
     WIG_TEMPLATE,
 )
 from bedboss.bedmaker.models import BedMakerOutput, InputTypes
-from bedboss.bedmaker.utils import get_chrom_sizes
+from bedboss.bedmaker.utils import write_chrom_sizes_file
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.exceptions import BedBossException, QualityException, RequirementsException
+from bedboss.refgenome_validator.genome_model import GenomeModel
+from bedboss.refgenome_validator.refgenie_chrom_sizes import chrom_sizes_dict_for
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -31,22 +31,28 @@ def make_bigbed(
     bed: str | RegionSet,
     output_path: str,
     genome: str,
-    rfg_config: str | Path = None,
+    genome_models: list[GenomeModel] | None = None,
 ) -> None:
     """
     Generate bigBed file for the BED file.
+
+    Chrom sizes come from the same seqcol data the reference-genome validator
+    loads (the canonical digest pinned for the genome) and are passed directly
+    to ``RegionSet.to_bigbed`` as a dict — no temporary chrom.sizes file.
 
     Args:
         bed: Path to the BED file, or RegionSet object from Rust.
         output_path: Full path to the output bigBed file.
         genome: Reference genome (e.g. hg38, mm10, etc.).
-        rfg_config: Path to the refgenie config file.
+        genome_models: Optional list of already-loaded GenomeModels (e.g. a live
+            ReferenceValidator's) to reuse for the chrom-sizes lookup.
     """
 
-    try:
-        chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
-    except MissingGenomeError:
-        raise BedBossException("Could not find Genome in refgenie. Skipping...")
+    chrom_sizes = chrom_sizes_dict_for(genome, genome_models=genome_models)
+    if not chrom_sizes:
+        raise BedBossException(
+            f"Could not find chrom sizes for genome '{genome}'. Skipping..."
+        )
 
     if isinstance(bed, str):
         bed = RegionSet(bed)
@@ -54,8 +60,6 @@ def make_bigbed(
         raise BedBossException("Invalid bed object. Must be a path or RegionSet.")
 
     try:
-        if not chrom_sizes:
-            raise BedBossException("Chrom sizes not found. Skipping...")
         bed.to_bigbed(output_path, chrom_sizes)
     except BaseException as err:
         raise BedBossException(
@@ -71,8 +75,8 @@ def make_bed(
     output_path: str,
     genome: str,
     narrowpeak: bool = False,
-    rfg_config: str = None,
     chrom_sizes: str = None,
+    genome_models: list[GenomeModel] | None = None,
     pm: pypiper.PipelineManager = None,
 ) -> tuple[str, str, RegionSet]:
     """
@@ -84,8 +88,9 @@ def make_bed(
         output_path: Path to the output folder, logs will be saved (BED files will be cached).
         genome: Reference genome.
         narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
-        rfg_config: File path to the genome config file.
         chrom_sizes: A full path to the chrom.sizes required for the wig files conversion.
+        genome_models: Optional list of already-loaded GenomeModels to reuse for
+            the chrom-sizes lookup (WIG conversion only).
         pm: Pypiper object.
 
     Returns:
@@ -177,7 +182,11 @@ def make_bed(
         # creating cmd for wig files
         elif input_type == InputTypes.WIG.value:
             if not chrom_sizes:
-                chrom_sizes = get_chrom_sizes(genome=genome, rfg_config=rfg_config)
+                chrom_sizes = write_chrom_sizes_file(
+                    genome_alias=genome,
+                    out_dir=os.path.dirname(output_path),
+                    genome_models=genome_models,
+                )
 
             # define a target for temporary bw files
             temp_target = os.path.join(output_path, file_base_name + ".bw")
@@ -248,11 +257,11 @@ def make_all(
     input_type: str,
     output_path: str,
     genome: str,
-    rfg_config: str = None,
     chrom_sizes: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
     lite: bool = False,
+    genome_models: list[GenomeModel] | None = None,
     pm: pypiper.PipelineManager = None,
 ) -> BedMakerOutput:
     """
@@ -266,11 +275,12 @@ def make_all(
         input_type: A [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format.
         output_path: Path to the output folder, where bigbed and logs will be saved.
         genome: Reference genome.
-        rfg_config: File path to the genome config file.
         chrom_sizes: A full path to the chrom.sizes required for the bedtobigbed conversion.
         narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
         check_qc: Run quality control during bedmaking.
         lite: Run the pipeline in lite mode (without producing bigBed files).
+        genome_models: Optional list of already-loaded GenomeModels (e.g. a live
+            ReferenceValidator's) reused for bigBed/WIG chrom-sizes lookups.
         pm: Pypiper object.
 
     Returns:
@@ -292,8 +302,8 @@ def make_all(
         output_path=output_path,
         genome=genome,
         narrowpeak=narrowpeak,
-        rfg_config=rfg_config,
         chrom_sizes=chrom_sizes,
+        genome_models=genome_models,
         pm=pm,
     )
     bed_classification = get_bed_classification(output_bed)
@@ -337,7 +347,7 @@ def make_all(
                 bed=bed_obj,
                 output_path=output_bigbed,
                 genome=genome,
-                rfg_config=rfg_config,
+                genome_models=genome_models,
             )
         except BedBossException:
             output_bigbed = None

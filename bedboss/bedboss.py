@@ -66,7 +66,6 @@ def run_all(
     bedbase_config: str | bbconf.BedBaseAgent,
     name: str = None,
     license_id: str = DEFAULT_LICENSE,
-    rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
     validate_reference: bool = True,
@@ -99,7 +98,6 @@ def run_all(
         bedbase_config: The path to the bedbase configuration file, or bbconf object.
         name: Name of the sample (human-readable name, e.g. "H3K27ac in liver").
         license_id: License identifier. Default: "DUO:0000042".
-        rfg_config: File path to the genome config file.
         narrowpeak: Whether the regions are narrow. Used to create bed file from bedgraph or bigwig.
         check_qc: Set True to run quality control during bedmaking. Default: True.
         validate_reference: Set True to run genome reference validator.
@@ -164,16 +162,21 @@ def run_all(
                 f"Remote file size {file_size} is within the allowed limit. Proceeding with processing."
             )
 
+    # Build (or reuse) the reference-genome validator up front so bigBed reuses
+    # the same seqcol chrom sizes it loads.
+    if not reference_genome_validator:
+        reference_genome_validator = ReferenceValidator()
+
     bed_metadata = make_all(
         input_file=input_file,
         input_type=input_type,
         output_path=outfolder,
         genome=genome,
-        rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
         lite=lite,
+        genome_models=reference_genome_validator.genome_models,
         pm=pm,
     )
     if not other_metadata:
@@ -194,7 +197,6 @@ def run_all(
             bed_digest=bed_metadata.bed_digest,
             open_signal_matrix=open_signal_matrix,
             just_db_commit=just_db_commit,
-            rfg_config=rfg_config,
             pm=pm,
             r_service=r_service,
         )
@@ -248,8 +250,6 @@ def run_all(
         non_compliant_columns=bed_metadata.non_compliant_columns,
         header=bed_metadata.bed_object.header,
     )
-    if not reference_genome_validator:
-        reference_genome_validator = ReferenceValidator()
     if validate_reference:
         _LOGGER.info("Validating reference genome")
         ref_valid_stats = reference_genome_validator.determine_compatibility(
@@ -323,7 +323,6 @@ def insert_pep(
     pep: str | peprs.Project,
     bedset_id: str = None,
     bedset_name: str = None,
-    rfg_config: str = None,
     license_id: str = DEFAULT_LICENSE,
     create_bedset: bool = False,
     bedset_heavy: bool = False,
@@ -351,7 +350,6 @@ def insert_pep(
         pep: Path to the pep file or pephub registry path.
         bedset_id: Bedset identifier.
         bedset_name: Bedset name.
-        rfg_config: Path to the genome config file (refgenie).
         license_id: License identifier. Default: "DUO:0000042". Used for bedfiles where license is not provided in PEP file.
         create_bedset: Whether to create bedset.
         bedset_heavy: Whether to use heavy processing (add all columns to the database).
@@ -444,7 +442,6 @@ def insert_pep(
                 open_signal_matrix=pep_sample.get("open_signal_matrix"),
                 other_metadata=pep_sample.to_dict(),
                 outfolder=output_folder,
-                rfg_config=rfg_config,
                 check_qc=check_qc,
                 ensdb=ensdb,
                 just_db_commit=just_db_commit,
@@ -589,7 +586,6 @@ def reprocess_all(
                 bedbase_config=bbagent,
                 name=bed_annot.name,
                 license_id=bed_annot.license_id,
-                rfg_config=None,
                 check_qc=False,
                 validate_reference=True,
                 chrom_sizes=None,
@@ -694,7 +690,6 @@ def reprocess_one(
         bedbase_config=bbagent,
         name=bed_annot.name,
         license_id=bed_annot.license_id,
-        rfg_config=None,
         check_qc=False,
         validate_reference=True,
         chrom_sizes=None,

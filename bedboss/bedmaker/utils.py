@@ -2,96 +2,51 @@ import logging
 import os
 from pathlib import Path
 
-from refgenconf import (
-    CFG_ENV_VARS,
-    CFG_FOLDER_KEY,
-    RefgenconfError,
-    select_genome_config,
-)
-from refgenconf import RefGenConf as RGC
-from yacman.exceptions import UndefinedAliasError
+from bedboss.const import PKG_NAME
+from bedboss.exceptions import BedBossException
+from bedboss.refgenome_validator.genome_model import GenomeModel
+from bedboss.refgenome_validator.refgenie_chrom_sizes import chrom_sizes_dict_for
 
-from bedboss.const import DEFAULT_REFGENIE_PATH, REFGENIE_ENV_VAR
-
-_LOGGER = logging.getLogger("bedboss")
+_LOGGER = logging.getLogger(PKG_NAME)
 
 
-def get_chrom_sizes(genome: str, rfg_config: str | Path) -> str:
+def write_chrom_sizes_file(
+    genome_alias: str,
+    out_dir: str | Path,
+    genome_models: list[GenomeModel] | None = None,
+) -> str:
     """
-    Get chrom.sizes file with Refgenie.
+    Materialize a tab-separated ``<genome>.chrom.sizes`` file on disk.
+
+    The chrom sizes come from the same seqcol data the reference-genome
+    validator loads (see ``chrom_sizes_dict_for``). This is needed only for the
+    WIG -> bigWig step, because ``wigToBigWig`` is an external UCSC binary that
+    requires a chrom.sizes *file*. BigBed does not use this — it passes the
+    chrom-sizes dict straight to ``RegionSet.to_bigbed``.
 
     Args:
-        genome: Genome name.
-        rfg_config: Path to refgenie config file.
+        genome_alias: Standardized genome alias (e.g. ``hg38``).
+        out_dir: Directory to write the chrom.sizes file into.
+        genome_models: Optional list of already-loaded GenomeModels to reuse.
 
     Returns:
-        Path to chrom.sizes file for the genome.
+        Path to the written chrom.sizes file.
+
+    Raises:
+        BedBossException: If chrom sizes for the genome are not available.
     """
-
-    _LOGGER.info("Determining path to chrom.sizes asset via Refgenie.")
-    # initializing refginie config file
-    rgc = get_rgc(rfg_config=rfg_config)
-
-    try:
-        # get local path to the chrom.sizes asset
-        chrom_sizes = rgc.seek(
-            genome_name=genome,
-            asset_name="fasta",
-            tag_name="default",
-            seek_key="chrom_sizes",
-        )
-        _LOGGER.info(chrom_sizes)
-    except (UndefinedAliasError, RefgenconfError):
-        # if no local chrom.sizes file found, pull it first
-        _LOGGER.info("Could not determine path to chrom.sizes asset, pulling")
-        rgc.pull(genome=genome, asset="fasta", tag="default")
-        chrom_sizes = rgc.seek(
-            genome_name=genome,
-            asset_name="fasta",
-            tag_name="default",
-            seek_key="chrom_sizes",
+    chrom_sizes = chrom_sizes_dict_for(genome_alias, genome_models=genome_models)
+    if not chrom_sizes:
+        raise BedBossException(
+            f"Chrom sizes not found for genome '{genome_alias}'. "
+            "Cannot create chrom.sizes file."
         )
 
-    _LOGGER.info(f"Determined path to chrom.sizes asset: {chrom_sizes}")
+    os.makedirs(out_dir, exist_ok=True)
+    chrom_sizes_path = os.path.join(out_dir, f"{genome_alias}.chrom.sizes")
+    with open(chrom_sizes_path, "w") as f:
+        for name, length in chrom_sizes.items():
+            f.write(f"{name}\t{length}\n")
 
-    return chrom_sizes
-
-
-def get_rgc(rfg_config: str | Path = None) -> RGC:
-    """
-    Get refgenie config file.
-
-    Args:
-        rfg_config: Path to refgenie config file.
-
-    Returns:
-        Refgenie config object.
-    """
-    if not rfg_config:
-        _LOGGER.info("Creating refgenie genome config file...")
-        cwd = os.getenv(REFGENIE_ENV_VAR, DEFAULT_REFGENIE_PATH)
-        rfg_config = os.path.join(cwd, "genome_config.yaml")
-
-    # get path to the genome config; from arg or env var if arg not provided
-    refgenie_cfg_path = select_genome_config(filename=rfg_config, check_exist=False)
-
-    if not refgenie_cfg_path:
-        raise OSError(
-            "Could not determine path to a refgenie genome configuration file. "
-            f"Use --rfg-config argument or set the path with '{CFG_ENV_VARS}'."
-        )
-    if isinstance(refgenie_cfg_path, str) and not os.path.exists(refgenie_cfg_path):
-        # file path not found, initialize a new config file
-        _LOGGER.info(
-            f"File '{refgenie_cfg_path}' does not exist. "
-            "Initializing refgenie genome configuration file."
-        )
-        rgc = RGC(entries={CFG_FOLDER_KEY: os.path.dirname(refgenie_cfg_path)})
-        rgc.initialize_config_file(filepath=refgenie_cfg_path)
-    else:
-        _LOGGER.info(
-            f"Reading refgenie genome configuration file from file: {refgenie_cfg_path}"
-        )
-        rgc = RGC(filepath=refgenie_cfg_path)
-
-    return rgc
+    _LOGGER.info(f"Wrote chrom.sizes file: {chrom_sizes_path}")
+    return chrom_sizes_path

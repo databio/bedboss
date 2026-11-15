@@ -33,9 +33,21 @@ UNDEFINED_REFERENCE_GENOME: str = "undefined"
 DEFAULT_BEDBASE_CACHE_PATH: str = "./bedbase_cache"
 
 BEDBOSS_PEP_SCHEMA_PATH: str = "https://schema.databio.org/pipelines/bedboss.yaml"
-REFGENIE_ENV_VAR: str = "REFGENIE"
 
-DEFAULT_REFGENIE_PATH: str = os.path.join(HOME_PATH, ".refgenie")
+# Canonical reference genomes: standardized alias -> the single "most popular"
+# seqcol (refget) digest used across bedboss. This is the one source of truth
+# for both bigBed chrom.sizes (reused from the reference-genome validator's
+# loaded seqcol data) and for the FASTA pulled via refgenie 1.0 in bedstat.
+# All three use UCSC `chr`-prefixed sequence names, so their chrom.sizes match
+# `chr`-prefixed BED files.
+CANONICAL_GENOME_DIGESTS: dict[str, str] = {
+    "hg38": "EiFob05aCWgVU_B_Ae0cypnQut3cxUP1",  # GCA_000001405.15, NCBI GRCh38 no-alt
+    "hg19": "ThZcNYiLuWWL86NdJ8dvvJG15K9mW3Fo",  # GCF_000001405.25, UCSC hg19-initial-ucsc
+    "mm10": "wsDErYxgCXiPnb2FWZ4sXtx3B0YyruRu",  # GCA_000001635.5, mm10-refgenie-ncbi
+}
+
+# Genomes we can currently compute statistics for (a FASTA pull is supported).
+STATS_SUPPORTED_GENOMES: frozenset = frozenset(CANONICAL_GENOME_DIGESTS)
 
 BED_PEP_REGISTRY: str = "databio/allbeds:bedbase"
 

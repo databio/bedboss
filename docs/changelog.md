@@ -2,6 +2,15 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.13.0] - 2026-11-12
+## Changed:
+- Reference genomes are now sourced from a single canonical registry (`hg38`, `hg19`, `mm10`, one seqcol digest each). bigBed generation reuses the chrom sizes already loaded by the reference-genome validator (passed directly to `RegionSet.to_bigbed` as a dict — no temporary chrom.sizes file) instead of looking them up through `refgenconf`.
+- Migrated genome-FASTA retrieval (used for bedstat GC content) to the new `refgenie` 1.0 package. The FASTA is pulled on demand for the canonical statistics genomes only; other genomes skip GC content. The `refgenie` client configures itself from the environment (`REFGENIE_HOME_PATH`) and initializes on first use — no manual `refgenie init` required.
+
+## Removed:
+- Dropped the `refgenconf` dependency (replaced by `refgenie>=1.0.0a1`).
+- Removed the `--rfg-config` CLI option and the `rfg_config` parameter throughout the pipeline. Reference genome configuration is now handled by refgenie's own environment configuration.
+
 # [0.12.2] - 2026-10-20
 ## Fixed:
 - `bedboss geo upload-all` and `upload-gse` now stop with an error on a database or S3 error instead of logging it and moving on. Before, a broken database schema made every insert fail while the job still exited 0.

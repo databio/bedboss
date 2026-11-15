@@ -151,7 +151,6 @@ class RunPepArgs(BaseModel):
     bedbase_config: str
     create_bedset: bool = True
     bedset_heavy: bool = False
-    rfg_config: Optional[str] = None
     check_qc: bool = True
     ensdb: Optional[str] = None
     just_db_commit: bool = False
