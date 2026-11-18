@@ -473,11 +473,18 @@ def make_bigbed(
     Run the bedboss pipeline for a single bed file
     """
     from bedboss.bedmaker.bedmaker import make_bigbed as mk_bigbed_func
+    from bedboss.utils import get_genome_digest, standardize_genome_name
+
+    digest = get_genome_digest(standardize_genome_name(genome))
+    if not digest:
+        raise typer.BadParameter(
+            f"No canonical reference-genome digest for genome '{genome}'."
+        )
 
     mk_bigbed_func(
         bed=bed_file,
         output_path=outfolder,
-        genome=genome,
+        digest=digest,
     )
 
 

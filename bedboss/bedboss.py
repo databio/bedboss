@@ -20,7 +20,7 @@ from peprs.eido import validate_project
 
 __version__ = _pkg_version("bedboss")
 from bedboss.bedbuncher import run_bedbuncher
-from bedboss.bedmaker.bedmaker import make_all
+from bedboss.bedmaker.bedmaker import make_all, make_bigbed_for_bed
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedstat.r_service import RServiceManager
 from bedboss.const import MAX_FILE_SIZE_QC, PKG_NAME
@@ -208,10 +208,45 @@ def run_all(
     statistics_dict["bed_compliance"] = bed_metadata.bed_compliance
     statistics_dict["data_format"] = bed_metadata.data_format.value
 
-    if bed_metadata.bigbed_file:
-        genome_digest = get_genome_digest(genome)
+    # Reference-genome validation runs exactly once per sample, here, on the
+    # converted BED. Its predicted digest is what the bigBed is built against, so
+    # the bigBed and the stored classification always agree.
+    ref_valid_stats = None
+    predicted_alias = None
+    predicted_digest = None
+    if validate_reference:
+        _LOGGER.info("Validating reference genome")
+        ref_valid_stats = reference_genome_validator.determine_compatibility(
+            bedfile=bed_metadata.bed_object, concise=True
+        )
+        predicted_alias, predicted_digest = predict_from_compatibility_resutlts(
+            ref_valid_stats
+        )
+        if predicted_alias and predicted_digest:
+            _LOGGER.info(
+                f"Predicted genome: {predicted_alias} (digest: {predicted_digest})"
+            )
+
+    # Build the bigBed once, against the predicted digest (else the canonical
+    # digest of the user-declared alias).
+    bigbed_digest = predicted_digest or get_genome_digest(genome)
+    if bigbed_digest:
+        bed_metadata.bigbed_file = make_bigbed_for_bed(
+            bed=bed_metadata.bed_object,
+            bed_id=bed_metadata.bed_digest,
+            output_path=outfolder,
+            digest=bigbed_digest,
+            genome_models=reference_genome_validator.genome_models,
+        )
     else:
-        genome_digest = None
+        _LOGGER.warning(
+            f"No reference-genome digest for '{genome}'; skipping bigBed."
+        )
+
+    # Genome recorded in the classification: predicted if available, else the
+    # canonical digest/alias of the user-declared genome.
+    genome_digest = predicted_digest or get_genome_digest(genome)
+    genome_alias = predicted_alias or genome
 
     stats = StatsUpload(**statistics_dict)
     plots = PlotsUpload(**statistics_dict)
@@ -242,29 +277,13 @@ def run_all(
     classification = BedClassificationUpload(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
-        genome_alias=genome,
+        genome_alias=genome_alias,
         bed_compliance=bed_metadata.bed_compliance,
         data_format=bed_metadata.data_format.value,
         compliant_columns=bed_metadata.compliant_columns,
         non_compliant_columns=bed_metadata.non_compliant_columns,
         header=bed_metadata.bed_object.header,
     )
-    if validate_reference:
-        _LOGGER.info("Validating reference genome")
-        ref_valid_stats = reference_genome_validator.determine_compatibility(
-            bedfile=bed_metadata.bed_object, concise=True
-        )
-        predicted_alias, predicted_digest = predict_from_compatibility_resutlts(
-            ref_valid_stats
-        )
-        if predicted_alias and predicted_digest:
-            _LOGGER.info(
-                f"Predicted genome: {predicted_alias} (digest: {predicted_digest})"
-            )
-            classification.genome_alias = predicted_alias
-            classification.genome_digest = predicted_digest
-    else:
-        ref_valid_stats = None
 
     if update:
         bbagent.bed.update(

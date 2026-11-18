@@ -22,7 +22,7 @@ from bedboss.bedmaker.utils import write_chrom_sizes_file
 from bedboss.const import MAX_FILE_SIZE, MAX_REGION_NUMBER, MIN_REGION_WIDTH
 from bedboss.exceptions import BedBossException, QualityException, RequirementsException
 from bedboss.refgenome_validator.genome_model import GenomeModel
-from bedboss.refgenome_validator.refgenie_chrom_sizes import chrom_sizes_dict_for
+from bedboss.refgenome_validator.refgenie_chrom_sizes import chrom_sizes_for_digest
 
 _LOGGER = logging.getLogger("bedboss")
 
@@ -30,28 +30,30 @@ _LOGGER = logging.getLogger("bedboss")
 def make_bigbed(
     bed: str | RegionSet,
     output_path: str,
-    genome: str,
+    digest: str,
     genome_models: list[GenomeModel] | None = None,
 ) -> None:
     """
     Generate bigBed file for the BED file.
 
     Chrom sizes come from the same seqcol data the reference-genome validator
-    loads (the canonical digest pinned for the genome) and are passed directly
-    to ``RegionSet.to_bigbed`` as a dict — no temporary chrom.sizes file.
+    loads, looked up by the reference genome's ``digest`` directly, and passed to
+    ``RegionSet.to_bigbed`` as a dict — no temporary chrom.sizes file. The digest
+    is typically the one predicted by the reference-genome validator (a member of
+    ``genome_models``), so the bigBed and the stored classification agree.
 
     Args:
         bed: Path to the BED file, or RegionSet object from Rust.
         output_path: Full path to the output bigBed file.
-        genome: Reference genome (e.g. hg38, mm10, etc.).
+        digest: Seqcol digest of the reference genome.
         genome_models: Optional list of already-loaded GenomeModels (e.g. a live
             ReferenceValidator's) to reuse for the chrom-sizes lookup.
     """
 
-    chrom_sizes = chrom_sizes_dict_for(genome, genome_models=genome_models)
+    chrom_sizes = chrom_sizes_for_digest(digest, genome_models=genome_models)
     if not chrom_sizes:
         raise BedBossException(
-            f"Could not find chrom sizes for genome '{genome}'. Skipping..."
+            f"Could not find chrom sizes for genome digest '{digest}'. Skipping..."
         )
 
     if isinstance(bed, str):
@@ -67,6 +69,50 @@ def make_bigbed(
         )
 
     _LOGGER.info(f"BigBed file generated: {output_path}")
+
+
+def make_bigbed_for_bed(
+    bed: str | RegionSet,
+    bed_id: str,
+    output_path: str,
+    digest: str,
+    genome_models: list[GenomeModel] | None = None,
+) -> str | None:
+    """
+    Build the bigBed at the canonical output location for a bed id.
+
+    Writes to ``<output_path>/<BIGBED_FOLDER_NAME>/<bed_id[0]>/<bed_id[1]>/<bed_id>.bigBed``.
+    Shared by ``make_all`` (BED inputs) and the pipeline's deferred build for
+    non-BED inputs so the path logic lives in one place.
+
+    Args:
+        bed: Path to the BED file, or RegionSet object.
+        bed_id: Bed digest/identifier (used for the nested folder layout).
+        output_path: Pipeline output folder.
+        digest: Seqcol digest of the reference genome.
+        genome_models: Optional list of already-loaded GenomeModels to reuse.
+
+    Returns:
+        Absolute path to the bigBed file, or ``None`` if it could not be built
+        (the failure is logged).
+    """
+    try:
+        bigbed_folder_path = os.path.join(
+            output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
+        )
+        os.makedirs(bigbed_folder_path, exist_ok=True)
+        output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
+
+        make_bigbed(
+            bed=bed,
+            output_path=output_bigbed,
+            digest=digest,
+            genome_models=genome_models,
+        )
+        return os.path.abspath(output_bigbed)
+    except BedBossException as err:
+        _LOGGER.warning(f"Could not build bigBed for {bed_id}: {err}")
+        return None
 
 
 def make_bed(
@@ -264,25 +310,30 @@ def make_all(
     pm: pypiper.PipelineManager = None,
 ) -> BedMakerOutput:
     """
-    Maker of bed and bigbed files.
+    Maker of BED files.
 
     Pipeline to convert supported file formats (bedGraph, bigBed, bigWig, wig, bed)
-    into BED format and bigBed format.
+    into BED format. The bigBed is **not** built here: the reference genome is
+    predicted only after conversion (prediction needs the converted BED regions),
+    so the pipeline builds the bigBed once, after validation, in ``run_all``
+    (``bedboss.py``). ``bigbed_file`` in the returned object is therefore always
+    ``None``.
 
     Args:
         input_file: Path to the input file.
         input_type: A [bigwig|bedgraph|bed|bigbed|wig] file that will be converted into BED format.
-        output_path: Path to the output folder, where bigbed and logs will be saved.
+        output_path: Path to the output folder, where logs will be saved.
         genome: Reference genome.
-        chrom_sizes: A full path to the chrom.sizes required for the bedtobigbed conversion.
+        chrom_sizes: A full path to the chrom.sizes required for the wig conversion.
         narrowpeak: Whether the regions are narrow (transcription factor implies narrow, histone mark implies broad peaks).
         check_qc: Run quality control during bedmaking.
         genome_models: Optional list of already-loaded GenomeModels (e.g. a live
-            ReferenceValidator's) reused for bigBed/WIG chrom-sizes lookups.
+            ReferenceValidator's) reused for the WIG chrom-sizes lookup.
         pm: Pypiper object.
 
     Returns:
-        BedMakerOutput object with bed_compliance, data_format, bed_file, bigbed_file, and bed_digest.
+        BedMakerOutput object with bed_compliance, data_format, bed_file, bed_digest
+        (and bigbed_file=None; the bigBed is built by the pipeline).
     """
     if not pm:
         pm = pypiper.PipelineManager(
@@ -330,34 +381,15 @@ def make_all(
 
         _LOGGER.info(f"File ({output_bed}) has passed Quality Control!")
 
-    # MAKE BIGBED CODE:
-    try:
-        bigbed_folder_path = os.path.join(
-            output_path, BIGBED_FOLDER_NAME, bed_id[0], bed_id[1]
-        )
-        os.makedirs(bigbed_folder_path, exist_ok=True)
-        output_bigbed = os.path.join(bigbed_folder_path, f"{bed_id}.bigBed")
-
-        make_bigbed(
-            bed=bed_obj,
-            output_path=output_bigbed,
-            genome=genome,
-            genome_models=genome_models,
-        )
-
-    except BedBossException:
-        output_bigbed = None
-
     if pm_clean:
         pm.stop_pipeline()
 
     _LOGGER.info(f"Bed output file: {output_bed}")
-    _LOGGER.info(f"BigBed output file: {output_bigbed}")
 
     return BedMakerOutput(
         bed_object=bed_obj,
         bed_file=output_bed,
-        bigbed_file=os.path.abspath(output_bigbed) if output_bigbed else None,
+        bigbed_file=None,
         bed_digest=bed_id,
         bed_compliance=bed_classification.bed_compliance,
         compliant_columns=bed_classification.compliant_columns,

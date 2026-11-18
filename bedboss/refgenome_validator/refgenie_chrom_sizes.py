@@ -241,6 +241,40 @@ def get_chrom_sizes() -> list[GenomeModel]:
     return modify_for_analysis(_load_genomes_cached())
 
 
+def chrom_sizes_for_digest(
+    digest: str,
+    genome_models: list[GenomeModel] | None = None,
+) -> dict[str, int] | None:
+    """
+    Return a genome's ``{chrom: length}`` dict by its seqcol (refget) digest.
+
+    This is the source of chrom.sizes for bigBed: the reference-genome validator
+    predicts a digest, and that exact digest is looked up here — no alias
+    indirection. The digest is one of the loaded genomes, so with a live
+    ``genome_models`` list the lookup is exact.
+
+    Args:
+        digest: The seqcol digest of the reference genome.
+        genome_models: Optional list of already-loaded GenomeModels (e.g. a live
+            ``ReferenceValidator.genome_models``) to reuse directly. If omitted,
+            the shared cached seqcol data is used.
+
+    Returns:
+        The chrom sizes dict, or ``None`` if the digest is not present in the
+        loaded data.
+    """
+    if genome_models is not None:
+        for genome_model in genome_models:
+            if genome_model.genome_digest == digest:
+                return genome_model.chrom_sizes
+        return None
+
+    for genome in _load_genomes_cached().genomes:
+        if genome.digest == digest:
+            return {seq.name: seq.length for seq in genome.collection}
+    return None
+
+
 def chrom_sizes_dict_for(
     genome_alias: str,
     genome_models: list[GenomeModel] | None = None,
@@ -249,9 +283,9 @@ def chrom_sizes_dict_for(
     Return the canonical genome's ``{chrom: length}`` dict for a genome alias.
 
     Resolves the alias to the digest pinned in ``CANONICAL_GENOME_DIGESTS`` and
-    returns that genome's chrom sizes — the same seqcol sizes the reference
-    genome validator uses. This is the source of chrom.sizes for bigBed (and the
-    WIG conversion).
+    delegates to :func:`chrom_sizes_for_digest`. Used by the WIG conversion,
+    which runs before any reference-genome prediction and must therefore use the
+    user-declared alias.
 
     Args:
         genome_alias: Standardized genome alias (e.g. ``hg38``).
@@ -267,16 +301,7 @@ def chrom_sizes_dict_for(
     if digest is None:
         return None
 
-    if genome_models is not None:
-        for genome_model in genome_models:
-            if genome_model.genome_digest == digest:
-                return genome_model.chrom_sizes
-        return None
-
-    for genome in _load_genomes_cached().genomes:
-        if genome.digest == digest:
-            return {seq.name: seq.length for seq in genome.collection}
-    return None
+    return chrom_sizes_for_digest(digest, genome_models=genome_models)
 
 
 def update_db_genomes(bbagent: BedBaseAgent) -> None:
