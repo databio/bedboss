@@ -362,6 +362,7 @@ def reprocess_all(
         no_fail=no_fail,
     )
 
+
 @app.command(help="Run unprocessed file, or reprocess it [Only 1 file]")
 def reprocess_one(
     bedbase_config: str = typer.Option(

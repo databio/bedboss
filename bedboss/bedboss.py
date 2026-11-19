@@ -239,9 +239,7 @@ def run_all(
             genome_models=reference_genome_validator.genome_models,
         )
     else:
-        _LOGGER.warning(
-            f"No reference-genome digest for '{genome}'; skipping bigBed."
-        )
+        _LOGGER.warning(f"No reference-genome digest for '{genome}'; skipping bigBed.")
 
     # Genome recorded in the classification: predicted if available, else the
     # canonical digest/alias of the user-declared genome.
