@@ -28,16 +28,15 @@ RUN mkdir -p /workdir/output
 
 COPY ./production/config.yaml /workdir/config.yaml
 
-## docker dosn't see refgenie from terminal if not installed like this:
-#RUN pip install refgenie
-#
-## Configure refgenie:
-#RUN refgenie init -c /workdir/refgenie/genome_config.yaml
-#ENV REFGENIE="/workdir/refgenie/"
-#
-#RUN refgenie pull hg38/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
-#RUN refgenie pull mm10/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
-#RUN refgenie pull hg19/fasta --skip-read-lock -c /workdir/refgenie/genome_config.yaml
+# refgenie 1.0: a Refgenie() client auto-initializes on first use, so an
+# explicit `refgenie init` is optional. Pre-pull the 3 canonical FASTAs (by
+# seqcol digest) so bedstat doesn't download them at runtime. REFGENIE_HOME_PATH
+# controls where the SQLite DB + genome assets live.
+ENV REFGENIE_HOME_PATH="/workdir/refgenie"
+#RUN refgenie init
+#RUN refgenie pull fasta --genome EiFob05aCWgVU_B_Ae0cypnQut3cxUP1 --force-large  # hg38
+#RUN refgenie pull fasta --genome ThZcNYiLuWWL86NdJ8dvvJG15K9mW3Fo --force-large  # hg19
+#RUN refgenie pull fasta --genome wsDErYxgCXiPnb2FWZ4sXtx3B0YyruRu --force-large  # mm10
 
 #CMD ["bash"]
 CMD ["sh", "-c", "bedboss reprocess-all --bedbase-config /workdir/config.yaml --outfolder /workdir/output --limit ${UPLOAD_LIMIT:-1}"]

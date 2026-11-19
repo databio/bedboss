@@ -120,7 +120,6 @@ class BedMakerCLIModel(BaseModel):
     # output_bigbed: str | pathlib.Path
     # sample_name: str
     genome: str
-    rfg_config: str | pathlib.Path = None
     chrom_sizes: str = None
     narrowpeak: bool = False
     # standardize: bool = False

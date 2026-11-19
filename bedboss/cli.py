@@ -82,7 +82,6 @@ def run_all(
         help="License ID. If not provided for in PEP"
         "for each bed file, this license will be used",
     ),
-    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
@@ -133,7 +132,6 @@ def run_all(
         genome=genome,
         bedbase_config=agent,
         license_id=license_id,
-        rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
@@ -169,7 +167,6 @@ def run_pep(
         False, help="Run the heavy version of the bedbuncher pipeline"
     ),
     bedset_id: str | None = typer.Option(None, help="Bedset ID"),
-    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
@@ -212,7 +209,6 @@ def run_pep(
         output_folder=outfolder,
         pep=pep,
         bedset_id=bedset_id,
-        rfg_config=rfg_config,
         create_bedset=create_bedset,
         bedset_heavy=bedset_heavy,
         check_qc=check_qc,
@@ -256,7 +252,6 @@ def run_pep_hpc(
     ),
     create_bedset: bool = typer.Option(True, help="Create a new bedset"),
     bedset_heavy: bool = typer.Option(False, help="Run heavy bedbuncher"),
-    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     check_qc: bool = typer.Option(True, help="Check the quality of the input file?"),
     ensdb: str = typer.Option(None, help="Path to the EnsDb database file"),
     just_db_commit: bool = typer.Option(False, help="Just commit to the database?"),
@@ -297,7 +292,6 @@ def run_pep_hpc(
         bedbase_config=bedbase_config,
         create_bedset=create_bedset,
         bedset_heavy=bedset_heavy,
-        rfg_config=rfg_config,
         check_qc=check_qc,
         ensdb=ensdb,
         just_db_commit=just_db_commit,
@@ -355,6 +349,7 @@ def reprocess_all(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     limit: int = typer.Option(100, help="Limit the number of files to reprocess"),
+    lite: bool = typer.Option(False, help="Run the pipeline in lite mode."),
     no_fail: bool = typer.Option(True, help="Do not fail on error"),
 ):
     from bedboss.bedboss import reprocess_all as reprocess_all_function
@@ -363,6 +358,7 @@ def reprocess_all(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         limit=limit,
+        lite=lite,
         no_fail=no_fail,
     )
 
@@ -378,6 +374,7 @@ def reprocess_one(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     identifier: str = typer.Option(..., help="Identifier of the bed file"),
+    lite: bool = typer.Option(False, help="Run the pipeline in lite mode."),
     # PipelineManager
     multi: bool = typer.Option(True, help="Run multiple samples"),
     recover: bool = typer.Option(True, help="Recover from previous run"),
@@ -389,6 +386,7 @@ def reprocess_one(
         bedbase_config=bedbase_config,
         output_folder=outfolder,
         identifier=identifier,
+        lite=lite,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
 
@@ -435,7 +433,6 @@ def make_bed(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
-    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
     narrowpeak: bool = typer.Option(False, help="Is the input file a narrowpeak file?"),
     chrom_sizes: str = typer.Option(None, help="Path to the chrom sizes file"),
     # PipelineManager
@@ -455,7 +452,6 @@ def make_bed(
         output_path=outfolder,
         genome=genome,
         narrowpeak=narrowpeak,
-        rfg_config=rfg_config,
         chrom_sizes=chrom_sizes,
         pm=create_pm(outfolder=outfolder, multi=multi, recover=recover, dirty=dirty),
     )
@@ -472,19 +468,24 @@ def make_bigbed(
     ),
     outfolder: str = typer.Option(..., help="Path to the output folder"),
     genome: str = typer.Option(..., help="Genome name. Example: 'hg38'"),
-    rfg_config: str = typer.Option(None, help="Path to the rfg config file"),
 ):
     """
 
     Run the bedboss pipeline for a single bed file
     """
     from bedboss.bedmaker.bedmaker import make_bigbed as mk_bigbed_func
+    from bedboss.utils import get_genome_digest, standardize_genome_name
+
+    digest = get_genome_digest(standardize_genome_name(genome))
+    if not digest:
+        raise typer.BadParameter(
+            f"No canonical reference-genome digest for genome '{genome}'."
+        )
 
     mk_bigbed_func(
         bed=bed_file,
         output_path=outfolder,
-        genome=genome,
-        rfg_config=rfg_config,
+        digest=digest,
     )
 
 
@@ -905,7 +906,7 @@ def common(
     # configured. Don't move this into `__init__.py`.
     #
     # Configure the root logger so that bedboss and its dependencies (pipestat,
-    # geniml, bbconf, pephubclient, refgenconf, bbuploader) all log through one
+    # geniml, bbconf, pephubclient, refgenie, bbuploader) all log through one
     # handler. Each line is tagged with its logger name, so there is no need to
     # attach a per-package handler to identify the source.
     logmuse.init_logger(

@@ -94,7 +94,7 @@ echo -e "-----------------------------------------------------------"
 if ! pip_check "bedboss"; then
     INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
-if ! pip_check "refgenconf"; then
+if ! pip_check "refgenie"; then
     INSTALL_ERROR=$((INSTALL_ERROR+1))
 fi
 
