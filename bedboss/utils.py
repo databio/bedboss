@@ -10,14 +10,13 @@ from io import StringIO
 import pandas as pd
 import peprs
 import requests
-from bedms import AttrStandardizer
 from gtars.models import RegionSet
 from pephubclient.files_manager import FilesManager
 from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
-from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH
-from bedboss.exceptions import QualityException
+from bedboss.const import MAX_FILE_SIZE_QC, MIN_REGION_WIDTH, UNDEFINED_REFERENCE_GENOME
+from bedboss.exceptions import BedBossException, QualityException
 from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
@@ -60,7 +59,9 @@ def standardize_genome_name(
     elif input_genome == "mm9" or input_genome == "grcm37":
         return "mm9"
     else:
-        return input_genome
+        if len(input_genome) > 10:
+            return input_genome
+        return UNDEFINED_REFERENCE_GENOME
 
 
 def download_file(url: str, path: str, no_fail: bool = False) -> None:
@@ -112,8 +113,16 @@ def example_bedbase_config():
         "server": {"host": "0.0.0.0", "port": 8000},
         "path": {
             "region2vec": "databio/r2v-encode-hg38",
-            "vec2vec": "databio/v2v-geo-hg38",
             "text2vec": "sentence-transformers/all-MiniLM-L6-v2",
+            "sparse_model": "prithivida/Splade_PP_en_v2",
+        },
+        # Each URL set here gets that model's embeddings from a server instead
+        # of loading it in-process; unset means local (needs bbconf[local]).
+        "embedding_server": {
+            "text_url": None,
+            "sparse_url": None,
+            "region_url": None,
+            "api_key": None,
         },
         "access_methods": {
             "http": {
@@ -167,6 +176,13 @@ def standardize_pep(
     Returns:
         Peprs project.
     """
+
+    try:
+        from bedms import AttrStandardizer
+    except ImportError as e:
+        raise BedBossException(
+            "PEP standardization needs `bedboss[standardize]`"
+        ) from e
 
     if standard_columns is None:
         standard_columns = ["library_source", "assay", "genome", "species_name"]
@@ -263,12 +279,12 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
 
     file_size = 0
 
+    # Read over https, not ftp: NCBI serves the same paths on both, and an ftp
+    # read of the first 10 KB takes ~30 s versus ~1 s over https.
+    check_url = url.replace("ftp://", "https://") if url.startswith("ftp://") else url
+
     # Check file size before downloading content
     try:
-        # Convert ftp:// to https:// for the HEAD request (e.g., NCBI FTP supports HTTPS)
-        check_url = (
-            url.replace("ftp://", "https://") if url.startswith("ftp://") else url
-        )
         response = requests.head(check_url, allow_redirects=True)
         content_length = response.headers.get("Content-Length")
         if content_length:
@@ -284,7 +300,7 @@ def run_initial_qc(url: str, min_region_width: int = MIN_REGION_WIDTH) -> int:
         _LOGGER.warning(f"Unable to check file size: {err}. Continuing with QC...")
 
     try:
-        with urllib.request.urlopen(url) as response:
+        with urllib.request.urlopen(check_url) as response:
             with gzip.GzipFile(fileobj=response) as f:
                 content = f.read(10240).decode()  # Read first 10KB after decompression
 

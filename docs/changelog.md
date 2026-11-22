@@ -2,6 +2,16 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+# [0.13.0] - 2026-11-21
+## Changed:
+- `bedms` is now an optional extra: `pip install "bedboss[standardize]"`. It is imported only when a PEP is standardized, so a base install has no torch from bedMS.
+- `matplotlib` and `seaborn` (used by bedstat) are now listed as dependencies; they used to arrive through `bbconf` -> `geniml[ml]`.
+- Requires `bbconf>=0.17.0`. Embeddings can come from servers set in the config's new `embedding_server:` block; models are still named in `path:`. `save_example_bedbase_config` writes both blocks. In-process models need `bbconf[local]`.
+- Short genome names that bedboss does not recognize are now stored as `undefined`. Names longer than 10 characters, such as genome digests, are kept as given.
+
+## Fixed:
+- The initial QC of GEO files reads them over https instead of ftp. Each check took about a minute over ftp and now takes under a second, which made the daily GEO upload many times slower than it needed to be.
+
 # [0.12.2] - 2026-10-20
 ## Fixed:
 - `bedboss geo upload-all` and `upload-gse` now stop with an error on a database or S3 error instead of logging it and moving on. Before, a broken database schema made every insert fail while the job still exited 0.

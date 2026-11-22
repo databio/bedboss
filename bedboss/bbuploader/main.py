@@ -37,7 +37,7 @@ from bedboss.bbuploader.utils import (
 from bedboss.bedboss import run_all
 from bedboss.bedbuncher.bedbuncher import run_bedbuncher
 from bedboss.bedstat.r_service import RServiceManager
-from bedboss.const import MAX_FILE_SIZE
+from bedboss.const import MAX_FILE_SIZE, UNDEFINED_REFERENCE_GENOME
 from bedboss.exceptions import BedBossException, QualityException
 from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
@@ -275,7 +275,7 @@ def process_pep_sample(
         return BedBossRequired(
             sample_name=bed_sample.sample_name,
             file_path=bed_sample.file_url,
-            ref_genome="undefined",
+            ref_genome=UNDEFINED_REFERENCE_GENOME,
             type="bed",
             narrowpeak=False,
             pep=project_metadata,
