@@ -1,4 +1,4 @@
-import peppy
+import peprs
 import pytest
 
 from bedboss.utils import standardize_pep
@@ -20,6 +20,6 @@ from bedboss.utils import standardize_pep
     ["BEDBASE", "ENCODE"],
 )
 def test_standardize_pep(registry_path, model):
-    pep = peppy.Project.from_pephub(registry_path)
+    pep = peprs.Project.from_pephub(registry_path)
     standardize_pep(pep, model=model)
     assert True
