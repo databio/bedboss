@@ -116,8 +116,10 @@ def upload_all(
     bbagent = BedBaseAgent(config=bedbase_config, init_ml=not lite)
     _LOGGER.info(f"BedBaseAgent initialized (ML enabled: {not lite})")
 
-    genome = standardize_genome_name(genome, reference_validator=reference_validator)
     if genome:
+        genome = standardize_genome_name(
+            genome, reference_validator=reference_validator
+        )
         _LOGGER.info(f"Filtering for genome: '{genome}'")
 
     pep_annotation_list = find_peps(
