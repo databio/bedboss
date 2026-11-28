@@ -2,7 +2,8 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
 
-# [0.13.0] - 2026-11-12
+
+# [0.14.0] - 2026-11-12
 ## Changed:
 - Reference genomes are now sourced from a single canonical registry (`hg38`, `hg19`, `mm10`, one seqcol digest each). bigBed generation reuses the chrom sizes already loaded by the reference-genome validator (passed directly to `RegionSet.to_bigbed` as a dict — no temporary chrom.sizes file) instead of looking them up through `refgenconf`.
 - Migrated genome-FASTA retrieval (used for bedstat GC content) to the new `refgenie` 1.0 package. The FASTA is pulled on demand for the canonical statistics genomes only; other genomes skip GC content. The `refgenie` client configures itself from the environment (`REFGENIE_HOME_PATH`) and initializes on first use — no manual `refgenie init` required.
@@ -10,6 +11,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## Removed:
 - Dropped the `refgenconf` dependency (replaced by `refgenie>=1.0.0a1`).
 - Removed the `--rfg-config` CLI option and the `rfg_config` parameter throughout the pipeline. Reference genome configuration is now handled by refgenie's own environment configuration.
+# [0.13.0] - 2026-11-21
+## Changed:
+- `bedms` is now an optional extra: `pip install "bedboss[standardize]"`. It is imported only when a PEP is standardized, so a base install has no torch from bedMS.
+- `matplotlib` and `seaborn` (used by bedstat) are now listed as dependencies; they used to arrive through `bbconf` -> `geniml[ml]`.
+- Requires `bbconf>=0.17.0`. Embeddings can come from servers set in the config's new `embedding_server:` block; models are still named in `path:`. `save_example_bedbase_config` writes both blocks. In-process models need `bbconf[local]`.
+- Short genome names that bedboss does not recognize are now stored as `undefined`. Names longer than 10 characters, such as genome digests, are kept as given.
+
+## Fixed:
+- The initial QC of GEO files reads them over https instead of ftp. Each check took about a minute over ftp and now takes under a second, which made the daily GEO upload many times slower than it needed to be.
 
 # [0.12.2] - 2026-10-20
 ## Fixed:

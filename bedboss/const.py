@@ -27,6 +27,9 @@ MIN_REGION_WIDTH: int = 10
 
 UNDEFINED_REFERENCE_GENOME: str = "undefined"
 
+# HuggingFace repo with the bedMS models (bedbase, encode, fairtracks)
+BEDMS_REPO_ID: str = "databio/attribute-standardizer-model6"
+
 # bedstat
 
 # bedbuncher

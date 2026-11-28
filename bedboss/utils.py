@@ -10,7 +10,6 @@ from io import StringIO
 import pandas as pd
 import peprs
 import requests
-from bedms import AttrStandardizer
 from gtars.models import RegionSet
 from pephubclient.files_manager import FilesManager
 from peprs.const import SAMPLE_RAW_DICT_KEY
@@ -18,11 +17,12 @@ from pypiper import PipelineManager
 
 from bedboss.const import (
     CANONICAL_GENOME_DIGESTS,
+    BEDMS_REPO_ID,
     MAX_FILE_SIZE_QC,
     MIN_REGION_WIDTH,
     UNDEFINED_REFERENCE_GENOME,
 )
-from bedboss.exceptions import QualityException
+from bedboss.exceptions import BedBossException, QualityException
 from bedboss.refgenome_validator.main import ReferenceValidator
 
 _LOGGER = logging.getLogger("bedboss")
@@ -123,8 +123,16 @@ def example_bedbase_config():
         "server": {"host": "0.0.0.0", "port": 8000},
         "path": {
             "region2vec": "databio/r2v-encode-hg38",
-            "vec2vec": "databio/v2v-geo-hg38",
             "text2vec": "sentence-transformers/all-MiniLM-L6-v2",
+            "sparse_model": "prithivida/Splade_PP_en_v2",
+        },
+        # Each URL set here gets that model's embeddings from a server instead
+        # of loading it in-process; unset means local (needs bbconf[local]).
+        "embedding_server": {
+            "text_url": None,
+            "sparse_url": None,
+            "region_url": None,
+            "api_key": None,
         },
         "access_methods": {
             "http": {
@@ -179,10 +187,19 @@ def standardize_pep(
         Peprs project.
     """
 
+    try:
+        import peppy
+        from bedms import AttrStandardizer
+    except ImportError as e:
+        raise BedBossException(
+            "PEP standardization needs `bedboss[standardize]`"
+        ) from e
+
     if standard_columns is None:
         standard_columns = ["library_source", "assay", "genome", "species_name"]
-    model = AttrStandardizer(model)
-    suggestions = model.standardize(pep)
+    standardizer = AttrStandardizer(repo_id=BEDMS_REPO_ID, model_name=model.lower())
+    # bedms only accepts peppy projects
+    suggestions = standardizer.standardize(peppy.Project.from_pandas(pep.to_pandas()))
 
     changes = {}
     if suggestions is None:
@@ -197,16 +214,16 @@ def standardize_pep(
                         changes[suggestion] = {original: value}
 
     raw_pep = pep.to_dict(raw=True)
+    # peprs stores samples as a list of row dicts, so rename the key in each row
+    samples = raw_pep[SAMPLE_RAW_DICT_KEY]
+    columns = set(samples[0]) if samples else set()
     for suggestion, original_dict in changes.items():
         original_key = list(original_dict.keys())[0]
-        if (
-            suggestion not in raw_pep[SAMPLE_RAW_DICT_KEY]
-            and original_key in raw_pep[SAMPLE_RAW_DICT_KEY]
-        ):
-            raw_pep[SAMPLE_RAW_DICT_KEY][suggestion] = raw_pep[SAMPLE_RAW_DICT_KEY][
-                original_key
-            ]
-            del raw_pep[SAMPLE_RAW_DICT_KEY][original_key]
+        if suggestion not in columns and original_key in columns:
+            for row in samples:
+                row[suggestion] = row.pop(original_key)
+            columns.discard(original_key)
+            columns.add(suggestion)
 
     return peprs.Project.from_dict(raw_pep)
 
