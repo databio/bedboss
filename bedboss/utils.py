@@ -16,8 +16,8 @@ from peprs.const import SAMPLE_RAW_DICT_KEY
 from pypiper import PipelineManager
 
 from bedboss.const import (
-    CANONICAL_GENOME_DIGESTS,
     BEDMS_REPO_ID,
+    CANONICAL_GENOME_DIGESTS,
     MAX_FILE_SIZE_QC,
     MIN_REGION_WIDTH,
     UNDEFINED_REFERENCE_GENOME,
