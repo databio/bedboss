@@ -64,10 +64,10 @@ coloredlogs.install(
     fmt="[%(levelname)s] [%(asctime)s] [PEPHUBCLIENT] %(message)s",
 )
 
-_LOGGER_REF_CONF = logging.getLogger("refgenconf")
-_LOGGER_REF_CONF.propagate = False
+_LOGGER_REFGENIE = logging.getLogger("refgenie")
+_LOGGER_REFGENIE.propagate = False
 coloredlogs.install(
-    logger=_LOGGER_PHC,
+    logger=_LOGGER_REFGENIE,
     datefmt="%H:%M:%S",
-    fmt="[%(levelname)s] [%(asctime)s] [REFGENCONF] %(message)s",
+    fmt="[%(levelname)s] [%(asctime)s] [REFGENIE] %(message)s",
 )

@@ -51,6 +51,10 @@ def upload_all(
     overwrite_bedset: bool = typer.Option(
         True, help="Overwrite existing bedset. [Default: False]"
     ),
+    overwrite_downloads: bool = typer.Option(
+        False,
+        help="Re-download preloaded files even if they exist locally. [Default: False]",
+    ),
     rerun: bool = typer.Option(False, help="Re-run all the samples. [Default: False]"),
     run_skipped: bool = typer.Option(
         True, help="Run skipped projects. [Default: False]"
@@ -92,6 +96,7 @@ def upload_all(
         reinit_skipper=reinit_skipper,
         overwrite=overwrite,
         overwrite_bedset=overwrite_bedset,
+        overwrite_downloads=overwrite_downloads,
         lite=lite,
     )
 
@@ -127,6 +132,10 @@ def upload_gse(
     overwrite_bedset: bool = typer.Option(
         True, help="Overwrite existing bedset. [Default: False]"
     ),
+    overwrite_downloads: bool = typer.Option(
+        False,
+        help="Re-download preloaded files even if they exist locally. [Default: False]",
+    ),
     standardize_pep: bool = typer.Option(
         False, help="Standardize pep with BEDMESS. [Default: False]"
     ),
@@ -159,6 +168,7 @@ def upload_gse(
         reinit_skipper=reinit_skipper,
         overwrite=overwrite,
         overwrite_bedset=overwrite_bedset,
+        overwrite_downloads=overwrite_downloads,
         lite=lite,
     )
 

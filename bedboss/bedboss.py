@@ -20,7 +20,7 @@ from peprs.eido import validate_project
 
 __version__ = _pkg_version("bedboss")
 from bedboss.bedbuncher import run_bedbuncher
-from bedboss.bedmaker.bedmaker import make_all
+from bedboss.bedmaker.bedmaker import make_all, make_bigbed_for_bed
 from bedboss.bedstat.bedstat import bedstat
 from bedboss.bedstat.r_service import RServiceManager
 from bedboss.const import MAX_FILE_SIZE_QC, PKG_NAME
@@ -66,7 +66,6 @@ def run_all(
     bedbase_config: str | bbconf.BedBaseAgent,
     name: str = None,
     license_id: str = DEFAULT_LICENSE,
-    rfg_config: str = None,
     narrowpeak: bool = False,
     check_qc: bool = True,
     validate_reference: bool = True,
@@ -99,7 +98,6 @@ def run_all(
         bedbase_config: The path to the bedbase configuration file, or bbconf object.
         name: Name of the sample (human-readable name, e.g. "H3K27ac in liver").
         license_id: License identifier. Default: "DUO:0000042".
-        rfg_config: File path to the genome config file.
         narrowpeak: Whether the regions are narrow. Used to create bed file from bedgraph or bigwig.
         check_qc: Set True to run quality control during bedmaking. Default: True.
         validate_reference: Set True to run genome reference validator.
@@ -164,16 +162,20 @@ def run_all(
                 f"Remote file size {file_size} is within the allowed limit. Proceeding with processing."
             )
 
+    # Build (or reuse) the reference-genome validator up front so bigBed reuses
+    # the same seqcol chrom sizes it loads.
+    if not reference_genome_validator:
+        reference_genome_validator = ReferenceValidator()
+
     bed_metadata = make_all(
         input_file=input_file,
         input_type=input_type,
         output_path=outfolder,
         genome=genome,
-        rfg_config=rfg_config,
         narrowpeak=narrowpeak,
         check_qc=check_qc,
         chrom_sizes=chrom_sizes,
-        lite=lite,
+        genome_models=reference_genome_validator.genome_models,
         pm=pm,
     )
     if not other_metadata:
@@ -194,7 +196,6 @@ def run_all(
             bed_digest=bed_metadata.bed_digest,
             open_signal_matrix=open_signal_matrix,
             just_db_commit=just_db_commit,
-            rfg_config=rfg_config,
             pm=pm,
             r_service=r_service,
         )
@@ -207,10 +208,43 @@ def run_all(
     statistics_dict["bed_compliance"] = bed_metadata.bed_compliance
     statistics_dict["data_format"] = bed_metadata.data_format.value
 
-    if bed_metadata.bigbed_file:
-        genome_digest = get_genome_digest(genome)
+    # Reference-genome validation runs exactly once per sample, here, on the
+    # converted BED. Its predicted digest is what the bigBed is built against, so
+    # the bigBed and the stored classification always agree.
+    ref_valid_stats = None
+    predicted_alias = None
+    predicted_digest = None
+    if validate_reference:
+        _LOGGER.info("Validating reference genome")
+        ref_valid_stats = reference_genome_validator.determine_compatibility(
+            bedfile=bed_metadata.bed_object, concise=True
+        )
+        predicted_alias, predicted_digest = predict_from_compatibility_resutlts(
+            ref_valid_stats
+        )
+        if predicted_alias and predicted_digest:
+            _LOGGER.info(
+                f"Predicted genome: {predicted_alias} (digest: {predicted_digest})"
+            )
+
+    # Build the bigBed once, against the predicted digest (else the canonical
+    # digest of the user-declared alias).
+    bigbed_digest = predicted_digest or get_genome_digest(genome)
+    if bigbed_digest:
+        bed_metadata.bigbed_file = make_bigbed_for_bed(
+            bed=bed_metadata.bed_object,
+            bed_id=bed_metadata.bed_digest,
+            output_path=outfolder,
+            digest=bigbed_digest,
+            genome_models=reference_genome_validator.genome_models,
+        )
     else:
-        genome_digest = None
+        _LOGGER.warning(f"No reference-genome digest for '{genome}'; skipping bigBed.")
+
+    # Genome recorded in the classification: predicted if available, else the
+    # canonical digest/alias of the user-declared genome.
+    genome_digest = predicted_digest or get_genome_digest(genome)
+    genome_alias = predicted_alias or genome
 
     stats = StatsUpload(**statistics_dict)
     plots = PlotsUpload(**statistics_dict)
@@ -241,31 +275,13 @@ def run_all(
     classification = BedClassificationUpload(
         name=name or bed_metadata.bed_digest,
         genome_digest=genome_digest,
-        genome_alias=genome,
+        genome_alias=genome_alias,
         bed_compliance=bed_metadata.bed_compliance,
         data_format=bed_metadata.data_format.value,
         compliant_columns=bed_metadata.compliant_columns,
         non_compliant_columns=bed_metadata.non_compliant_columns,
         header=bed_metadata.bed_object.header,
     )
-    if not reference_genome_validator:
-        reference_genome_validator = ReferenceValidator()
-    if validate_reference:
-        _LOGGER.info("Validating reference genome")
-        ref_valid_stats = reference_genome_validator.determine_compatibility(
-            bedfile=bed_metadata.bed_object, concise=True
-        )
-        predicted_alias, predicted_digest = predict_from_compatibility_resutlts(
-            ref_valid_stats
-        )
-        if predicted_alias and predicted_digest:
-            _LOGGER.info(
-                f"Predicted genome: {predicted_alias} (digest: {predicted_digest})"
-            )
-            classification.genome_alias = predicted_alias
-            classification.genome_digest = predicted_digest
-    else:
-        ref_valid_stats = None
 
     if update:
         bbagent.bed.update(
@@ -323,7 +339,6 @@ def insert_pep(
     pep: str | peprs.Project,
     bedset_id: str = None,
     bedset_name: str = None,
-    rfg_config: str = None,
     license_id: str = DEFAULT_LICENSE,
     create_bedset: bool = False,
     bedset_heavy: bool = False,
@@ -351,7 +366,6 @@ def insert_pep(
         pep: Path to the pep file or pephub registry path.
         bedset_id: Bedset identifier.
         bedset_name: Bedset name.
-        rfg_config: Path to the genome config file (refgenie).
         license_id: License identifier. Default: "DUO:0000042". Used for bedfiles where license is not provided in PEP file.
         create_bedset: Whether to create bedset.
         bedset_heavy: Whether to use heavy processing (add all columns to the database).
@@ -444,7 +458,6 @@ def insert_pep(
                 open_signal_matrix=pep_sample.get("open_signal_matrix"),
                 other_metadata=pep_sample.to_dict(),
                 outfolder=output_folder,
-                rfg_config=rfg_config,
                 check_qc=check_qc,
                 ensdb=ensdb,
                 just_db_commit=just_db_commit,
@@ -530,6 +543,7 @@ def reprocess_all(
     bedbase_config: str | BedBaseAgent,
     output_folder: str,
     limit: int = 10,
+    lite: bool = False,
     no_fail: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
@@ -542,6 +556,7 @@ def reprocess_all(
         bedbase_config: Bedbase configuration file path.
         output_folder: Output folder of the pipeline.
         limit: Limit of the number of beds to process.
+        lite: If true, run the pipeline in lite mode.
         no_fail: Whether to raise an error if bedset was not added to the database.
         pm: Pypiper object.
     """
@@ -589,7 +604,6 @@ def reprocess_all(
                 bedbase_config=bbagent,
                 name=bed_annot.name,
                 license_id=bed_annot.license_id,
-                rfg_config=None,
                 check_qc=False,
                 validate_reference=True,
                 chrom_sizes=None,
@@ -600,7 +614,7 @@ def reprocess_all(
                 update=True,
                 upload_qdrant=True,
                 upload_s3=True,
-                lite=False,
+                lite=lite,
                 universe=False,
                 universe_method=None,
                 universe_bedset=None,
@@ -649,6 +663,7 @@ def reprocess_one(
     bedbase_config: str | BedBaseAgent,
     output_folder: str,
     identifier: str,
+    lite: bool = False,
     pm: pypiper.PipelineManager = None,
 ) -> None:
     """
@@ -694,7 +709,6 @@ def reprocess_one(
         bedbase_config=bbagent,
         name=bed_annot.name,
         license_id=bed_annot.license_id,
-        rfg_config=None,
         check_qc=False,
         validate_reference=True,
         chrom_sizes=None,
@@ -705,7 +719,7 @@ def reprocess_one(
         update=True,
         upload_qdrant=True,
         upload_s3=True,
-        lite=False,
+        lite=lite,
         universe=False,
         universe_method=None,
         universe_bedset=None,

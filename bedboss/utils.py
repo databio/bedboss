@@ -4,7 +4,7 @@ import logging
 import os
 import time
 import urllib.request
-from functools import lru_cache, wraps
+from functools import wraps
 from io import StringIO
 
 import pandas as pd
@@ -17,6 +17,7 @@ from pypiper import PipelineManager
 
 from bedboss.const import (
     BEDMS_REPO_ID,
+    CANONICAL_GENOME_DIGESTS,
     MAX_FILE_SIZE_QC,
     MIN_REGION_WIDTH,
     UNDEFINED_REFERENCE_GENOME,
@@ -90,11 +91,15 @@ def download_file(url: str, path: str, no_fail: bool = False) -> None:
         _LOGGER.error("File download failed. Continuing anyway...")
 
 
-@lru_cache(maxsize=32)
-def get_genome_digest(genome: str) -> str:
-    return requests.get(
-        f"http://refgenomes.databio.org/genomes/genome_digest/{genome}"
-    ).text.strip('""')
+def get_genome_digest(genome: str) -> str | None:
+    """
+    Return the canonical seqcol digest for a standardized genome alias.
+
+    Uses the pinned ``CANONICAL_GENOME_DIGESTS`` registry (the same digests used
+    for bigBed chrom sizes and refgenie FASTA pulls). Returns ``None`` for
+    genomes without a canonical digest.
+    """
+    return CANONICAL_GENOME_DIGESTS.get(genome)
 
 
 def example_bedbase_config():

@@ -25,42 +25,57 @@ def build_gse_identifier(gse: str, geo_tag: str) -> str:
     return f"{gse}:{geo_tag}"
 
 
-def download_file(file_url: str, local_file_path: str, force: bool = False) -> None:
+def download_file(
+    file_url: str,
+    local_file_path: str,
+    force: bool = False,
+    no_fail: bool = False,
+) -> None:
     """
-    Download file using ftp url.
+    Download a file from an FTP/HTTP url, skipping the download if the file
+    already exists locally unless ``force`` is set.
 
     Args:
         file_url: Downloading url.
-        local_file_path: Path to the file or file name.
-        force: Rewrite if file exists.
+        local_file_path: Path to the local file (including filename).
+        force: Re-download and overwrite even if the file already exists.
+        no_fail: If True, log and continue instead of raising when the download fails.
     """
-    if force or not os.path.isfile(local_file_path):
-        _LOGGER.info(f"Downloading file: '{file_url}' to: '{local_file_path}'")
+    if not force and os.path.isfile(local_file_path):
+        _LOGGER.info(f"File '{local_file_path}' already exists. Skipping downloading.")
+        return
+    _LOGGER.info(f"Downloading file: '{file_url}' to: '{local_file_path}'")
+    try:
         urllib.request.urlretrieve(file_url, local_file_path)
-    else:
-        _LOGGER.info(f"File {local_file_path} already exists. Skipping downloading.")
+    except Exception as e:
+        _LOGGER.error(f"File download failed: {e}")
+        if not no_fail:
+            raise
+        _LOGGER.error("File download failed. Continuing anyway (no_fail=True).")
 
 
-def create_gsm_sub_name(name: str) -> str:
+def create_geo_sub_name(name: str) -> str:
     """
-    Create gse subfolder name.
+    Build the GEO-style grouping subfolder for a GEO accession.
 
-    Examples: gse123456 -> gsm123nnn, gse123 -> gsennn, gse1234-> gse1nnn, gse1 -> gsennn.
-    This function was copied from geopephub utils.
+    Mirrors GEO's FTP layout, where the last three digits of the accession are
+    replaced with 'nnn' (e.g. GSM1234567 -> gsm1234nnn, GSE310476 -> gse310nnn).
+    Accessions with three or fewer digits keep their 3-letter prefix and collapse
+    to '<prefix>nnn' (e.g. GSE123 -> gsennn, GSE1 -> gsennn). Adapted from
+    geopephub utils.
 
     Args:
-        name: GSE name.
+        name: GEO accession (GSM or GSE), case-insensitive.
 
     Returns:
-        GSE subfolder name.
+        GEO-style subfolder name (lowercased), or 'unknown' if name is empty.
     """
-    len_name = len(name)
-
-    if len_name <= 6:
-        return """gsmnnn"""
-    else:
-        # return name[:6] + "n" * (len_name - 6)
-        return name[:-3] + "n" * 3
+    name = name.strip().lower()
+    if not name:
+        return "unknown"
+    if len(name) <= 6:  # 3-letter prefix + up to 3 digits
+        return f"{name[:3]}nnn"
+    return f"{name[:-3]}nnn"
 
 
 def middle_underscored(s: str) -> str:

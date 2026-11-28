@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import warnings
+from functools import lru_cache
 from typing import Any
 
 import requests
@@ -12,7 +13,7 @@ from geniml.bbclient.const import DEFAULT_CACHE_FOLDER
 from pydantic import BaseModel
 from tqdm import tqdm
 
-from bedboss.const import PKG_NAME
+from bedboss.const import CANONICAL_GENOME_DIGESTS, PKG_NAME
 from bedboss.exceptions import BedBossException
 from bedboss.refgenome_validator.genome_model import GenomeModel
 
@@ -204,11 +205,15 @@ def modify_for_analysis(genomes: Genomes) -> list[GenomeModel]:
     return genome_list
 
 
-def get_chrom_sizes() -> list[GenomeModel]:
+@lru_cache(maxsize=1)
+def _load_genomes_cached() -> Genomes:
     """
-    Get chromosome sizes from Refgenie and return them as a list of GenomeModel objects.
+    Load the seqcol genome data once per process and memoize it.
 
-    If the cached file exists, it reads from there; otherwise, it downloads the data and saves it.
+    Reads the on-disk cache if present, otherwise downloads from Refgenie (or
+    the fallback URL) and saves it. Both the reference-genome validator and the
+    bigBed chrom.sizes lookup share this single load — this is the "all genomes
+    read in" data.
     """
     cached_file_path = os.path.join(DEFAULT_CACHE_FOLDER, "genome_seqcol.json")
 
@@ -222,7 +227,81 @@ def get_chrom_sizes() -> list[GenomeModel]:
             _LOGGER.info(f"Failed to fetch genome data from Refgenie: {e}")
             ret = read_seq_col_from_url(input_path=SEQ_COL_URL_JSON_URL)
         save_seq_col_to_json(ret, output_path=cached_file_path)
-    return modify_for_analysis(ret)
+    return ret
+
+
+def get_chrom_sizes() -> list[GenomeModel]:
+    """
+    Get chromosome sizes from Refgenie and return them as a list of GenomeModel objects.
+
+    The underlying seqcol data is loaded once and cached; a fresh list of
+    GenomeModel objects is built on each call so callers (e.g. the validator's
+    ``ref_filter``) can mutate their own list without corrupting the cache.
+    """
+    return modify_for_analysis(_load_genomes_cached())
+
+
+def chrom_sizes_for_digest(
+    digest: str,
+    genome_models: list[GenomeModel] | None = None,
+) -> dict[str, int] | None:
+    """
+    Return a genome's ``{chrom: length}`` dict by its seqcol (refget) digest.
+
+    This is the source of chrom.sizes for bigBed: the reference-genome validator
+    predicts a digest, and that exact digest is looked up here — no alias
+    indirection. The digest is one of the loaded genomes, so with a live
+    ``genome_models`` list the lookup is exact.
+
+    Args:
+        digest: The seqcol digest of the reference genome.
+        genome_models: Optional list of already-loaded GenomeModels (e.g. a live
+            ``ReferenceValidator.genome_models``) to reuse directly. If omitted,
+            the shared cached seqcol data is used.
+
+    Returns:
+        The chrom sizes dict, or ``None`` if the digest is not present in the
+        loaded data.
+    """
+    if genome_models is not None:
+        for genome_model in genome_models:
+            if genome_model.genome_digest == digest:
+                return genome_model.chrom_sizes
+        return None
+
+    for genome in _load_genomes_cached().genomes:
+        if genome.digest == digest:
+            return {seq.name: seq.length for seq in genome.collection}
+    return None
+
+
+def chrom_sizes_dict_for(
+    genome_alias: str,
+    genome_models: list[GenomeModel] | None = None,
+) -> dict[str, int] | None:
+    """
+    Return the canonical genome's ``{chrom: length}`` dict for a genome alias.
+
+    Resolves the alias to the digest pinned in ``CANONICAL_GENOME_DIGESTS`` and
+    delegates to :func:`chrom_sizes_for_digest`. Used by the WIG conversion,
+    which runs before any reference-genome prediction and must therefore use the
+    user-declared alias.
+
+    Args:
+        genome_alias: Standardized genome alias (e.g. ``hg38``).
+        genome_models: Optional list of already-loaded GenomeModels (e.g. a live
+            ``ReferenceValidator.genome_models``) to reuse directly. If omitted,
+            the shared cached seqcol data is used.
+
+    Returns:
+        The chrom sizes dict, or ``None`` if the alias has no canonical digest or
+        that digest is not present in the loaded data.
+    """
+    digest = CANONICAL_GENOME_DIGESTS.get(genome_alias)
+    if digest is None:
+        return None
+
+    return chrom_sizes_for_digest(digest, genome_models=genome_models)
 
 
 def update_db_genomes(bbagent: BedBaseAgent) -> None:

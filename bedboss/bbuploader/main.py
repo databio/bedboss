@@ -8,7 +8,6 @@ import pypiper
 from bbconf import BedBaseAgent
 from bbconf.db_utils import GeoGseStatus, GeoGsmStatus
 from botocore.exceptions import BotoCoreError, ClientError
-from geniml.exceptions import GenimlBaseError
 from pephubclient import PEPHubClient
 from pephubclient.helpers import MessageHandler
 from pephubclient.models import SearchReturnModel
@@ -31,7 +30,8 @@ from bedboss.bbuploader.models import (
 )
 from bedboss.bbuploader.utils import (
     build_gse_identifier,
-    create_gsm_sub_name,
+    create_geo_sub_name,
+    download_file,
     middle_underscored,
 )
 from bedboss.bedboss import run_all
@@ -43,7 +43,6 @@ from bedboss.refgenome_validator.main import ReferenceValidator
 from bedboss.skipper import Skipper
 from bedboss.utils import (
     calculate_time,
-    download_file,
     run_initial_qc,
     standardize_genome_name,
 )
@@ -83,6 +82,7 @@ def upload_all(
     reinit_skipper=False,
     overwrite=False,
     overwrite_bedset=False,
+    overwrite_downloads=False,
     lite=False,
 ):
     """
@@ -106,6 +106,7 @@ def upload_all(
         standardize_pep: Standardize pep metadata using BEDMS.
         use_skipper: Use skipper to skip already processed files logged locally.
         reinit_skipper: If True, skipper will be reinitialized and all log files cleaned.
+        overwrite_downloads: Re-download preloaded files even if they already exist locally.
         lite: Lite mode, skipping statistic processing for memory optimization and time saving.
     """
 
@@ -213,6 +214,7 @@ def upload_all(
                     preload=preload,
                     overwrite=overwrite,
                     overwrite_bedset=overwrite_bedset,
+                    overwrite_downloads=overwrite_downloads,
                     lite=lite,
                     r_service=r_service,
                     pm=pm,
@@ -408,6 +410,7 @@ def upload_gse(
     reinit_skipper=False,
     overwrite=False,
     overwrite_bedset=True,
+    overwrite_downloads=False,
     lite=False,
 ):
     """
@@ -429,6 +432,7 @@ def upload_gse(
         reinit_skipper: If True, skipper will be reinitialized and all log files cleaned.
         overwrite: Overwrite existing bedfiles.
         overwrite_bedset: Overwrite existing bedset.
+        overwrite_downloads: Re-download preloaded files even if they already exist locally.
         lite: Lite mode, skipping statistic processing for memory optimization and time saving.
     """
     _LOGGER.info(f"Initializing BedBaseAgent with config: '{bedbase_config}'")
@@ -483,6 +487,7 @@ def upload_gse(
                 overwrite=overwrite,
                 rerun=rerun,
                 overwrite_bedset=overwrite_bedset,
+                overwrite_downloads=overwrite_downloads,
                 use_skipper=use_skipper,
                 reinit_skipper=reinit_skipper,
                 lite=lite,
@@ -540,6 +545,7 @@ def _upload_gse(
     rerun: bool = False,
     overwrite: bool = False,
     overwrite_bedset: bool = False,
+    overwrite_downloads: bool = False,
     use_skipper: bool = True,
     reinit_skipper: bool = False,
     preload: bool = True,
@@ -564,6 +570,7 @@ def _upload_gse(
         rerun: Rerun processing of the series.
         overwrite: Overwrite existing bedfiles.
         overwrite_bedset: Overwrite existing bedset.
+        overwrite_downloads: Re-download preloaded files even if they already exist locally.
         use_skipper: Use skipper to skip already processed files logged locally.
         reinit_skipper: If True, skipper will be reinitialized and all logs cleaned.
         preload: Pre-download files to the local folder (used for faster reproducibility).
@@ -729,14 +736,22 @@ def _upload_gse(
             continue
 
         if preload:
-            gsm_folder = create_gsm_sub_name(sample_gsm)
-            files_path = os.path.join(outfolder, FILE_FOLDER_NAME, gsm_folder)
+            # Series files have no GSM accession, so group them by the GSE
+            # accession instead (GEO-style: gsm1234nnn / gse310nnn).
+            accession = sample_gsm or gse
+            geo_folder = create_geo_sub_name(accession)
+            files_path = os.path.join(outfolder, FILE_FOLDER_NAME, geo_folder)
             os.makedirs(files_path, exist_ok=True)
             file_abs_path = os.path.abspath(
                 os.path.join(files_path, project_sample.file)
             )
             _LOGGER.info(f"Downloading file to: '{file_abs_path}'")
-            download_file(project_sample.file_url, file_abs_path, no_fail=True)
+            download_file(
+                project_sample.file_url,
+                file_abs_path,
+                force=overwrite_downloads,
+                no_fail=True,
+            )
         else:
             file_abs_path = required_metadata.file_path
 
@@ -785,18 +800,9 @@ def _upload_gse(
             sample_status.bed_id = file_digest
             project_status.number_of_processed += 1
 
-        except BedBossException as exc:
-            _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
-            sample_status.status = STATUS.FAIL
-            sample_status.error = str(exc)
-            project_status.number_of_failed += 1
-
-            if skipper_obj:
-                skipper_obj.add_failed(
-                    f"{sample_gsm}_{sample_sample_name}", f"Error: {str(exc)}"
-                )
-
-        except GenimlBaseError as exc:
+        except Exception as exc:
+            if isinstance(exc, INFRA_ERRORS):
+                raise
             _LOGGER.error(f"Processing of '{sample_gsm}' failed with error: {str(exc)}")
             sample_status.status = STATUS.FAIL
             sample_status.error = str(exc)

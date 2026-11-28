@@ -12,7 +12,6 @@ command_template: >
   --sample-yaml {sample.yaml_file}
   --output-folder {sample.output_folder}
   --narrowpeak {sample.narrowpeak}
-  --rfg-config {sample.rfg_config_path}
   {% if sample.bedbase_config is defined %} --bedbase-config {sample.bedbase_config} {% endif %}
   {% if sample.chrom_sizes is defined %} --chrom-sizes {sample.chrom_sizes} {% endif %}
   {% if sample.open_signal_matrix is defined %} --open-signal-matrix {sample.open_signal_matrix} {% endif %}
